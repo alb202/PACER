@@ -1,18 +1,22 @@
 run_cutadapt <- function(){
-  cutadapt_cmd <- make_cutadapt_command()
+  trimmed_output <- paste(dataset_names["basename"],
+                          ".trimmed.fastq", sep = "")
+  cutadapt_cmd <- make_cutadapt_command(trimmed_output)
   cutadapt_output <- system(command = cutadapt_cmd,
                             wait = TRUE,
                             intern = TRUE)
   write(x = cutadapt_output,
-        file = paste(output_dir, "cutadapt_log.txt", sep = "/"), sep = "\t" )
-  return(cutadapt_cmd[2])
+        file = paste(dataset_names["output_dir"],
+                     "cutadapt_log.txt", sep = "/"),
+        sep = "\t" )
+  return(trimmed_output)
 }
 
-make_cutadapt_command <- function(){
+make_cutadapt_command <- function(trimmed_output){
   adapter_string <- make_adapter_string()
-  new_filename <- paste(output_dir,'/',filename,".trimmed.fastq", sep = "")
-  cutadapt_cmd <- paste("cutadapt","-m10",adapter_string, "-o", new_filename, localfile)
-  return(c(cutadapt_cmd, new_filename))
+  file_path <- paste(input_dir, "/", dataset_names["file"], sep="")
+  cutadapt_cmd <- paste("cutadapt","-m10", adapter_string, "-o", paste(dataset_names["output_dir"],'/',trimmed_output, sep = ""), file_path)
+  return(cutadapt_cmd)
 }
 
 make_adapter_string <- function(){
