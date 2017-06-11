@@ -8,6 +8,9 @@ adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "/raw_data", sep="")
 datasets <- c(WT_early_rep1="SRR5023999_100K_sample.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
+sam_files <- c(two_mismatch="-v2 -k4 --best -S",
+               no_mismatch="-v0 -k4 --best -S",
+               no_seed_mismatch="-n0 -e1000 -l22 -k4 --best -S")
 genome = "ce10"
 
 make_adapter_string <- function(){
@@ -24,7 +27,7 @@ make_adapter_string <- function(){
 
 make_cutadapt_command <- function(){
   adapter_string <- make_adapter_string()
-  new_filename <- paste(input_dir,'/',filename,".trimmed.fastq.gz", sep = "")
+  new_filename <- paste(output_dir,'/',filename,".trimmed.fastq", sep = "")
   cutadapt_cmd <- paste("cutadapt","-m10",adapter_string, "-o", new_filename, localfile)
   return(c(cutadapt_cmd, new_filename))
 }
@@ -37,13 +40,40 @@ create_output_dirs <- function(){
   return(paste(output_dir, name, sep = "/"))
 }
 
-make_bowtie_command <- function(input_file){
+make_bowtie_command <- function(input_file, bt_options, output_name ){
   print(input_file)
-  new_filename <- paste(output_dir,'/',filename,".sam", sep = "")
+  new_filename <- paste(output_dir,'/',output_name,"_",filename,".sam", sep = "")
   index_location <- paste(getwd(), "indexes", genome, genome, sep="/")
-  bowtie_cmd <- paste("gzip -d -c", input_file, "|", "bowtie", "-v2 -k4 --best -S", index_location, "-", new_filename, "2>&1", sep=" ")
-  #gzip -d -c SRR5023999_100K_sample.trimmed.fastq.gz | bowtie -v2 -k4 --best -S ../indexes/ce10/ce10  "-" SRR5023999_100K_sample.trimmed.sam
+  bowtie_cmd <- paste("bowtie", bt_options, index_location, input_file, new_filename, "2>&1", sep=" ")
   return(c(bowtie_cmd, new_filename))
+}
+
+run_bowtie <- function(trimmed_fastq, bt_options, output_name) {
+  bowtie_cmd <- make_bowtie_command(input_file = trimmed_fastq,
+                                    bt_options = bt_options,
+                                    output_name = output_name)
+  print(bowtie_cmd)
+  bowtie_output <- system(command = bowtie_cmd,
+                          wait = TRUE,
+                          intern = TRUE)
+
+  write(x = paste(bt_options, output_name, sep = " | "),
+        file = paste(output_dir, "bowtie_log.txt", sep = "/"),
+        sep = "\t",
+        append = TRUE)
+  write(x = bowtie_output,
+        file = paste(output_dir, "bowtie_log.txt", sep = "/"),
+        sep = "\t",
+        append = TRUE)
+}
+run_cutadapt <- function(){
+  cutadapt_cmd <- make_cutadapt_command()
+  cutadapt_output <- system(command = cutadapt_cmd,
+                            wait = TRUE,
+                            intern = TRUE)
+  write(x = cutadapt_output,
+        file = paste(output_dir, "cutadapt_log.txt", sep = "/"), sep = "\t" )
+  return(cutadapt_cmd[2])
 }
 
 for(i in 1:length(datasets)){
@@ -58,20 +88,13 @@ for(i in 1:length(datasets)){
   print(name)
   output_dir <- create_output_dirs()
   # Trim the adapter sequences
-  cutadapt_cmd <- make_cutadapt_command()
-  cutadapt_output <- system(command = cutadapt_cmd,
-                            wait = TRUE,
-                            intern = TRUE)
-  write(x = cutadapt_output,
-        file = paste(output_dir, "cutadapt_log.txt", sep = "/"), sep = "\t" )
-
+  trimmed_fastq <- run_cutadapt()
   #Align the reads using bowtie
-  bowtie_cmd <- make_bowtie_command(cutadapt_cmd[2])
-  print(bowtie_cmd)
-  bowtie_output <- system(command = bowtie_cmd,
-                            wait = TRUE,
-                            intern = TRUE)
-  write(x = bowtie_output,
-        file = paste(output_dir, "bowtie_log.txt", sep = "/"), sep = "\t" )
+  for(i in 1:length(sam_files)){
+    run_bowtie(trimmed_fastq, sam_files[i], names(sam_files[i]))
   }
+  system(command = paste("gzip -f", trimmed_fastq, sep = " "), wait = TRUE)
+
+}
+
 
