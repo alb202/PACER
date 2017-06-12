@@ -1,7 +1,7 @@
 #source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
-source("R/settings.R")
+source("R/other.R")
 #biocLite("SRAdb")
 #library(SRAdb)
 library(R.utils)
@@ -14,9 +14,9 @@ adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "/raw_data", sep="")
 datasets <- c(WT_early_rep1="SRR5023999_100K_sample.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
-sam_files <- c(two_mm="-v2 -k4 --best -S",
-               zero_mm="-v0 -k4 --best -S",
-               zero_seed_mm="-n0 -e1000 -l22 -k4 --best -S")
+bam_files <- c(two_mm="-v2 -k4 --best --strata -S",
+               zero_mm="-v0 -k4 --best --strata -S",
+               zero_seed_mm="-n0 -e1000 -l22 -k4 --best --strata -S")
 genome = "ce10"
 
 for (i in 1:length(datasets)){
@@ -50,13 +50,10 @@ for (i in 1:length(datasets)){
   print(dataset_names)
   #dataset_names[trimmed_fastq] <- run_cutadapt()
   #Align the reads using bowtie
-  for(j in 1:length(sam_files)){
-    dataset_names[names(sam_files[j])] <- run_bowtie(
-      #dataset_names["output_dir"],    # The directory of the trimmed fastq
-      #paste(dataset_names[basename],".trimmed.fastq", sep=""), # The trimmed fastq file name
-      sam_files[j],   # The options for this alignment file
-      names(sam_files[j]), # The name of the sam file configuration
-      dataset_names["basename"], # The basename of the file
+  for(j in 1:length(bam_files)){
+    dataset_names[names(bam_files[j])] <- run_bowtie(
+      bam_files[j],   # The options for this alignment file
+      names(bam_files[j]), # The name of the sam file configuration
       genome # ID of genome
     )
   print("4")
@@ -66,4 +63,6 @@ for (i in 1:length(datasets)){
                          wait = TRUE)
   )
 
+
 }
+
