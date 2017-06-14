@@ -36,6 +36,6 @@ make_bowtie_command <- function(trimmed_fastq_file, alignment_file, bt_options, 
   #output_sam
   #index_location <- paste(getwd(), "indexes", genome, genome, sep="/")
   #bowtie_cmd <- paste("bowtie", bt_options, genome_indexes[genome], trimmed_fastq_file, "| samtools view -bo", alignment_file,  sep=" ")
-  bowtie_cmd <- c(bt_options, genome_indexes[genome], trimmed_fastq_file, "2>>", paste(dataset_names["output_dir"], "/bowtie.log", sep = ""), "| samtools view -bo", alignment_file, "-")
+  bowtie_cmd <- c(bt_options, genome_indexes[genome], trimmed_fastq_file, "2>>", paste(dataset_names["output_dir"], "/bowtie.log", sep = ""), "| samtools sort - | samtools view -bo", alignment_file, "-")
   return(bowtie_cmd)
 }

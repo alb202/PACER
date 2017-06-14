@@ -5,20 +5,29 @@ source("R/other.R")
 #biocLite("SRAdb")
 #library(SRAdb)
 library(R.utils)
-#library(ShortRead)
+library(ShortRead)
+library(GenomicAlignments)
+#bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
 print("settings")
 dataset_names <- ""
-genome_indexes <- c(ce10 = paste(getwd(), "indexes", "ce10", "ce10", sep="/"))
+genome_indexes <- c(ce10 = paste(getwd(), "indexes", "ce10", "ce10", sep="/"),
+                    WBcel235 = paste(getwd(), "indexes", "WBcel235", "WBcel235", sep="/"))
 adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "/raw_data", sep="")
-datasets <- c(WT_early_rep1="SRR5023999_100K_sample.fastq.gz")
+datasets <- c(WT_early_rep1_full="SRR5023999.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
 bam_files <- c(two_mm="-v2 -k4 --best --strata -S",
                zero_mm="-v0 -k4 --best --strata -S",
                zero_seed_mm="-n0 -e1000 -l22 -k4 --best --strata -S")
-genome = "ce10"
-
+genome <- "WBcel235"
+genome_files <- tibble(type = c("genome", "sizes", "genes", "filter", "filter", "filter", "filter"),
+                       WBcel235 = c("Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
+                                    "ce11.chrom.sizes","Caenorhabditis_elegans.WBcel235.89.gff3",
+                                    "Caenorhabditis_elegans.WBcel235.89.snoRNA.gff3",
+                                    "Caenorhabditis_elegans.WBcel235.89.rRNA.gff3",
+                                    "Caenorhabditis_elegans.WBcel235.89.tRNA.gff3",
+                                    "Caenorhabditis_elegans.WBcel235.89.miRNA.gff3"))
 for (i in 1:length(datasets)){
   dataset_names <- c(file=NA, # The full name of the file (basename.ext)
                      basename=NA, # The basename of the file (basename)

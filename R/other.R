@@ -20,6 +20,3 @@ create_output_dirs <- function(name){
   return(new_dir)
 }
 
-load_intervals <- function(filepath, filetype){
-
-}
