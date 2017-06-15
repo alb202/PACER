@@ -28,6 +28,7 @@ genome_files <- tibble(type = c("genome", "sizes", "genes", "filter", "filter", 
                                     "Caenorhabditis_elegans.WBcel235.89.rRNA.gff3",
                                     "Caenorhabditis_elegans.WBcel235.89.tRNA.gff3",
                                     "Caenorhabditis_elegans.WBcel235.89.miRNA.gff3"))
+length_range <- c(minimum=10, maximum=30)
 for (i in 1:length(datasets)){
   dataset_names <- c(file=NA, # The full name of the file (basename.ext)
                      basename=NA, # The basename of the file (basename)
