@@ -2,6 +2,32 @@ library(GenomicAlignments)
 #library(VariantAnnotation)
 library(rtracklayer)
 library(dplyr)
+
+
+
+WBcel235_genes <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
+WBcel235_otherRNA <- subset(x = WBcel235_genes, biotype=="snoRNA" | biotype=="miRNA" | biotype=="rRNA" | biotype=="tRNA")
+WBcel235_genes_filtered <- subset(x = WBcel235_genes, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
+WBcel235_genes_filtered <- subset(x = WBcel235_genes, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
+
+
+load_alignments <- function(path, params=ScanBamParam(reverseComplement = FALSE, what = c("seq", "qname", "flag"))){
+  results <- readGAlignments(file = path, param = params)
+  return(sort.GenomicRanges(results))
+}
+
+
+
+
+
+#two_mismatches <- subsetByOverlaps(query = two_mismatches, subject = WBcel235_otherRNA, invert = TRUE)
+#two_mismatches <- readGAlignments(file = "output/WT_early_rep1_full/two_mm_SRR5023999.bam", param = ScanBamParam(reverseComplement = FALSE, what = c("seq", "qname", "flag")))
+
+
+
+
+
+
 #library(biomaRt)
 #mart <- useMart(biomart = "ensembl", dataset = "celegans_gene_ensembl")
 
@@ -17,9 +43,9 @@ library(dplyr)
 #new_bam <- subsetByOverlaps(subject = miRNA, query = bam, invert = TRUE)
 #load_intervals <- function(filepath, filetype){
 #  a <- readGAlignments(file = "output/WT_early_rep1/zero_mm_SRR5023999_100K_sample.bam")
-  #a <- scanBam(file = "output/WT_early_rep1/zero_mm_SRR5023999_100K_sample.bam",
-  #             param = ScanBamParam(what = scanBamWhat(), flag = scanBamFlag(isUnmappedQuery = FALSE)))
-  #a <- import(con = "output/WT_early_rep1/two_mm_SRR5023999_100K_sample.bam")
+#a <- scanBam(file = "output/WT_early_rep1/zero_mm_SRR5023999_100K_sample.bam",
+#             param = ScanBamParam(what = scanBamWhat(), flag = scanBamFlag(isUnmappedQuery = FALSE)))
+#a <- import(con = "output/WT_early_rep1/two_mm_SRR5023999_100K_sample.bam")
 #}
 
 
@@ -29,17 +55,6 @@ library(dplyr)
 # tRNA <- import("genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.tRNA.gff3")
 
 
-WBcel235_genes <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
-WBcel235_otherRNA <- subset(x = WBcel235_genes, biotype=="snoRNA" | biotype=="miRNA" | biotype=="rRNA" | biotype=="tRNA")
-WBcel235_genes_filtered <- subset(x = WBcel235_genes, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
-two_mismatches <- readGAlignments(file = "output/WT_early_rep1_full/two_mm_SRR5023999.bam", param = ScanBamParam(reverseComplement = FALSE, what = c("seq", "qname", "flag")))
-two_mismatches <- subsetByOverlaps(query = two_mismatches, subject = WBcel235_otherRNA, invert = TRUE)
-two_mismatches <- two_mismatches[qwidth(two_mismatches)>=length_range["minimum"] & qwidth(two_mismatches)<=length_range["maximum"]]
-counts <- rle(sort(as.character(mcols(two_mismatches)$seq)))
-counts_df <- data.frame(values=counts$values, lengths=counts$lengths)
-overreppresented <- subset(counts_df, lengths>(0.001*length(two_mismatches)))
-'%nin%' <- Negate('%in%')
-two_mismatches_filtered <- subset(two_mismatches, seq %nin% overreppresented$values)
 
 
 
@@ -48,8 +63,8 @@ two_mismatches_filtered <- subset(two_mismatches, seq %nin% overreppresented$val
 
 
 
-two_mismatches_5prime_assigned_to_longer <- assign_5prime_to_longer(alignments = two_mismatches_filtered, use_longer = TRUE)
-write.table(x = two_mismatches_5prime_assigned_to_longer, file = "two_mismatches_5prime_assigned_to_longer.tsv", sep="\t", quote = FALSE)
+#two_mismatches_5prime_assigned_to_longer <- assign_5prime_to_longer(alignments = two_mismatches_filtered, use_longer = TRUE)
+#write.table(x = two_mismatches_5prime_assigned_to_longer, file = "two_mismatches_5prime_assigned_to_longer.tsv", sep="\t", quote = FALSE)
 
 
 

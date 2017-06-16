@@ -1,3 +1,17 @@
+remove_overrepresented_sequences <- function(alignments, cutoff=0.001){
+  counts <- rle(sort(as.character(mcols(alignments)$seq)))
+  counts_df <- data.frame(values=counts$values, lengths=counts$lengths)
+  overreppresented <- subset(counts_df, lengths>(cutoff*length(alignments)))
+  '%nin%' <- Negate('%in%')
+  results <- subset(alignments, seq %nin% overreppresented$values)
+  return(sort.GenomicRanges(results))
+}
+
+filter_alignments_by_size_range <- function(alignments, minimum=10, maximum=30){
+  results <- alignments[qwidth(alignments)>=minimum & qwidth(alignments)<=maximum]
+  return(sort.GenomicRanges(results))
+}
+
 filter_reads_by_regions <- function(alignments, regions, type=c("both", "sense", "antisense"), invert=FALSE){
   if (type=="both") {
     results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=TRUE)

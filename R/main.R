@@ -17,17 +17,14 @@ adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "/raw_data", sep="")
 datasets <- c(WT_early_rep1_full="SRR5023999.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
-bam_files <- c(two_mm="-v2 -k4 --best --strata -S",
+alignment_settings <- c(two_mm="-v2 -k4 --best --strata -S",
                zero_mm="-v0 -k4 --best --strata -S",
                zero_seed_mm="-n0 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
-genome_files <- tibble(type = c("genome", "sizes", "genes", "filter", "filter", "filter", "filter"),
+genome_files <- tibble(type = c("genome", "sizes", "genes"),
                        WBcel235 = c("Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
-                                    "ce11.chrom.sizes","Caenorhabditis_elegans.WBcel235.89.gff3",
-                                    "Caenorhabditis_elegans.WBcel235.89.snoRNA.gff3",
-                                    "Caenorhabditis_elegans.WBcel235.89.rRNA.gff3",
-                                    "Caenorhabditis_elegans.WBcel235.89.tRNA.gff3",
-                                    "Caenorhabditis_elegans.WBcel235.89.miRNA.gff3"))
+                                    "ce11.chrom.sizes",
+                                    "Caenorhabditis_elegans.WBcel235.89.gff3"))
 length_range <- c(minimum=10, maximum=30)
 for (i in 1:length(datasets)){
   dataset_names <- c(file=NA, # The full name of the file (basename.ext)
@@ -60,10 +57,10 @@ for (i in 1:length(datasets)){
   print(dataset_names)
   #dataset_names[trimmed_fastq] <- run_cutadapt()
   #Align the reads using bowtie
-  for(j in 1:length(bam_files)){
-    dataset_names[names(bam_files[j])] <- run_bowtie(
-      bam_files[j],   # The options for this alignment file
-      names(bam_files[j]), # The name of the sam file configuration
+  for(j in 1:length(alignment_settings)){
+    dataset_names[names(alignment_settings[j])] <- run_bowtie(
+      alignment_settings[j],   # The options for this alignment file
+      names(alignment_settings[j]), # The name of the sam file configuration
       genome # ID of genome
     )
   print("4")
