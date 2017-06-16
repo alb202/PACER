@@ -20,3 +20,22 @@ create_output_dirs <- function(name){
   return(new_dir)
 }
 
+invert_vector <- function(x){
+  values <- unique.Vector(x)
+  value1 <- values[1]
+  value2 <- values[2]
+  if (is.na(value1)){
+    value1_index <- is.na(x)
+  } else{
+    value1_index <- x==value1
+  }
+  if (is.na(value2)){
+    value2_index <- is.na(x)
+  } else{
+    value2_index <- x==value2
+  }
+  x[value1_index] <- value2
+  x[value2_index] <- value1
+  return(x)
+}
+
