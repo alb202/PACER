@@ -3,12 +3,21 @@ library(GenomicAlignments)
 library(rtracklayer)
 library(dplyr)
 
+load_gene_intervals <- function(path){
+ results <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
+ return(sort.GenomicRanges(results))
+}
 
+filter_RNA_from_intervals <- function(intervals){
+  results <- subset(x = intervals, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
+  return(sort.GenomicRanges(results))
+}
 
-WBcel235_genes <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
-WBcel235_otherRNA <- subset(x = WBcel235_genes, biotype=="snoRNA" | biotype=="miRNA" | biotype=="rRNA" | biotype=="tRNA")
-WBcel235_genes_filtered <- subset(x = WBcel235_genes, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
-WBcel235_genes_filtered <- subset(x = WBcel235_genes, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
+#subset_gene_intervals <- function(intervals, )
+#WBcel235_genes <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
+#WBcel235_otherRNA <- subset(x = WBcel235_genes, biotype=="snoRNA" | biotype=="miRNA" | biotype=="rRNA" | biotype=="tRNA")
+#WBcel235_genes_filtered <- subset(x = WBcel235_genes, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
+#WBcel235_genes_filtered <- subset(x = WBcel235_genes, biotype!="snoRNA" & biotype!="miRNA" & biotype!="rRNA" & biotype!="tRNA")
 
 
 load_alignments <- function(path, params=ScanBamParam(reverseComplement = FALSE, what = c("seq", "qname", "flag"))){

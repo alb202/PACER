@@ -1,12 +1,18 @@
-#source("http://bioconductor.org/biocLite.R")
+source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
 source("R/other.R")
+source("R/filters.R")
 #biocLite("SRAdb")
 #library(SRAdb)
 library(R.utils)
 library(ShortRead)
 library(GenomicAlignments)
+library(rtracklayer)
+library(tibble)
+library(valr)
+library(tidyverse)
+library(seqbias)
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
 print("settings")
@@ -26,6 +32,8 @@ genome_files <- tibble(type = c("genome", "sizes", "genes"),
                                     "ce11.chrom.sizes",
                                     "Caenorhabditis_elegans.WBcel235.89.gff3"))
 length_range <- c(minimum=10, maximum=30)
+sequence_cutoff <- 0.001
+
 for (i in 1:length(datasets)){
   dataset_names <- c(file=NA, # The full name of the file (basename.ext)
                      basename=NA, # The basename of the file (basename)
@@ -33,9 +41,8 @@ for (i in 1:length(datasets)){
                      output_dir=NA # The output directory (.../outputdir/basename/)
                      )
   dataset_names["file"] <- datasets[i]
-
   dataset_names["basename"] <- strsplit(datasets[i], "\\.")[[1]][1]
-  print("1")
+  #print("1")
   if (is.na(names(datasets[i])))
     dataset_names["name"] <- dataset_names["basename"]
   else
@@ -47,14 +54,14 @@ for (i in 1:length(datasets)){
   #print(localfile)
   #print(filename)
   #print(name)
-  print(dataset_names)
-  print("1.5")
+  #print(dataset_names)
+  #print("1.5")
   dataset_names["output_dir"] <- create_output_dirs(dataset_names["name"])
-  print("2")
+  #print("2")
   # Trim the adapter sequences
   run_cutadapt()
-  print("3")
-  print(dataset_names)
+  #print("3")
+  #print(dataset_names)
   #dataset_names[trimmed_fastq] <- run_cutadapt()
   #Align the reads using bowtie
   for(j in 1:length(alignment_settings)){
@@ -63,13 +70,22 @@ for (i in 1:length(datasets)){
       names(alignment_settings[j]), # The name of the sam file configuration
       genome # ID of genome
     )
-  print("4")
+  #print("4")
   }
   system(command = paste("gzip -f",
                          paste(dataset_names["output_dir"],"/", dataset_names["basename"], ".trimmed.fastq", sep = ""),
                          wait = TRUE)
   )
-
-
 }
 
+chrom_sizes <- tbl_genome(x = read.table(file = paste(getwd(), "genomes", genome, genome_files[[2,genome]], sep = "/"), sep = "\t", col.names = c("chrom", "size")))
+gene_intervals <- load_gene_intervals(path = paste(output_dir, genome_files[[3,genome]], sep = "/"))
+gene_intervals_filtered <- filter_RNA_from_intervals(gene_intervals)
+two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
+print(length(two_mismatches))
+two_mismatches_filtered <- filter_reads_by_regions(alignments = two_mismatches, regions = gene_intervals_filtered, type = "both")
+print(length(two_mismatches_filtered))
+two_mismatches_filtered <- filter_alignments_by_size_range(alignments = two_mismatches_filtered, minimum = length_range["minimum"], maximum = length_range["maximum"])
+print(length(two_mismatches_filtered))
+two_mismatches_filtered <- remove_overrepresented_sequences(alignments = two_mismatches_filtered, cutoff = sequence_cutoff)
+print(length(two_mismatches_filtered))

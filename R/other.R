@@ -39,3 +39,16 @@ invert_vector <- function(x){
   return(x)
 }
 
+shuffle_intervals <- function(alignments, genome_sizes, n=NULL, regions=NULL, invert=FALSE, seed=0, stranded=TRUE){
+
+  strands <- c("+", "-")
+
+  if (is.null(n))
+    n <- length(alignments)
+  results <- ""
+  for (i in 1:n){
+
+  }
+
+  return(sort.GenomicRanges(results))
+}
