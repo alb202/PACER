@@ -48,7 +48,22 @@ shuffle_intervals <- function(alignments, genome_sizes, n=NULL, regions=NULL, in
   results <- ""
   for (i in 1:n){
 
+    makeGRangesFromDataFrame(data.frame(seqnames="I", start="38482", end="94998", strand="+"))
+    a <- c(a,makeGRangesFromDataFrame(data.frame(seqnames="IV", start="438482", end="594998", strand="-")))
   }
 
   return(sort.GenomicRanges(results))
+}
+
+swap_values <- function(x, old, new){
+  tmp <- list()
+  if (length(old)!= length(new))
+    stop("The vectors of old and new values must be the same length")
+  for(i in 1:length(old)){
+    tmp[[i]] <- x==old[i]
+  }
+  for(i in 1:length(old)){
+    x[tmp[[i]]] <- new[i]
+  }
+  return(x)
 }

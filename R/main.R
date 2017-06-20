@@ -78,9 +78,14 @@ for (i in 1:length(datasets)){
   )
 }
 
-chrom_sizes <- tbl_genome(x = read.table(file = paste(getwd(), "genomes", genome, genome_files[[2,genome]], sep = "/"), sep = "\t", col.names = c("chrom", "size")))
-gene_intervals <- load_gene_intervals(path = paste(output_dir, genome_files[[3,genome]], sep = "/"))
-gene_intervals_filtered <- filter_RNA_from_intervals(gene_intervals)
+#chrom_sizes <- tbl_genome(x = read.table(file = paste(getwd(), "genomes", genome, genome_files[[2,genome]], sep = "/"), sep = "\t", col.names = c("chrom", "size")))
+#gene_intervals <- load_gene_intervals(path = paste(output_dir, genome_files[[3,genome]], sep = "/"))
+mart <- get_mart()
+gene_intervals <- get_genes_from_biomart(mart = mart)
+gene_intervals <- filter_RNA_from_intervals(gene_intervals)
+exon_intervals <- get_exons_from_biomart(mart = mart)
+exon_intervals <- filter_by_metadata(target = exon_intervals, source = gene_intervals, column = "ensembl_gene_id")
+
 two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
 print(length(two_mismatches))
 two_mismatches_filtered <- filter_reads_by_regions(alignments = two_mismatches, regions = gene_intervals_filtered, type = "both")
