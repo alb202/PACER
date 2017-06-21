@@ -47,7 +47,7 @@ assign_5prime_to_a_length <- function(alignments, aln_length){
   # write.table(x = positive, file = "positive.tsv", sep="\t", quote = FALSE)
   return(sort.GenomicRanges(results))
 }
-two_mismatches_5prime_filtered <- assign_5prime_to_a_length(two_mismatches_filtered, 22)
+#two_mismatches_5prime_filtered <- assign_5prime_to_a_length(two_mismatches_filtered, 22)
 
 
 
