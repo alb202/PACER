@@ -16,7 +16,7 @@ library(rtracklayer)
 library(tidyverse)
 #library(seqbias)
 library(biomaRt)
-library(parallel)
+library(readr)
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
 print("settings")
