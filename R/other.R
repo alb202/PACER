@@ -55,37 +55,84 @@ swap_values <- function(x, old, new){
 shuffle_intervals <- function(alignments, intervals){
   # Turn the alignments into a data frame
   alignments <- data.frame(granges(alignments))
+  col_names <- colnames(alignments)
   # Reduce the intervals and turn into data frame
   inclusive <- data.frame(granges(GenomicRanges::reduce(x = intervals, ignore.strand=FALSE)))
   # Remove the old start and end columns from the alignments
-  alignments[c("start", "end")] <- NULL
+  alignments["start"] <- NULL
+  alignments["end"] <- NULL
   # Get the counts of each combination of chromosome, strand and width
   unique_rows <- plyr::count(alignments)
+  #print(colnames(unique_rows))
   # Create a blank data frame to store the new alignments
-  shuffled_alignments <- data.frame()
+  # print(names(unique_rows))
+  # shuffled_alignments <- data.frame()
   # Loop through each combination of chromosome, strand and width and create a set number of random intervals
-  for (i in 1:nrow(unique_rows)){
-    # Get the unique row
-    row1 <- (unique_rows[i,])
-    # Get only the inclusion intervals that are relevant for this unique row
-    intervals <- inclusive[inclusive$seqnames==row1$seqnames &
-                             inclusive$width>=row1$width &
-                             inclusive$strand==row1$strand,]
-    # Pick a random interval indeces, weighted for the size of the interval, with replacement
-    sampled_rows <- sample(x = 1:nrow(intervals), size = row1$freq, replace = TRUE, prob = intervals$width)#intervals[sampled_rows,]
-    # Use mapply on the random intervals to pick start and end positions within them, create a new dataframe row, and append it to the results
-    shuffled_alignments <- bind_rows(data.frame(t(with(intervals[sampled_rows, ], mapply(randomize, row1$seqnames, start, end, row1$width, row1$strand)))), shuffled_alignments)
-  }
+  # for (i in 1:nrow(unique_rows)){
+  #   # Get the unique row
+  #   row1 <- (unique_rows[i,])
+  # shuffled_alignments <- ct(data.frame((mapply(FUN = loop, as.character(unique_rows$seqnames), as.numeric(unique_rows$width),
+  #                              as.character(unique_rows$strand), as.numeric(unique_rows$freq)))), shuffled_alignments))
+  shuffled_alignments <- as_data_frame(t(data.frame(mapply(FUN = loop,
+                                             as.character(unique_rows$seqnames),
+                                             as.numeric(unique_rows$width),
+                                             as.character(unique_rows$strand),
+                                             as.numeric(unique_rows$freq)),
+                                      row.names = NULL, fix.empty.names = FALSE, stringsAsFactors = FALSE)))
+
+  colnames(shuffled_alignments) <- col_names
+  rownames(shuffled_alignments) <- NULL
   # Convert the results dataframe to a GRange and return it
-  return(makeGRangesFromDataFrame(df = shuffled_alignments, seqnames.field = "X1", start.field = "X2", end.field = "X3", strand.field = "X5"))
+  # print(shuffled_alignments)
+  #print(shuffled_alignments)
+  #print(class(shuffled_alignments))
+  # print(shuffled_alignments[[1]])
+  # print(class(shuffled_alignments[[1]]))
+  # print(shuffled_alignments[[1]][[1]])
+  # print(class(shuffled_alignments[[1]][[1]]))
+  #print(unlist(shuffled_alignments), recursive=FALSE, use.name=FALSE)
+  #print(t(data.frame(shuffled_alignments, row.names = NULL, fix.empty.names = FALSE, stringsAsFactors = FALSE)))
+  return(makeGRangesFromDataFrame(df = shuffled_alignments, seqnames.field = "seqnames", start.field = "start", end.field = "end", strand.field = "strand"))
+  #return(makeGRangesFromDataFrame(df = shuffled_alignments, seqnames.field = "X1", start.field = "X2", end.field = "X3", strand.field = "X5"))
+}
+
+loop <- function(seqnames, width, strand, counts){
+  # print(seqnames)
+  # print(width)
+  # print(strand)
+  # print(counts)
+  # Get only the inclusion intervals that are relevant for this unique row
+  intervals <- inclusive[inclusive$seqnames==seqnames &
+                           inclusive$width>=width &
+                           inclusive$strand==strand, ]
+  # Pick a random interval indeces, weighted for the size of the interval, with replacement
+  print(paste(seqnames[1], width[1], strand[1], counts, length(intervals$width), sep = " / "))
+  #print(counts)
+  #print(intervals$width)
+  intervals <- intervals[sample(x = 1:nrow(intervals), size = counts, replace = TRUE, prob = intervals$width), ]
+  # print(intervals)
+  # Use mapply on the random intervals to pick start and end positions within them, create a new dataframe row, and append it to the results
+  #shuffled_alignments <- bind_rows(data.frame(t(mapply(randomize, seqnames, intervals$start, intervals$end, width, strand, SIMPLIFY = TRUE))), shuffled_alignments)
+  shuffled_alignments <- mapply(randomize, seqnames, intervals$start, intervals$end, width, strand, SIMPLIFY = TRUE)
+  #rownames(shuffled_alignments) <- NULL
+  #colnames(shuffled_alignments) <- c("seqnames", "start", "end", "width", "strand")
+  #print(shuffled_alignments)
+  #print(class(shuffled_alignments))
+  return(shuffled_alignments)
 }
 
 # The randomize function that picks a start and end position within the intervals and returns a new position
 randomize <- function(chrom,start,end,width,strand){
   # Pick the new start position
+  #print(chrom)
+  #print(start)
+  #print(end)
+  #print(width)
+  #print(strand)
   new_start <- sample(x = start:(end-width), size = 1)
   # Return the new row after transposition
-  return(t(data.frame(seqnames=as.character(chrom), start=new_start, end=new_start+width, width=width, strand=as.character(strand), stringsAsFactors = FALSE)))
+  # return(t(data.frame(seqnames=as.character(chrom), start=new_start, end=new_start+width, width=width, strand=as.character(strand), stringsAsFactors = FALSE)))
+  return((c(seqnames=as.character(chrom), start=new_start, end=new_start+width, width=width, strand=as.character(strand))))
 }
 
 
