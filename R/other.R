@@ -52,75 +52,251 @@ swap_values <- function(x, old, new){
   return(x)
 }
 
-
-
-shuffle_intervals <- function(alignments, chromosome_sizes, sample=NULL, include=NULL, seed=0, stranded=TRUE, chrom=TRUE){
-  #eval(as.name("II"))
-  strands <- c("+", "-")
-  chromosomes <- levels(chromosome_sizes$chrom)
-  if (!is.null(include)){
-    if(class(include)[1] != "GRanges")
-      stop("'include' must be a GenomicRanges object")
-    for (i in chromosomes){
-      assign(x = i, value = include[seqnames(include)==i])
-    }
-  } else {
-    for (i in chromosomes){
-        assign(x = i,
-               value = GRanges(seqnames = rep(i,2),
-                               ranges = rep(IRanges(start = 1, end = chromosome_sizes$length[chromosome_sizes$chrom==i]),2),
-                               strand = strands))
-    }
+shuffle_intervals <- function(alignments, intervals){
+  # Turn the alignments into a data frame
+  alignments <- data.frame(granges(alignments))
+  # Reduce the intervals and turn into data frame
+  inclusive <- data.frame(granges(GenomicRanges::reduce(x = intervals, ignore.strand=FALSE)))
+  # Remove the old start and end columns from the alignments
+  alignments[c("start", "end")] <- NULL
+  # Get the counts of each combination of chromosome, strand and width
+  unique_rows <- plyr::count(alignments)
+  # Create a blank data frame to store the new alignments
+  shuffled_alignments <- data.frame()
+  # Loop through each combination of chromosome, strand and width and create a set number of random intervals
+  for (i in 1:nrow(unique_rows)){
+    # Get the unique row
+    row1 <- (unique_rows[i,])
+    # Get only the inclusion intervals that are relevant for this unique row
+    intervals <- inclusive[inclusive$seqnames==row1$seqnames &
+                             inclusive$width>=row1$width &
+                             inclusive$strand==row1$strand,]
+    # Pick a random interval indeces, weighted for the size of the interval, with replacement
+    sampled_rows <- sample(x = 1:nrow(intervals), size = row1$freq, replace = TRUE, prob = intervals$width)#intervals[sampled_rows,]
+    # Use mapply on the random intervals to pick start and end positions within them, create a new dataframe row, and append it to the results
+    shuffled_alignments <- bind_rows(data.frame(t(with(intervals[sampled_rows, ], mapply(randomize, row1$seqnames, start, end, row1$width, row1$strand)))), shuffled_alignments)
   }
-
-
-  if (!is.null(sample)){
-    if (!is.numeric(sample))
-      stop("'sample' must be numeric")
-    if (sample<=0)
-      stop("'sample' must be a positive number")
-    if (sample<1){
-      sample <- length(x = alignments)*sample
-    }
-    alignments <- sample(x = alignments, size = sample, replace = FALSE)
-  }
-  if (stranded==FALSE)
-    strand_probabilities <- c(sum(as.numeric(strand(two_mismatches_filtered)=="+")), sum(as.numeric(strand(two_mismatches_filtered)=="-")))
-  n <- length(alignments)
-  results <- GRanges()
-  for (i in 1:n){
-    print(i)
-    row <- alignments[i]
-    if (chrom==FALSE){
-      new_chrom <- as.character(sample(x = as.character(chromosome_sizes$chrom), size = 1, prob = chromosome_sizes$length))
-    } else {
-      new_chrom <- as.character(seqnames(row))
-    }
-    if (stranded==FALSE){
-      new_strand <- sample(x = strands, size = 1, prob = strand_probabilities)
-    } else {
-      new_strand <- as.character(strand(row))
-    }
-    width <- qwidth(alignments[i])
-    #eval(as.name(new_chrom))
-    intervals <- eval(as.name(new_chrom))[as.character(strand(eval(as.name(new_chrom))))==new_strand]
-    new_interval <- sample(intervals, size = 1)
-    tries <- 0
-    repeat
-    {
-      new_interval <- sample(intervals, size = 1)
-      if ((end(new_interval)-start(new_interval))>=width)
-        break
-      tries <- tries+1
-      if (tries == 50)
-        break
-    }
-    if (tries == 50)
-      next
-    new_start <- sample(x = start(new_interval):(end(new_interval)-width), size = 1)
-    results <- c(results, makeGRangesFromDataFrame(data.frame(seqnames=new_chrom, start=new_start, end=new_start+width, strand=new_strand)))
-    #a <- c(a,makeGRangesFromDataFrame(data.frame(seqnames="IV", start="438482", end="594998", strand="-")))
-  }
-  return(sort(sortSeqlevels(x = results)))
+  # Convert the results dataframe to a GRange and return it
+  return(makeGRangesFromDataFrame(df = shuffled_alignments, seqnames.field = "X1", start.field = "X2", end.field = "X3", strand.field = "X5"))
 }
+
+# The randomize function that picks a start and end position within the intervals and returns a new position
+randomize <- function(chrom,start,end,width,strand){
+  # Pick the new start position
+  new_start <- sample(x = start:(end-width), size = 1)
+  # Return the new row after transposition
+  return(t(data.frame(seqnames=as.character(chrom), start=new_start, end=new_start+width, width=width, strand=as.character(strand), stringsAsFactors = FALSE)))
+}
+
+
+
+# bedshuffle_compiled <- cmpfun(bedshuffle)
+#
+# # Redesign idea: get the exons and genes first, export them to the genome directory, then run bedtools on the raw BAM, then filter later
+# # Or just do a random shuffle, then only get the ones that overlap exons. Thats going to be only 2% though, and will be too dispersed.
+# # use bedtools bamtobed
+# bedshuffle <- function(alignments, chromosome_sizes, samp=NULL, include=NULL, seed=0, chrom=TRUE, max_tries=10){
+#   # The alignements must be a GenomicRanges or GenomicAlignments object
+#   if(class(alignments)[1] != "GAlignments" & class(alignments)[1] != "GRanges")
+#     stop("'alignments' must be a GenomicRanges or GenomicAlignments object")
+#   mcols(alignments) <- NULL
+#
+#   #if there is a sampling number included, take a sample of the alignments
+#   if (!is.null(samp)){
+#     if (!is.numeric(samp))
+#       stop("'sample' must be numeric")
+#     if (samp<=0)
+#       stop("'sample' must be a positive number")
+#     if (samp<1){
+#       samp <- length(x = alignments)*samp
+#     }
+#     alignments <- sample(x = alignments, size = samp, replace = FALSE)
+#   }
+#
+#   # If there are inclusion intervals, set the chromosome intervals using those
+#   if (!is.null(include)){
+#       if(class(include)[1] != "GRanges")
+#         stop("'include' must be a GenomicRanges object")
+#       mcols(include) <- NULL
+#       include_cmd <- paste("-incl include.bed")
+#   } else
+#   {
+#     include_cmd <- ""
+#   }
+#   # If the alignments should stay on the same chromosome
+#   if (isTRUE(chrom)){
+#     chrom_cmd <- "-chrom"
+#   } else{
+#     chrom_cmd <- ""
+#   }
+#   # Make the headers
+#   headers <- c("seqnames","start","end","strand")
+#   # Write the genome sizes
+#   write.table(data.frame(chromosome_sizes), file=paste(output_dir,"sizes.bed", sep="/"), quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+#   # Write the exon intervals
+#   write.table(data.frame(unique(include))[headers], file=paste(output_dir,"include.bed", sep="/"), quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+#   # Write the alignments
+#   write.table(data.frame(alignments)[headers], file=paste(output_dir,"alignments.bed", sep="/"), quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+#   # Create the arguments string
+#   shuffle_cmd <- paste("shuffle -i alignments.bed -g sizes.bed", chrom_cmd ,include_cmd, "-maxTries", max_tries, "-seed", seed, " | bedtools sort -i > shuffled.bed")
+#   # Set the output directory as the working directory
+#   oldwd <- getwd()
+#   setwd(output_dir)
+#   output <- system2(command = "bedtools", args = shuffle_cmd, wait = TRUE)
+#   results <- read.delim(file = paste(output_dir,"shuffled.bed", sep = "/"), col.names = headers, sep = "\t")
+#   setwd(oldwd)
+#   return(makeGRangesFromDataFrame(results))
+# }
+#   require(compiler)
+  # #enableJIT(3)
+  # shuffle_intervals_compiled <- cmpfun(shuffle_intervals)
+
+# shuffle_intervals <- function(alignments, chromosome_sizes, samp=NULL, include=NULL, seed=0, stranded=TRUE, chrom=TRUE, max_tries=20){
+#   # Setup the strand and chromosome possibilities
+#   strands <- c("+", "-")
+#   chromosomes <- levels(chromosome_sizes$chrom)
+#
+#   # If there are inclusion intervals, set the chromosome intervals using those
+#   if (!is.null(include)){
+#     if(class(include)[1] != "GRanges")
+#       stop("'include' must be a GenomicRanges object")
+#     for (i in chromosomes){
+#       assign(x = i, value = include[seqnames(include)==i])
+#     }
+#   }
+#   # If there are no inclusion intervals specified, use the entire chromosome and create an interval for both strands
+#   else {
+#     for (i in chromosomes){
+#       assign(x = i,
+#              value = GRanges(seqnames = rep(i,2),
+#                              ranges = rep(IRanges(start = 1, end = chromosome_sizes$length[chromosome_sizes$chrom==i]),2),
+#                              strand = strands))
+#     }
+#   }
+#   # if there is a sampling number included, take a sample of the alignments
+#   if (!is.null(samp)){
+#     if (!is.numeric(samp))
+#       stop("'sample' must be numeric")
+#     if (samp<=0)
+#       stop("'sample' must be a positive number")
+#     if (samp<1){
+#       samp <- length(x = alignments)*samp
+#     }
+#     alignments <- sample(x = alignments, size = samp, replace = FALSE)
+#   }
+#   # If the strands can be ignored, make the strand possibilities 50/50
+#   if (stranded==FALSE)
+#     strand_probabilities <- c(.5,.5)
+#   # Get the number of alignments to shuffle
+#   n <- length(alignments)
+#   # Initialized a GenomicRanges object to store the new alignments
+#   results <- GRanges()
+#   # Loop through the alignments and shuffle them
+#
+#
+#   if (chrom==FALSE){
+#     new_chroms <- as.character(sample(x = as.character(chromosome_sizes$chrom), size = n, replace = TRUE, prob = chromosome_sizes$length))
+#     }
+#   # if (stranded==FALSE){
+#   #   new_strands <- sample(x = strands, size = n, replace = TRUE, prob = strand_probabilities)
+#   # }
+#
+#   if (chrom==FALSE & stranded==FALSE){
+#     for (i in 1:n){
+#       print(i)
+#       # Get the alignment
+#       #row <- alignments[i]
+#       width <- qwidth(alignments[i])
+#       #intervals <- eval(as.name(new_chroms[i]))[as.character(strand(eval(as.name(new_chrom))))==new_strand]
+#       tries <- 0
+#       repeat
+#       {
+#         new_interval <- sample(eval(as.name(new_chroms[i])), size = 1, replace = TRUE)
+#         if ((end(new_interval)-start(new_interval))>=width)
+#           break
+#         tries <- tries+1
+#         if (tries == max_tries)
+#           next
+#       }
+#       # if (tries == max_tries)
+#       #   next
+#       new_start <- sample(x = start(new_interval):(end(new_interval)-width), size = 1)
+#       results <- c(results, makeGRangesFromDataFrame(data.frame(seqnames=new_chroms[i], start=new_start, end=new_start+width, strand=strand(new_interval))))
+#       #a <- c(a,makeGRangesFromDataFrame(data.frame(seqnames="IV", start="438482", end="594998", strand="-")))
+#     }
+#   }
+######
+#     else if (chrom==FALSE & stranded==TRUE){
+#   for (i in 1:n){
+#     print(i)
+#     # Get the alignment
+#     row <- alignments[i]
+#     if (chrom==FALSE){
+#       new_chrom <- as.character(sample(x = as.character(chromosome_sizes$chrom), size = 1, prob = chromosome_sizes$length))
+#     } else {
+#       new_chrom <- as.character(seqnames(row))
+#     }
+#     if (stranded==FALSE){
+#       new_strand <- sample(x = strands, size = 1, prob = strand_probabilities)
+#     } else {
+#       new_strand <- as.character(strand(row))
+#     }
+#     width <- qwidth(alignments[i])
+#     #eval(as.name(new_chrom))
+#     intervals <- eval(as.name(new_chrom))[as.character(strand(eval(as.name(new_chrom))))==new_strand]
+#     new_interval <- sample(intervals, size = 1)
+#     tries <- 0
+#     repeat
+#     {
+#       new_interval <- sample(intervals, size = 1)
+#       if ((end(new_interval)-start(new_interval))>=width)
+#         break
+#       tries <- tries+1
+#       if (tries == max_tries)
+#         break
+#     }
+#     if (tries == max_tries)
+#       next
+#     new_start <- sample(x = start(new_interval):(end(new_interval)-width), size = 1)
+#     results <- c(results, makeGRangesFromDataFrame(data.frame(seqnames=new_chrom, start=new_start, end=new_start+width, strand=new_strand)))
+#     #a <- c(a,makeGRangesFromDataFrame(data.frame(seqnames="IV", start="438482", end="594998", strand="-")))
+#   }
+#
+#   else if (chrom==TRUE & stranded==FALSE){
+#     for (i in 1:n){
+#       print(i)
+#       # Get the alignment
+#       row <- alignments[i]
+#       if (chrom==FALSE){
+#         new_chrom <- as.character(sample(x = as.character(chromosome_sizes$chrom), size = 1, prob = chromosome_sizes$length))
+#       } else {
+#         new_chrom <- as.character(seqnames(row))
+#       }
+#       if (stranded==FALSE){
+#         new_strand <- sample(x = strands, size = 1, prob = strand_probabilities)
+#       } else {
+#         new_strand <- as.character(strand(row))
+#       }
+#       width <- qwidth(alignments[i])
+#       #eval(as.name(new_chrom))
+#       intervals <- eval(as.name(new_chrom))[as.character(strand(eval(as.name(new_chrom))))==new_strand]
+#       new_interval <- sample(intervals, size = 1)
+#       tries <- 0
+#       repeat
+#       {
+#         new_interval <- sample(intervals, size = 1)
+#         if ((end(new_interval)-start(new_interval))>=width)
+#           break
+#         tries <- tries+1
+#         if (tries == max_tries)
+#           break
+#       }
+#       if (tries == max_tries)
+#         next
+#       new_start <- sample(x = start(new_interval):(end(new_interval)-width), size = 1)
+#       results <- c(results, makeGRangesFromDataFrame(data.frame(seqnames=new_chrom, start=new_start, end=new_start+width, strand=new_strand)))
+#       #a <- c(a,makeGRangesFromDataFrame(data.frame(seqnames="IV", start="438482", end="594998", strand="-")))
+#     }
+#    return(sort(sortSeqlevels(x = results)))
+#}
 

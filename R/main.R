@@ -16,6 +16,7 @@ library(rtracklayer)
 library(tidyverse)
 #library(seqbias)
 library(biomaRt)
+library(parallel)
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
 print("settings")
@@ -98,3 +99,6 @@ two_mismatches_filtered <- filter_alignments_by_size_range(alignments = two_mism
 print(length(two_mismatches_filtered))
 two_mismatches_filtered <- remove_overrepresented_sequences(alignments = two_mismatches_filtered, cutoff = sequence_cutoff)
 print(length(two_mismatches_filtered))
+
+two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals)
+print(length(two_mismatches_shuffled))
