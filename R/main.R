@@ -96,6 +96,7 @@ gene_intervals <- get_genes_from_biomart(mart = mart)
 gene_intervals <- filter_RNA_from_intervals(gene_intervals)
 exon_intervals <- get_exons_from_biomart(mart = mart)
 exon_intervals <- filter_by_metadata(target = exon_intervals, source = gene_intervals, column = "ensembl_gene_id")
+genome_sequence <- Biostrings::readDNAStringSet(filepath = paste("genomes", genome, genome_files$WBcel235[1], sep = "/"), format = "fasta", use.names = TRUE)
 
 two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
 print(length(two_mismatches))
