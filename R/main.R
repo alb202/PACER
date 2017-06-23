@@ -1,22 +1,28 @@
+library(GenomicAlignments)
+library(GenomicFeatures)
+library(biomaRt)
+library(tidyverse)
 source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
-source("R/other.R")
 source("R/filters.R")
 source("R/load.R")
+source("R/other.R")
+
+
 #biocLite("SRAdb")
 #library(SRAdb)
 #library(R.utils)
 #library(dplyr)
 #library(ShortRead)
-library(GenomicAlignments)
-library(rtracklayer)
+
+#library(rtracklayer)
 #library(tibble)
 #library(valr)
-library(tidyverse)
+
 #library(seqbias)
-library(biomaRt)
-library(readr)
+
+#library(readr)
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
 print("settings")
@@ -100,5 +106,6 @@ print(length(two_mismatches_filtered))
 two_mismatches_filtered <- remove_overrepresented_sequences(alignments = two_mismatches_filtered, cutoff = sequence_cutoff)
 print(length(two_mismatches_filtered))
 
+#two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals)
 two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals)
 print(length(two_mismatches_shuffled))

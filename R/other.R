@@ -67,7 +67,7 @@ shuffle_intervals <- function(alignments, intervals){
   # Save the column names for later
   col_names <- colnames(alignments)
   # Reduce the intervals and turn into data frame
-  inclusive <- data.frame(granges(GenomicRanges::reduce(x = intervals, ignore.strand=FALSE)))
+  intervals <- data.frame(granges(GenomicRanges::reduce(x = intervals, ignore.strand=FALSE)))
   # Remove the old start and end columns from the alignments
   alignments["start"] <- NULL
   alignments["end"] <- NULL
@@ -76,11 +76,14 @@ shuffle_intervals <- function(alignments, intervals){
   # Run mapply on every unique chromosome/strand/width and
   # save results to the shuffled alignments object
   shuffled_alignments <- as_data_frame(t(data.frame(mapply(FUN = loop,
-                                             as.character(unique_rows$seqnames),
-                                             as.numeric(unique_rows$width),
-                                             as.character(unique_rows$strand),
-                                             as.numeric(unique_rows$freq)),
-                                      row.names = NULL, fix.empty.names = FALSE, stringsAsFactors = FALSE)))
+                                                           as.character(unique_rows$seqnames),
+                                                           as.numeric(unique_rows$width),
+                                                           as.character(unique_rows$strand),
+                                                           as.numeric(unique_rows$freq),
+                                                           MoreArgs = list(intervals = intervals)),
+                                                    row.names = NULL,
+                                                    fix.empty.names = FALSE,
+                                                    stringsAsFactors = FALSE)))
   # Replace the column names and remove the row names from the results
   colnames(shuffled_alignments) <- col_names
   rownames(shuffled_alignments) <- NULL
@@ -96,18 +99,18 @@ shuffle_intervals <- function(alignments, intervals){
 }
 ## A helper function for shuffle_intervals
 # Loops through each combination of alignment properties
-loop <- function(seqnames, width, strand, freq){
+loop <- function(seqnames, width, strand, freq, intervals){
   # Get only the inclusion intervals that are relevant for this unique row
-  intervals <- inclusive[inclusive$seqnames==seqnames &
-                           inclusive$width>=width &
-                           inclusive$strand==strand, ]
+  intervals_subset <- intervals[intervals$seqnames==seqnames &
+                                  intervals$width>=width &
+                                  intervals$strand==strand, ]
   # If there are no intervals to place the shuffled alignment, return a placeholder instead
-  if (nrow(intervals) == 0)
+  if (nrow(intervals_subset) == 0)
     return(matrix(data = c("I", "1", "1", "0", "+"), nrow = 5, ncol = 1, dimnames = list(c("seqnames", "start", "end", "width", "strand"), "NA")))
   # Pick random interval indeces, weighted for the size of the interval, with replacement
-    intervals <- intervals[sample(x = 1:nrow(intervals), size = freq, replace = TRUE, prob = intervals$width), ]
+  intervals_subset <- intervals_subset[sample(x = 1:nrow(intervals_subset), size = freq, replace = TRUE, prob = intervals_subset$width), ]
   # Use mapply on the random intervals to pick start and end positions within them, create a new dataframe row, and append it to the results
-  shuffled_alignments <- mapply(randomize, seqnames, intervals$start, intervals$end, width, strand, SIMPLIFY = TRUE)
+  shuffled_alignments <- mapply(randomize, seqnames, intervals_subset$start, intervals_subset$end, width, strand, SIMPLIFY = TRUE)
   # Return the new alignments
   return(shuffled_alignments)
 }
@@ -122,9 +125,9 @@ randomize <- function(chrom,start,end,width,strand){
 }
 
 ## Export a GRange object as a BED file
-writeGRangesAsBED <- function(gr, filename, directory){
+write_granges_as_BED <- function(gr, filename, directory){
   # Convert the GRange to a dataframe
-  df <- data.frame(gr)
+  df <- data.frame(sort(sortSeqlevels(gr)))
   # Add a score column of zeros
   df$score <- rep(0,nrow(df))
   # Rearrange the columns and export to folder as BED file
@@ -134,3 +137,4 @@ writeGRangesAsBED <- function(gr, filename, directory){
               append = FALSE,
               col_names = FALSE)
 }
+

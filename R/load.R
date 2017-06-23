@@ -1,9 +1,4 @@
-#library(GenomicAlignments)
-#library(VariantAnnotation)
-#library(rtracklayer)
 
-#library(biomaRt)
-#library(GenomicFeatures)
 load_gene_intervals <- function(path){
  results <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
  return(sort.GenomicRanges(results))
