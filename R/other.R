@@ -61,13 +61,17 @@ swap_values <- function(x, old, new){
 }
 
 # Shuffle the alignments in a GRanges or GAlignments file within given intervals
-shuffle_intervals <- function(alignments, intervals){
+shuffle_intervals <- function(alignments, intervals, antisense=FALSE){
   # Turn the alignments into a data frame
   alignments <- data.frame(granges(alignments))
   # Save the column names for later
   col_names <- colnames(alignments)
   # Reduce the intervals and turn into data frame
   intervals <- data.frame(granges(GenomicRanges::reduce(x = intervals, ignore.strand=FALSE)))
+  # Create the new alignments antisense to the given intervals
+  if (antisense==TRUE)
+    strand(intervals) <- invert_vector(strand(intervals))
+
   # Remove the old start and end columns from the alignments
   alignments["start"] <- NULL
   alignments["end"] <- NULL
@@ -138,3 +142,8 @@ write_granges_as_BED <- function(gr, filename, directory){
               col_names = FALSE)
 }
 
+get_interval_length <- function(x){
+  x <- GRanges(x)
+  mcols(x)["width"] <- end(x)-start(x)
+  return(x)
+}

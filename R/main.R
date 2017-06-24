@@ -112,3 +112,7 @@ print(length(two_mismatches_filtered))
 #two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals)
 two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals)
 print(length(two_mismatches_shuffled))
+
+tm <- get_interval_length(two_mismatches_filtered)
+tm <- get_DNA_sequence(genome = genome_sequence, gr=tm, start = 0, end = 0, type = "5", name = "five_prime_end")
+tm <- get_DNA_sequence(genome = genome_sequence, gr=tm, start = 0, end = 0, type = "3", name = "three_prime_end")
