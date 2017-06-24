@@ -70,7 +70,7 @@ shuffle_intervals <- function(alignments, intervals, antisense=FALSE){
   intervals <- data.frame(granges(GenomicRanges::reduce(x = intervals, ignore.strand=FALSE)))
   # Create the new alignments antisense to the given intervals
   if (antisense==TRUE)
-    strand(intervals) <- invert_vector(strand(intervals))
+    intervals$strand <- invert_vector(intervals$strand)
 
   # Remove the old start and end columns from the alignments
   alignments["start"] <- NULL
@@ -94,12 +94,12 @@ shuffle_intervals <- function(alignments, intervals, antisense=FALSE){
   # Remove any alignments that didn't have an exon to be placed in
   shuffled_alignments <- subset(shuffled_alignments, !(seqnames=="I" & start==1 & end==1 & width==0 & strand=="+"))
   # Convert the results dataframe to a GRange, sort and return it
-  return(sort(sortSeqlevels(
+  return(sort.GenomicRanges(
     x = makeGRangesFromDataFrame(df = shuffled_alignments,
                                  seqnames.field = "seqnames",
                                  start.field = "start",
                                  end.field = "end",
-                                 strand.field = "strand"))))
+                                 strand.field = "strand")))
 }
 ## A helper function for shuffle_intervals
 # Loops through each combination of alignment properties
@@ -147,3 +147,4 @@ get_interval_length <- function(x){
   mcols(x)["width"] <- end(x)-start(x)
   return(x)
 }
+
