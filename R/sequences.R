@@ -1,21 +1,23 @@
+get_sequence_cmp <- cmpfun(get_sequence)
+
 get_sequence <- function(genome, gr){
   plus <- gr[strand(gr)=="+"]
   minus <- gr[strand(gr)=="-"]
   # Run the lookup on each interval, then add as metadata column
-  mcols(plus)["DNAseq"] <- mcmapply(FUN = get_genome_sequence_plus,
+  mcols(plus)["DNAseq"] <- mcmapply(FUN = get_genome_sequence_plus2,
                                   as.character(seqnames(plus)),
                                   as.numeric(start(plus)-10),
                                   as.numeric(end(plus)+10),
                                   #as.character(strand(plus)),
                                   MoreArgs = list(sequences = genome),
                                   USE.NAMES = FALSE)
-  mcols(minus)["DNAseq"] <- mcmapply(FUN = get_genome_sequence_minus,
+  mcols(minus)["DNAseq"] <- unlist(mclapply(mcmapply(FUN = get_genome_sequence_plus2,
                                     as.character(seqnames(minus)),
                                     as.numeric(start(minus)-10),
                                     as.numeric(end(minus)+10),
                                     #as.character(strand(minus)),
                                     MoreArgs = list(sequences = genome),
-                                    USE.NAMES = FALSE)
+                                    USE.NAMES = FALSE), FUN = function(x) as.character(reverseComplement(DNAString(x)))))
   # Sort the data and return
   #results <-
   return(sort.GenomicRanges(c(plus,minus)))
@@ -35,10 +37,28 @@ get_genome_sequence_plus <- function(chromosome, start, end, sequences){
 
 get_genome_sequence_minus <- function(chromosome, start, end, sequences){
   return(as.character(reverseComplement(sequences[[chromosome]][start:end])))
+}
 
+get_genome_sequence_plus2 <- function(chromosome, start, end, sequences){
+  return(paste(sequences[[chromosome]][start:end], collapse = ''))
+}
+
+get_genome_sequence_minus2 <- function(chromosome, start, end, sequences){
+  return(as.character(reverseComplement(DNAString(paste(sequences[[chromosome]][start:end], collapse = '')))))
 }
 
 
+
+rev_comp_DNA <- function(old_seq){
+  # Create the lookup list
+  RC <- list(A="T", C="G", G="C", T="A")
+  #Split the string into a vector
+  #split_seq <- strsplit(x = old_seq, split = "")[[1]]
+  #Run lapply on the vector to swap values, then reverse it, then turn back into string
+  #return(paste(rev(unname(unlist(mclapply(X = old_seq, FUN = function(x) RC[x])))), collapse = ''))
+  return(rev(unname(unlist(mclapply(X = old_seq, FUN = function(x) RC[x])))))
+  #return(result)
+}
 
 get_DNA_sequence <- function(genome, gr, start, end, type=c("5", "3", "full"), name){
 

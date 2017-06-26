@@ -101,3 +101,16 @@ filter_by_metadata <- function(target, source, column){
   results <- target[matches]
   return(sort.GenomicRanges(results))
 }
+
+load_fasta_genome <- function(path){
+  #TRy importing using DNAString() then converting to data.table
+  #data.table::fread(input = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.dna.chromosome.TEST.fa")
+  genome_fasta <- Biostrings::readDNAStringSet(filepath = path, format = "fasta", use.names = TRUE)
+  genome_sequence <- list()
+  #genome_fasta[strsplit(x = names(a)[1], split = " " )[[1]][1]] <- as.character(a[names(a)[[1]]])
+  for (i in 1:length(genome_fasta)){
+    genome_sequence[strsplit(x = names(genome_fasta)[i], split = " " )[[1]][1]] <-
+      strsplit(x = as.character(genome_fasta[i]), split = '')
+  }
+  return(genome_sequence)
+}
