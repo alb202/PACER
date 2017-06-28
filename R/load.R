@@ -114,3 +114,16 @@ load_fasta_genome <- function(path){
   }
   return(genome_sequence)
 }
+
+load_fasta_genome2 <- function(path){
+  #TRy importing using DNAString() then converting to data.table
+  #data.table::fread(input = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.dna.chromosome.TEST.fa")
+  genome_fasta <- Biostrings::readDNAStringSet(filepath = path, format = "fasta", use.names = TRUE)
+  genome_sequence <- list()
+  #genome_fasta[strsplit(x = names(a)[1], split = " " )[[1]][1]] <- as.character(a[names(a)[[1]]])
+  for (i in 1:length(genome_fasta)){
+    genome_sequence[strsplit(x = names(genome_fasta)[i], split = " " )[[1]][1]] <-
+      unlist(as.character(genome_fasta[i]))
+  }
+  return(genome_sequence)
+}

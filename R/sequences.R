@@ -1,3 +1,27 @@
+get_genome_sequence <- function(gr, genome_sequence){
+  new_list <- get_sequence(chrom = as.character(seqnames(gr)),
+                     start = as.numeric(start(gr)),
+                     end = as.numeric(end(gr)),
+                     strand = as.character(strand(gr)),
+                     genome = genome_sequence)
+  list_names <- names(new_list[[1]])
+  new_list <- transpose(new_list)
+  names(new_list) <- list_names
+  df <- data.frame(new_list)
+  df <- cbind.data.frame(mcols(gr), df)
+  mcols(gr) <- df
+  return(gr)
+  # a <- names(get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
+  # b <- transpose(get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
+  # names(b) <- a
+  # data.frame(b
+}
+
+
+
+
+
+
 #get_sequence_cmp <- cmpfun(get_sequence)
 get_sequence <- function(genome, gr){
   plus <- gr[strand(gr)=="+"]
@@ -153,3 +177,8 @@ get_genome_sequence_plus2 <- function(chromosome, start, end, sequences){
 #     result <- rev_comp_DNA(result)
 #   return(result)
 # }
+# a <- names(get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
+# b <- transpose(get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
+# names(b) <- a
+# data.frame(b
+

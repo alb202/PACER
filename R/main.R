@@ -4,13 +4,14 @@ library(biomaRt)
 library(tidyverse)
 library(Rcpp)
 library(data.table)
-source("http://bioconductor.org/biocLite.R")
+#source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
 source("R/filters.R")
 source("R/load.R")
 source("R/other.R")
 source("R/sequences.R")
+source("R/workflows.R")
 Rcpp::sourceCpp(file = "cpp/reverse_complement.cpp")
 
 #biocLite("SRAdb")
@@ -95,22 +96,19 @@ for (i in 1:length(datasets)){
 #gene_intervals <- load_gene_intervals(path = paste(output_dir, genome_files[[3,genome]], sep = "/"))
 mart <- get_mart(genome)
 chromosome_sizes <- load_genome_data(genome = genome)
-gene_intervals <- get_genes_from_biomart(mart = mart)
-gene_intervals <- filter_RNA_from_intervals(gene_intervals)
-exon_intervals <- get_exons_from_biomart(mart = mart)
-exon_intervals <- filter_by_metadata(target = exon_intervals, source = gene_intervals, column = "ensembl_gene_id")
+gene_intervals <- get_gene_intervals(mart = mart)
+exon_intervals <- get_exon_intervals(mart = mart, gene_intervals = gene_intervals)
+genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes", genome, genome_files$WBcel235[1], sep = "/"))
 #genome_sequence <- Biostrings::readDNAStringSet(filepath = paste("genomes", genome, genome_files$WBcel235[1], sep = "/"), format = "fasta", use.names = TRUE)
-genome_sequence <- load_fasta_genome(path = paste("genomes", genome, genome_files$WBcel235[1], sep = "/"))
 #names(genome_sequence) <- unlist(lapply(strsplit(x = names(genome_sequence), split = " "), FUN = '[[', 1))
 
 two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
-print(length(two_mismatches))
-two_mismatches_filtered <- filter_reads_by_regions(alignments = two_mismatches, regions = gene_intervals, type = "both")
-print(length(two_mismatches_filtered))
-two_mismatches_filtered <- filter_alignments_by_size_range(alignments = two_mismatches_filtered, minimum = length_range["minimum"], maximum = length_range["maximum"])
-print(length(two_mismatches_filtered))
-two_mismatches_filtered <- remove_overrepresented_sequences(alignments = two_mismatches_filtered, cutoff = sequence_cutoff)
-print(length(two_mismatches_filtered))
+two_mismatches <- filter_alignments(alignments = two_mismatches,
+                  regions = gene_intervals,
+                  regions_filter = "both",
+                  minimum = length_range["minimum"],
+                  maximum = length_range["maximum"],
+                  cutoff = sequence_cutoff)
 
 #two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals)
 two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals, antisense = TRUE)
@@ -124,7 +122,15 @@ print(length(two_mismatches_shuffled))
 # system.time(get_sequence(genome = genome_sequence, gr = tm))
 # system.time(get_sequence_cmp(genome = genome_sequence, gr = tm))
 
-two_mismatches_filtered <- get_sequence(gr = two_mismatches_filtered, genome = genome_sequence)
-print(length(two_mismatches_shuffled))
-two_mismatches_filtered <- split_sequences(gr = two_mismatches_filtered, column = "DNAseq")
-print(length(two_mismatches_shuffled))
+
+two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
+#two_mismatches_seq <- get_sequence(gr = two_mismatches, genome = genome_sequence)
+#print(length(two_mismatches_filtered_seq))
+genome_sequence2 <- load_fasta_genome2(path = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.dna.chromosome.fa")
+tm <- two_mismatches[1:500]
+#tm <- two_mismatches_filtered_seq[sample(x = 1:length(two_mismatches_filtered_seq), size = 100, replace = FALSE)]
+#tm <- split_sequences(gr = tm, column = "DNAseq")
+#print(length(tm))
+Rcpp::sourceCpp(file = "cpp/reverse_complement.cpp")
+get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
+system.time(two_mismatches_seq <- get_genome_sequence(gr = two_mismatches, genome_sequence = genome_sequence2))
