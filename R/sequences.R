@@ -1,15 +1,16 @@
 get_genome_sequence <- function(gr, genome_sequence){
-  new_list <- get_sequence(chrom = as.character(seqnames(gr)),
+  mcols(gr) <- cbind.data.frame(mcols(gr), data.frame(get_sequence2(chrom = as.character(seqnames(gr)),
                      start = as.numeric(start(gr)),
                      end = as.numeric(end(gr)),
                      strand = as.character(strand(gr)),
-                     genome = genome_sequence)
-  list_names <- names(new_list[[1]])
-  new_list <- transpose(new_list)
-  names(new_list) <- list_names
-  df <- data.frame(new_list)
-  df <- cbind.data.frame(mcols(gr), df)
-  mcols(gr) <- df
+                     genome = genome_sequence),
+                     stringsAsFactors = FALSE))
+  #list_names <- names(new_list[[1]])
+  #new_list <- transpose(new_list)
+  #names(new_list) <- list_names
+  #dt <- data.frame(new_list, stringsAsFactors = FALSE)
+  #df <- cbind.data.frame(mcols(gr), df)
+  #mcols(gr) <- df
   return(gr)
   # a <- names(get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
   # b <- transpose(get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)

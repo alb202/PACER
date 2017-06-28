@@ -98,7 +98,7 @@ mart <- get_mart(genome)
 chromosome_sizes <- load_genome_data(genome = genome)
 gene_intervals <- get_gene_intervals(mart = mart)
 exon_intervals <- get_exon_intervals(mart = mart, gene_intervals = gene_intervals)
-genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes", genome, genome_files$WBcel235[1], sep = "/"))
+#genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes", genome, genome_files$WBcel235[1], sep = "/"))
 #genome_sequence <- Biostrings::readDNAStringSet(filepath = paste("genomes", genome, genome_files$WBcel235[1], sep = "/"), format = "fasta", use.names = TRUE)
 #names(genome_sequence) <- unlist(lapply(strsplit(x = names(genome_sequence), split = " "), FUN = '[[', 1))
 
@@ -123,7 +123,7 @@ print(length(two_mismatches_shuffled))
 # system.time(get_sequence_cmp(genome = genome_sequence, gr = tm))
 
 
-two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
+#two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
 #two_mismatches_seq <- get_sequence(gr = two_mismatches, genome = genome_sequence)
 #print(length(two_mismatches_filtered_seq))
 genome_sequence2 <- load_fasta_genome2(path = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.dna.chromosome.fa")
@@ -134,3 +134,4 @@ tm <- two_mismatches[1:500]
 Rcpp::sourceCpp(file = "cpp/reverse_complement.cpp")
 get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
 system.time(two_mismatches_seq <- get_genome_sequence(gr = two_mismatches, genome_sequence = genome_sequence2))
+qplot(x = mcols(two_mismatches_seq[width(two_mismatches_seq)==22])$five)
