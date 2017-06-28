@@ -12,21 +12,8 @@ source("R/load.R")
 source("R/other.R")
 source("R/sequences.R")
 source("R/workflows.R")
-Rcpp::sourceCpp(file = "cpp/reverse_complement.cpp")
+Rcpp::sourceCpp(file = "cpp/cpp_functions.cpp")
 
-#biocLite("SRAdb")
-#library(SRAdb)
-#library(R.utils)
-#library(dplyr)
-#library(ShortRead)
-
-#library(rtracklayer)
-#library(tibble)
-#library(valr)
-
-#library(seqbias)
-
-#library(readr)
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
 print("settings")
@@ -92,16 +79,14 @@ for (i in 1:length(datasets)){
   )
 }
 
-#chrom_sizes <- tbl_genome(x = read.table(file = paste(getwd(), "genomes", genome, genome_files[[2,genome]], sep = "/"), sep = "\t", col.names = c("chrom", "size")))
-#gene_intervals <- load_gene_intervals(path = paste(output_dir, genome_files[[3,genome]], sep = "/"))
+## Get genomic features
 mart <- get_mart(genome)
 chromosome_sizes <- load_genome_data(genome = genome)
 gene_intervals <- get_gene_intervals(mart = mart)
 exon_intervals <- get_exon_intervals(mart = mart, gene_intervals = gene_intervals)
-#genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes", genome, genome_files$WBcel235[1], sep = "/"))
-#genome_sequence <- Biostrings::readDNAStringSet(filepath = paste("genomes", genome, genome_files$WBcel235[1], sep = "/"), format = "fasta", use.names = TRUE)
-#names(genome_sequence) <- unlist(lapply(strsplit(x = names(genome_sequence), split = " "), FUN = '[[', 1))
+genome_sequence <- load_fasta_genome(path = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.dna.chromosome.fa")
 
+## Load and filter the main alignment file
 two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
 two_mismatches <- filter_alignments(alignments = two_mismatches,
                   regions = gene_intervals,
@@ -110,28 +95,14 @@ two_mismatches <- filter_alignments(alignments = two_mismatches,
                   maximum = length_range["maximum"],
                   cutoff = sequence_cutoff)
 
-#two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals)
-two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches_filtered, intervals = exon_intervals, antisense = TRUE)
-print(length(two_mismatches_shuffled))
+## Create a shuffled version of the file
+two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches, intervals = exon_intervals, antisense = TRUE)
 
-# tm <- two_mismatches[sample(x = 1:length(two_mismatches), size = 1000, replace = FALSE)]
-# tm <- two_mismatches_filtered[sample(x = 1:length(two_mismatches_filtered), size = 10000, replace = FALSE)]
-# tm <- get_interval_length(two_mismatches_filtered)
-# tm <- get_DNA_sequence(genome = genome_sequence, gr=tm, start = 0, end = 0, type = "5", name = "five_prime_end")
-# tm <- get_DNA_sequence(genome = genome_sequence, gr=tm, start = 0, end = 0, type = "3", name = "three_prime_end")
-# system.time(get_sequence(genome = genome_sequence, gr = tm))
-# system.time(get_sequence_cmp(genome = genome_sequence, gr = tm))
+## Get the sequences for the actual and the shuffled alignments
+two_mismatches <- get_genome_sequence(
+  gr = two_mismatches, genome_sequence = genome_sequence)
+two_mismatches_shuffled <- get_genome_sequence(
+  gr = two_mismatches_shuffled, genome_sequence = genome_sequence)
 
-
-#two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
-#two_mismatches_seq <- get_sequence(gr = two_mismatches, genome = genome_sequence)
-#print(length(two_mismatches_filtered_seq))
-genome_sequence2 <- load_fasta_genome2(path = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.dna.chromosome.fa")
-tm <- two_mismatches[1:500]
-#tm <- two_mismatches_filtered_seq[sample(x = 1:length(two_mismatches_filtered_seq), size = 100, replace = FALSE)]
-#tm <- split_sequences(gr = tm, column = "DNAseq")
-#print(length(tm))
-Rcpp::sourceCpp(file = "cpp/reverse_complement.cpp")
-get_sequence(chrom = as.character(seqnames(tm)), start = as.numeric(start(tm)), end = as.numeric(end(tm)), strand = as.character(strand(tm)), genome = genome_sequence2)
-system.time(two_mismatches_seq <- get_genome_sequence(gr = two_mismatches, genome_sequence = genome_sequence2))
-qplot(x = mcols(two_mismatches_seq[width(two_mismatches_seq)==22])$five)
+qplot(x = mcols(two_mismatches[width(two_mismatches)==22])$five)
+qplot(x = mcols(two_mismatches_shuffled[width(two_mismatches_shuffled)==22])$five)
