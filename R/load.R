@@ -1,21 +1,64 @@
+filter_by_metadata <- function(target, source, column){
+
+  matches <- mcols(target)[,column] %in% mcols(source)[,column]
+  results <- target[matches]
+  return(sort.GenomicRanges(results))
+}
+
+get_exons_from_biomart <- function(mart){
+  exons <- exons <- biomaRt::getBM(
+    attributes = c("strand", "exon_chrom_start", "exon_chrom_end", "chromosome_name",
+                   "external_gene_name", "external_gene_source", "ensembl_gene_id",
+                   "ensembl_exon_id", "rank"), mart = mart)
+  exons$strand <- swap_values(x = exons$strand, old = c(1, -1), new = c("+", "-"))
+  new_grange <- makeGRangesFromDataFrame(
+    df=exons, seqnames.field = "chromosome_name", start.field = "exon_chrom_start",
+    end.field = "exon_chrom_end", strand.field = "strand", keep.extra.columns = TRUE)
+  return(sort.GenomicRanges(new_grange))
+}
+
+get_genes_from_biomart <- function(mart){
+  genes <- biomaRt::getBM(
+    attributes = c("chromosome_name", "start_position", "end_position", "strand",
+                   "description", "external_gene_name", "external_gene_source",
+                   "ensembl_gene_id", "source", "status", "gene_biotype"), mart = mart)
+  genes$strand <- swap_values(x = genes$strand, old = c(1, -1), new = c("+", "-"))
+  new_grange <- makeGRangesFromDataFrame(
+    df=genes, seqnames.field = "chromosome_name", start.field = "start_position",
+    end.field = "end_position", strand.field = "strand", keep.extra.columns = TRUE)
+  return(sort.GenomicRanges(new_grange))
+}
+
+get_mart <- function(genome){
+  mart_name <- c(listMarts()[[1,1]])
+  mart <- useMart(biomart = mart_name)
+  datasets_list <- listDatasets(mart = mart)
+  dataset <- datasets_list[datasets_list["version"]==genome][1]
+  mart <- useDataset(dataset = dataset, mart = mart)
+  return(mart)
+}
+
+load_alignments <- function(path, params=ScanBamParam(reverseComplement = FALSE, what = c("seq", "qname", "flag"), tag = c("XA", "MD", "NM"))){
+  return(sort.GenomicRanges(readGAlignments(file = path, param = params)))
+}
+
+load_fasta_genome <- function(path){
+  # Load the genome as a Biostrings object
+  genome_fasta <- Biostrings::readDNAStringSet(filepath = path, format = "fasta", use.names = TRUE)
+  # Create an empty list to store the sequences of each chromosome
+  genome_sequence <- list()
+  #genome_fasta[strsplit(x = names(a)[1], split = " " )[[1]][1]] <- as.character(a[names(a)[[1]]])
+  # Loop over each DNAstring, split the chromosome name, and save it in the list
+  for (i in 1:length(genome_fasta)){
+    genome_sequence[strsplit(x = names(genome_fasta)[i], split = " " )[[1]][1]] <-
+      unlist(as.character(genome_fasta[i]))
+  }
+  return(genome_sequence)
+}
+
 load_gene_intervals <- function(path){
  results <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
  return(sort.GenomicRanges(results))
-}
-
-filter_RNA_from_intervals <- function(intervals){
-  results <- subset(x = intervals,
-                    gene_biotype!="snoRNA" &
-                      gene_biotype!="miRNA" &
-                      gene_biotype!="rRNA" &
-                      gene_biotype!="tRNA" &
-                      gene_biotype!="snRNA")
-  return(sort.GenomicRanges(results))
-}
-
-load_alignments <- function(path, params=ScanBamParam(reverseComplement = FALSE, what = c("seq", "qname", "flag"))){
-  results <- readGAlignments(file = path, param = params)
-  return(sort.GenomicRanges(results))
 }
 
 load_genome_data <- function(genome){
@@ -59,57 +102,3 @@ load_genome_data <- function(genome){
 #   df=genes, seqnames.field = "chromosome_name", start.field = "start_position",
 #   end.field = "end_position", strand.field = "strand", keep.extra.columns = TRUE)
 # useEnsembl(biomart = c(marts[[1,1]]))
-
-get_mart <- function(genome){
-  mart_name <- c(listMarts()[[1,1]])
-  mart <- useMart(biomart = mart_name)
-  datasets_list <- listDatasets(mart = mart)
-  dataset <- datasets_list[datasets_list["version"]==genome][1]
-  mart <- useDataset(dataset = dataset, mart = mart)
-  return(mart)
-}
-
-get_genes_from_biomart <- function(mart){
-  genes <- biomaRt::getBM(
-    attributes = c("chromosome_name", "start_position", "end_position", "strand",
-                   "description", "external_gene_name", "external_gene_source",
-                   "ensembl_gene_id", "source", "status", "gene_biotype"), mart = mart)
-  genes$strand <- swap_values(x = genes$strand, old = c(1, -1), new = c("+", "-"))
-  new_grange <- makeGRangesFromDataFrame(
-    df=genes, seqnames.field = "chromosome_name", start.field = "start_position",
-    end.field = "end_position", strand.field = "strand", keep.extra.columns = TRUE)
-  return(sort.GenomicRanges(new_grange))
-}
-
-get_exons_from_biomart <- function(mart){
-  exons <- exons <- biomaRt::getBM(
-    attributes = c("strand", "exon_chrom_start", "exon_chrom_end", "chromosome_name",
-                   "external_gene_name", "external_gene_source", "ensembl_gene_id",
-                   "ensembl_exon_id", "rank"), mart = mart)
-  exons$strand <- swap_values(x = exons$strand, old = c(1, -1), new = c("+", "-"))
-  new_grange <- makeGRangesFromDataFrame(
-    df=exons, seqnames.field = "chromosome_name", start.field = "exon_chrom_start",
-    end.field = "exon_chrom_end", strand.field = "strand", keep.extra.columns = TRUE)
-  return(sort.GenomicRanges(new_grange))
-}
-
-filter_by_metadata <- function(target, source, column){
-
-  matches <- mcols(target)[,column] %in% mcols(source)[,column]
-  results <- target[matches]
-  return(sort.GenomicRanges(results))
-}
-
-load_fasta_genome <- function(path){
-  # Load the genome as a Biostrings object
-  genome_fasta <- Biostrings::readDNAStringSet(filepath = path, format = "fasta", use.names = TRUE)
-  # Create an empty list to store the sequences of each chromosome
-  genome_sequence <- list()
-  #genome_fasta[strsplit(x = names(a)[1], split = " " )[[1]][1]] <- as.character(a[names(a)[[1]]])
-  # Loop over each DNAstring, split the chromosome name, and save it in the list
-  for (i in 1:length(genome_fasta)){
-    genome_sequence[strsplit(x = names(genome_fasta)[i], split = " " )[[1]][1]] <-
-      unlist(as.character(genome_fasta[i]))
-  }
-  return(genome_sequence)
-}

@@ -15,6 +15,18 @@ create_output_dirs <- function(name){
   return(new_dir)
 }
 
+get_interval_length <- function(x){
+  x <- GRanges(x)
+  mcols(x)["width"] <- end(x)-start(x)
+  return(x)
+}
+
+
+gzip_a_file <- function(dir, file){
+  system(command = paste("gzip -f", paste(dir, file, sep = "/"), wait = TRUE))
+  return(TRUE)
+}
+
 ## Invert the locations of values in a vector of two values
 invert_vector <- function(x){
   # Get the unique set of values for the input vector
@@ -41,24 +53,6 @@ invert_vector <- function(x){
   return(x)
 }
 
-## Swap out any number of values of a vector to with different values
-swap_values <- function(x, old, new){
-  # Initialize a new list to temporarily store values
-  tmp <- list()
-  # Make sure there are the same number of values to be replaced as there are replacements
-  if (length(old)!= length(new))
-    stop("The vectors of old and new values must be the same length")
-  # Find the locations of the old values
-  for(i in 1:length(old)){
-    tmp[[i]] <- x==old[i]
-  }
-  # Replace them with the new values
-  for(i in 1:length(old)){
-    x[tmp[[i]]] <- new[i]
-  }
-  # Return the new list
-  return(x)
-}
 
 # Shuffle the alignments in a GRanges or GAlignments file within given intervals
 shuffle_intervals <- function(alignments, intervals, antisense=FALSE){
@@ -101,6 +95,26 @@ shuffle_intervals <- function(alignments, intervals, antisense=FALSE){
                                  end.field = "end",
                                  strand.field = "strand")))
 }
+
+## Swap out any number of values of a vector to with different values
+swap_values <- function(x, old, new){
+  # Initialize a new list to temporarily store values
+  tmp <- list()
+  # Make sure there are the same number of values to be replaced as there are replacements
+  if (length(old)!= length(new))
+    stop("The vectors of old and new values must be the same length")
+  # Find the locations of the old values
+  for(i in 1:length(old)){
+    tmp[[i]] <- x==old[i]
+  }
+  # Replace them with the new values
+  for(i in 1:length(old)){
+    x[tmp[[i]]] <- new[i]
+  }
+  # Return the new list
+  return(x)
+}
+
 ## A helper function for shuffle_intervals
 # Loops through each combination of alignment properties
 loop <- function(seqnames, width, strand, freq, intervals){
@@ -142,9 +156,4 @@ write_granges_as_BED <- function(gr, filename, directory){
               col_names = FALSE)
 }
 
-get_interval_length <- function(x){
-  x <- GRanges(x)
-  mcols(x)["width"] <- end(x)-start(x)
-  return(x)
-}
 

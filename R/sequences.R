@@ -12,35 +12,34 @@ get_genome_sequence <- function(gr, genome_sequence){
   return(gr)
 }
 
-#get_sequence_cmp <- cmpfun(get_sequence)
-get_sequence <- function(genome, gr){
-  plus <- gr[strand(gr)=="+"]
-  minus <- gr[strand(gr)=="-"]
-  # Run the lookup on each interval, then add as metadata column
-  mcols(plus)["DNAseq"] <- mcmapply(FUN = get_genome_sequence_plus2,
-                                    as.character(seqnames(plus)),
-                                    as.numeric(start(plus)-10),
-                                    as.numeric(end(plus)+10),
-                                    #as.character(strand(plus)),
-                                    MoreArgs = list(sequences = genome),
-                                    USE.NAMES = FALSE)
-
-  mcols(minus)["DNAseq"] <- unlist(mclapply(mcmapply(FUN = get_genome_sequence_plus2,
-                                                     as.character(seqnames(minus)),
-                                                     as.numeric(start(minus)-10),
-                                                     as.numeric(end(minus)+10),
-                                                     #as.character(strand(minus)),
-                                                     MoreArgs = list(sequences = genome),
-                                                     USE.NAMES = FALSE), FUN = function(x) reverse_complement(x)))
-                                                    #USE.NAMES = FALSE), FUN = function(x) as.character(reverseComplement(DNAString(x)))))
-  results <- c(plus,minus)
-
-  # Sort the data and return
-  #results <-
-  #return(sort.GenomicRanges(c(plus,minus)))
-  #results <- lapply(X = mcols(results[mcols(z)$DNAseq!=FALSE])$DNAseq, FUN = sequence_slice)
-  return(sort.GenomicRanges(results[mcols(results)$DNAseq!=FALSE]))
-}
+# get_sequence <- function(genome, gr){
+#   plus <- gr[strand(gr)=="+"]
+#   minus <- gr[strand(gr)=="-"]
+#   # Run the lookup on each interval, then add as metadata column
+#   mcols(plus)["DNAseq"] <- mcmapply(FUN = get_genome_sequence_plus,
+#                                     as.character(seqnames(plus)),
+#                                     as.numeric(start(plus)-10),
+#                                     as.numeric(end(plus)+10),
+#                                     #as.character(strand(plus)),
+#                                     MoreArgs = list(sequences = genome),
+#                                     USE.NAMES = FALSE)
+#
+#   mcols(minus)["DNAseq"] <- unlist(mclapply(mcmapply(FUN = get_genome_sequence_plus,
+#                                                      as.character(seqnames(minus)),
+#                                                      as.numeric(start(minus)-10),
+#                                                      as.numeric(end(minus)+10),
+#                                                      #as.character(strand(minus)),
+#                                                      MoreArgs = list(sequences = genome),
+#                                                      USE.NAMES = FALSE), FUN = function(x) reverse_complement(x)))
+#                                                     #USE.NAMES = FALSE), FUN = function(x) as.character(reverseComplement(DNAString(x)))))
+#   results <- c(plus,minus)
+#
+#   # Sort the data and return
+#   #results <-
+#   #return(sort.GenomicRanges(c(plus,minus)))
+#   #results <- lapply(X = mcols(results[mcols(z)$DNAseq!=FALSE])$DNAseq, FUN = sequence_slice)
+#   return(sort.GenomicRanges(results[mcols(results)$DNAseq!=FALSE]))
+# }
 
 split_sequences <- function(gr, column="DNAseq"){
   tmp <- mcols(gr)
@@ -67,12 +66,12 @@ split_sequences <- function(gr, column="DNAseq"){
 # get_genome_sequence_minus <- function(chromosome, start, end, sequences){
 #   return(as.character(reverseComplement(sequences[[chromosome]][start:end])))
 # }
-
-get_genome_sequence_plus2 <- function(chromosome, start, end, sequences){
-  if (start<1) return(FALSE)
-  if (end>length(sequences[[chromosome]])) return(FALSE)
-  return(paste(sequences[[chromosome]][start:end], collapse = ''))
-}
+#
+# get_genome_sequence_plus2 <- function(chromosome, start, end, sequences){
+#   if (start<1) return(FALSE)
+#   if (end>length(sequences[[chromosome]])) return(FALSE)
+#   return(paste(sequences[[chromosome]][start:end], collapse = ''))
+# }
 
 # get_genome_sequence_plus2_cmp <- cmpfun(get_genome_sequence_plus2)
 #

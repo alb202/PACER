@@ -1,33 +1,3 @@
-remove_overrepresented_sequences <- function(alignments, cutoff=0.001){
-  counts <- rle(sort(as.character(mcols(alignments)$seq)))
-  counts_df <- data.frame(values=counts$values, lengths=counts$lengths)
-  overreppresented <- subset(counts_df, lengths>(cutoff*length(alignments)))
-  '%nin%' <- Negate('%in%')
-  results <- subset(alignments, seq %nin% overreppresented$values)
-  return(sort.GenomicRanges(results))
-}
-
-filter_alignments_by_size_range <- function(alignments, minimum=10, maximum=30){
-  results <- alignments[qwidth(alignments)>=minimum & qwidth(alignments)<=maximum]
-  return(sort.GenomicRanges(results))
-}
-
-filter_reads_by_regions <- function(alignments, regions, type=c("both", "sense", "antisense"), invert=FALSE){
-  if (type=="both") {
-    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=TRUE)
-  }
-  if (type=="sense") {
-    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
-  }
-  if (type=="antisense") {
-    strand_info <- as.character(strand(regions))
-    strand(regions) <- invert_vector(strand_info)
-    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
-  }
-  return(sort.GenomicRanges(results))
-}
-
-
 assign_5prime_to_a_length <- function(alignments, aln_length){
   positive <- alignments[qwidth(alignments)==aln_length & strand(alignments)=="+"]
   negative <- alignments[qwidth(alignments)==aln_length & strand(alignments)=="-"]
@@ -38,18 +8,8 @@ assign_5prime_to_a_length <- function(alignments, aln_length){
   negative_results <- replace(x = negative_results, !is.na(negative_results), FALSE)
   negative_results <- replace(x = negative_results, is.na(negative_results), TRUE)
   full_results <- positive_results & negative_results
-  results <- c(alignments[full_results], positive, negative)
-  # print(length(positive))
-  # print(length(negative))
-  # print(length(two_mismatches_sorted[full_results]))
-  # sum(full_results)
-  # write.table(x = negative, file = "negative.tsv", sep="\t", quote = FALSE)
-  # write.table(x = positive, file = "positive.tsv", sep="\t", quote = FALSE)
-  return(sort.GenomicRanges(results))
+  return(sort.GenomicRanges(c(alignments[full_results], positive, negative)))
 }
-#two_mismatches_5prime_filtered <- assign_5prime_to_a_length(two_mismatches_filtered, 22)
-
-
 
 assign_5prime_to_longer <- function(alignments, use_longer=c(TRUE, FALSE)){
 
@@ -67,12 +27,59 @@ assign_5prime_to_longer <- function(alignments, use_longer=c(TRUE, FALSE)){
     negative_results <- replace(x = negative_results, !is.na(negative_results), FALSE)
     negative_results <- replace(x = negative_results, is.na(negative_results), TRUE)
     full_results <- positive_results & negative_results
-    # print(c("results", length(results)))
-    # print(c("lower", length(lower)))
-    # print(c("full_results", length(full_results)))
-    # print(c("positive_results", length(positive_results)))
-    # print(c("negative_results", length(negative_results)))
     results <- c(results, lower[full_results])
   }
+  return(sort.GenomicRanges(results))
+}
+
+filter_alignments_by_size_range <- function(alignments, minimum=10, maximum=30){
+  results <- alignments[qwidth(alignments)>=minimum & qwidth(alignments)<=maximum]
+  return(sort.GenomicRanges(results))
+}
+
+
+filter_BAM_tags <- function(gr){
+  no_mismatches_index <- mcols(gr)$NM==0
+  two_mismatches_index <- mcols(gr)$NM<=2
+  MD <- strsplit(x = x, split = "[A-Z]")
+  no_mismatches_in_seed_index <- (strand(gr)=="+" & unlist(lapply(X = MD, FUN = function(x) x[1]))>=22) |
+    (strand(gr)=="-" & unlist(lapply(X = MD, FUN = function(x) x[length(x)]))>=22)
+  return(list(no_mm=no_mismatches_index, two_mm=two_mismatches_index, no_mm_seed=no_mismatches_in_seed_index))
+}
+
+
+filter_reads_by_regions <- function(alignments, regions, type=c("both", "sense", "antisense"), invert=FALSE){
+  if (type=="both") {
+    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=TRUE)
+  }
+  if (type=="sense") {
+    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
+  }
+  if (type=="antisense") {
+    strand_info <- as.character(strand(regions))
+    strand(regions) <- invert_vector(strand_info)
+    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
+  }
+  return(sort.GenomicRanges(results))
+}
+
+
+filter_RNA_from_intervals <- function(intervals){
+  results <- subset(x = intervals,
+                    gene_biotype!="snoRNA" &
+                      gene_biotype!="miRNA" &
+                      gene_biotype!="rRNA" &
+                      gene_biotype!="tRNA" &
+                      gene_biotype!="snRNA")
+  return(sort.GenomicRanges(results))
+}
+
+
+remove_overrepresented_sequences <- function(alignments, cutoff=0.001){
+  counts <- rle(sort(as.character(mcols(alignments)$seq)))
+  counts_df <- data.frame(values=counts$values, lengths=counts$lengths)
+  overreppresented <- subset(counts_df, lengths>(cutoff*length(alignments)))
+  '%nin%' <- Negate('%in%')
+  results <- subset(alignments, seq %nin% overreppresented$values)
   return(sort.GenomicRanges(results))
 }

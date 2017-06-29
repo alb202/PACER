@@ -4,7 +4,7 @@ library(biomaRt)
 library(tidyverse)
 library(Rcpp)
 library(data.table)
-#source("http://bioconductor.org/biocLite.R")
+source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
 source("R/filters.R")
@@ -16,17 +16,15 @@ Rcpp::sourceCpp(file = "cpp/cpp_functions.cpp")
 
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
-print("settings")
-dataset_names <- ""
+#### Load settings
 genome_indexes <- c(ce10 = paste(getwd(), "indexes", "ce10", "ce10", sep="/"),
                     WBcel235 = paste(getwd(), "indexes", "WBcel235", "WBcel235", sep="/"))
 adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "/raw_data", sep="")
 datasets <- c(WT_early_rep1_full="SRR5023999.fastq.gz")
+datasets <- c(WT_early_rep1="SRR5023999_100K_sample.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
-alignment_settings <- c(two_mm="-v2 -k4 --best --strata -S",
-               zero_mm="-v0 -k4 --best --strata -S",
-               zero_seed_mm="-n0 -e1000 -l22 -k4 --best --strata -S")
+alignment_settings <- c(zero_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
 genome_files <- tibble(type = c("genome", "sizes", "genes"),
                        WBcel235 = c("Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
@@ -35,50 +33,23 @@ genome_files <- tibble(type = c("genome", "sizes", "genes"),
 length_range <- c(minimum=10, maximum=30)
 sequence_cutoff <- 0.001
 
-for (i in 1:length(datasets)){
-  dataset_names <- c(file=NA, # The full name of the file (basename.ext)
-                     basename=NA, # The basename of the file (basename)
-                     name=NA, # The descriptive name of the file (basename or other)
-                     output_dir=NA # The output directory (.../outputdir/basename/)
-                     )
-  dataset_names["file"] <- datasets[i]
-  dataset_names["basename"] <- strsplit(datasets[i], "\\.")[[1]][1]
-  #print("1")
-  if (is.na(names(datasets[i])))
-    dataset_names["name"] <- dataset_names["basename"]
-  else
-    dataset_names["name"] <- names(datasets[i])
-  #dataset_names["name"] <- names(datasets[i])
-  #if (dataset_names["name"] == "")
-  #  dataset_names["name"] <- dataset_names["basename"]
-  #localfile <- file.path(input_dir, file)
-  #print(localfile)
-  #print(filename)
-  #print(name)
-  #print(dataset_names)
-  #print("1.5")
-  dataset_names["output_dir"] <- create_output_dirs(dataset_names["name"])
-  #print("2")
-  # Trim the adapter sequences
-  run_cutadapt()
-  #print("3")
-  #print(dataset_names)
-  #dataset_names[trimmed_fastq] <- run_cutadapt()
-  #Align the reads using bowtie
-  for(j in 1:length(alignment_settings)){
-    dataset_names[names(alignment_settings[j])] <- run_bowtie(
-      alignment_settings[j],   # The options for this alignment file
-      names(alignment_settings[j]), # The name of the sam file configuration
-      genome # ID of genome
-    )
-  #print("4")
-  }
-  system(command = paste("gzip -f",
-                         paste(dataset_names["output_dir"],"/", dataset_names["basename"], ".trimmed.fastq", sep = ""),
-                         wait = TRUE)
-  )
-}
+#### Start the workflow
+## Set the names of the files that will be created
+dataset_info <- set_dataset_names(input_dir = input_dir, output_dir = output_dir, dataset_info = datasets)
 
+## Trim the adapter sequences
+trimmed_fastq_file <- run_cutadapt(adapter_file = adapter_file, dataset_info = dataset_info)
+
+## Align the reads using bowtie
+alignment_file <- run_bowtie(
+  alignment_settings[[1]],   # The options for this alignment file
+  names(alignment_settings), # The name of the sam file configuration
+  genome, # ID of genome
+  dataset_info) # Dataset names
+## Gzip the fastq file
+gzip_a_file(dir = dataset_info["output_dir"], file = trimmed_fastq_file)
+
+#### Import other genomic data
 ## Get genomic features
 mart <- get_mart(genome)
 chromosome_sizes <- load_genome_data(genome = genome)
@@ -87,13 +58,18 @@ exon_intervals <- get_exon_intervals(mart = mart, gene_intervals = gene_interval
 genome_sequence <- load_fasta_genome(path = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.dna.chromosome.fa")
 
 ## Load and filter the main alignment file
-two_mismatches <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
-two_mismatches <- filter_alignments(alignments = two_mismatches,
+alignments <- load_alignments(path = alignment_file)
+alignments <- filter_alignments(alignments = alignments,
                   regions = gene_intervals,
                   regions_filter = "both",
                   minimum = length_range["minimum"],
                   maximum = length_range["maximum"],
                   cutoff = sequence_cutoff)
+
+two_mm <- alignments[filter_BAM_tags(alignments)$two_mm]
+zero_mm <- alignments[filter_BAM_tags(alignments)$zero_mm]
+zero_mm_in_seed <- alignments[filter_BAM_tags(alignments)$zero_mm_in_seed]
+
 
 ## Create a shuffled version of the file
 two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches, intervals = exon_intervals, antisense = TRUE)
