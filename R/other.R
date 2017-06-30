@@ -155,5 +155,3 @@ write_granges_as_BED <- function(gr, filename, directory){
               append = FALSE,
               col_names = FALSE)
 }
-
-

@@ -41,11 +41,25 @@ filter_alignments_by_size_range <- function(alignments, minimum=10, maximum=30){
 filter_BAM_tags <- function(gr){
   no_mismatches_index <- mcols(gr)$NM==0
   two_mismatches_index <- mcols(gr)$NM<=2
-  MD <- strsplit(x = x, split = "[A-Z]")
-  no_mismatches_in_seed_index <- (strand(gr)=="+" & unlist(lapply(X = MD, FUN = function(x) x[1]))>=22) |
-    (strand(gr)=="-" & unlist(lapply(X = MD, FUN = function(x) x[length(x)]))>=22)
+  no_mismatches_in_seed_index <- mcmapply(FUN = filter_MD_tag, as.character(strand(gr)), as.numeric(mcols(gr)$NM), as.character(mcols(gr)$MD), USE.NAMES = FALSE)
   return(list(no_mm=no_mismatches_index, two_mm=two_mismatches_index, no_mm_seed=no_mismatches_in_seed_index))
 }
+
+filter_MD_tag <- function(Strand, NM, MD){
+  MD_split <- strsplit(x = MD, split = "[A-Z]")
+  if(Strand=="-")
+    MD_split <- rev(MD_split[[1]])
+  if((as.numeric(MD_split[[1]][1])>=as.numeric(22)) | (as.numeric(NM)==0))
+    return(TRUE)
+  else
+    return(FALSE)
+  # MD <- strsplit(x = mcols(gr)$MD, split = "[A-Z]")
+  # ((strand(gr)=="+" & unlist(lapply(X = MD, FUN = function(x) as.numeric(x[[1]])))>=22) |
+  #    (strand(gr)=="-" & unlist(lapply(X = rev(MD), FUN = function(x) as.numeric(x[[1]])))>=22) | )
+  #else()
+  #  return(FALSE)
+}
+
 
 filter_by_metadata <- function(target, source, column){
 

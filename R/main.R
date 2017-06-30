@@ -21,8 +21,8 @@ genome_indexes <- c(ce10 = paste(getwd(), "indexes", "ce10", "ce10", sep="/"),
                     WBcel235 = paste(getwd(), "indexes", "WBcel235", "WBcel235", sep="/"))
 adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "/raw_data", sep="")
-datasets <- c(WT_early_rep1_full="SRR5023999.fastq.gz")
-datasets <- c(WT_early_rep1="SRR5023999_100K_sample.fastq.gz")
+datasets <- c(WT_early_rep1_="SRR5023999.fastq.gz")
+#datasets <- c(WT_early_rep1_TEST="SRR5023999_100K_sample.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
 alignment_settings <- c(zero_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
@@ -58,22 +58,25 @@ genome_data <- load_genome_data(genome = genome)
 genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes",genome,as.character(genome_files[genome][1,]), sep="/"))
 
 ## Load and filter the main alignment file
-alignments <- load_alignments(path = alignment_file)
-alignments <- load_alignments(path = "output/WT_early_rep1_full/two_mm_SRR5023999.bam")
+#alignments <- load_alignments(path = alignment_file)
+alignments <- load_alignments(path = "output/WT_early_rep1_/zero_seed_mm_SRR5023999.bam")
 alignments <- filter_alignments(alignments = alignments,
-                  regions = genome_data["gene_intervals"],
+                  regions = genome_data[["gene_intervals"]],
                   regions_filter = "both",
                   minimum = length_range["minimum"],
                   maximum = length_range["maximum"],
                   cutoff = sequence_cutoff)
 
-two_mm <- alignments[filter_BAM_tags(alignments)$two_mm]
-zero_mm <- alignments[filter_BAM_tags(alignments)$zero_mm]
-zero_mm_in_seed <- alignments[filter_BAM_tags(alignments)$zero_mm_in_seed]
+mm_indexes <- filter_BAM_tags(alignments)
+two_mm <- alignments[mm_indexes$two_mm]
+no_mm <- alignments[mm_indexes$no_mm]
+no_mm_in_seed <- alignments[mm_indexes$no_mm_seed]
 
 
 ## Create a shuffled version of the file
-two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches, intervals = genome_data["exon_intervals"], antisense = TRUE)
+two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches,
+                                             intervals = genome_data[["exon_intervals"]],
+                                             antisense = TRUE)
 
 ## Get the sequences for the actual and the shuffled alignments
 two_mismatches <- get_genome_sequence(

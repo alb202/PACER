@@ -36,11 +36,12 @@ load_alignments <- function(path, params=ScanBamParam(reverseComplement = FALSE,
 }
 
 load_chromosome_sizes <- function(genome){
-  mart_datasets <- listDatasets(useMart(biomart=mart_name <- c(listMarts()[[1,1]]), host="www.ensembl.org"))
+  mart_name <- c(listMarts()[[1,1]])
+  mart_datasets <- listDatasets(useMart(biomart=mart_name, host="www.ensembl.org"))
   dataset_id <- mart_datasets[mart_datasets$version==genome,][[1]]
- chromosomes <- getChromInfoFromBiomart(biomart=marts[[1,1]],
-                                       dataset=dataset_id)
-  return(chromosomes)
+  #chromosomes <- getChromInfoFromBiomart(biomart=mart_name,
+  #                                     dataset=dataset_id)
+  return(getChromInfoFromBiomart(biomart=mart_name, dataset=dataset_id))
 }
 
 load_fasta_genome <- function(path){
