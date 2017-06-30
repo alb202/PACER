@@ -2,67 +2,109 @@
 #include <string>     // std::string, std::stoi
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 using namespace Rcpp;
+//
+// // [[Rcpp::export]]
+// Rcpp::LogicalVector filter_MD_tags3(std::string strand, Rcpp::StringVector MD){
+//   //std::cout << strand << NM << MD << "\n";
+//   int MD_length = MD.length();
+//   //std::string value;
+//   int MD_value;
+//   std::string MD_string;
+//   if (strand == "+"){
+//     MD_string = Rcpp::as< std::string >(MD(0));
+//     //std::cout << "+MD_String" << MD_string << "\n";
+//     std::stringstream(MD_string) >> MD_value;
+//     //std::cout << "+MD_Value" << MD_value << "\n";
+//   }
+//   if (strand == "-"){
+//     MD_string = Rcpp::as< std::string >(MD(MD_length-1));
+//     //std::cout << "-MD_String" << MD_string << "\n";
+//     std::stringstream(MD_string) >> MD_value;
+//     //std::cout << "-MD_Value" << MD_value << "\n";
+//   }
+//   if (MD_value >= 22){
+//     return Rcpp::LogicalVector(true);
+//   }
+//   return Rcpp::LogicalVector(false);
+// }
+//
+//
+//
+//
+//
+//
+// // [[Rcpp::export]]
+// Rcpp::LogicalVector filter_MD_tags(std::string strand, int NM, Rcpp::StringVector MD){
+//   if (NM == 0){
+//     return Rcpp::LogicalVector(true);
+//   }
+//   //std::cout << strand << NM << MD << "\n";
+//   int MD_length = MD.length();
+//   //std::string value;
+//   int MD_value;
+//   std::string MD_string;
+//   if (strand == "+"){
+//     MD_string = Rcpp::as< std::string >(MD(0));
+//     //std::cout << "+MD_String" << MD_string << "\n";
+//     std::stringstream(MD_string) >> MD_value;
+//     //std::cout << "+MD_Value" << MD_value << "\n";
+//   }
+//   if (strand == "-"){
+//     MD_string = Rcpp::as< std::string >(MD(MD_length-1));
+//     //std::cout << "-MD_String" << MD_string << "\n";
+//     std::stringstream(MD_string) >> MD_value;
+//     //std::cout << "-MD_Value" << MD_value << "\n";
+//   }
+//   if (MD_value >= 22){
+//     return Rcpp::LogicalVector(true);
+//   }
+//   return Rcpp::LogicalVector(false);
+// }
 
-
-
-// [[Rcpp::export]]
-Rcpp::LogicalVector filter_MD_tag(std::string strand, int NM, std::string MD){
-  if (NM == 0){
-    return Rcpp::LogicalVector(true);
-  }
-  //std::cout << strand << NM << MD << "\n";
-  int MD_length = MD.length();
-  std::string value;
-  int MD_value;
-  std::string MD_string;
-  if (strand == "+"){
-    int i = 0;
-    while (i < MD_length){
-      value = MD.substr(i,1);
-      if(value == "A" || value == "C" || value == "T" || value == "G" || value == "N"){
-        break;
-      }
-      i++;
-    }
-    MD_string = MD.substr(0,i);
-  }
-
-  if (strand == "-"){
-    int i = MD_length-1;
-    while (i >= 0){
-      value = MD.substr(i,1);
-      if(value == "A" || value == "C" || value == "T" || value == "G" || value == "N"){
-        break;
-      }
-      i--;
-      //std::cout << strand << MD << i << MD_length << "\n";
-      //printf("%d", i);
-    }
-    MD_string = MD.substr(i+1,MD_length-i);
-  }
-  std::stringstream(MD_string) >> MD_value;
-  if (MD_value >= 22){
-    return Rcpp::LogicalVector(true);
-  }
-  return Rcpp::LogicalVector(false);
-}
-//   MD_split <- strsplit(x = MD, split = "[A-Z]")
-//   if(Strand=="-")
-//     MD_split <- rev(MD_split[[1]])
-//     if((as.numeric(MD_split[[1]][1])>=as.numeric(22)) | (as.numeric(NM)==0))
-//       return(TRUE)
-//       else
-//         return(FALSE)
-// # MD <- strsplit(x = mcols(gr)$MD, split = "[A-Z]")
-// # ((strand(gr)=="+" & unlist(lapply(X = MD, FUN = function(x) as.numeric(x[[1]])))>=22) |
-// #    (strand(gr)=="-" & unlist(lapply(X = rev(MD), FUN = function(x) as.numeric(x[[1]])))>=22) | )
-// #else()
-// #  return(FALSE)
-//return Rcpp::LogicalVector(false);
-//}
-
-
+// // [[Rcpp::export]]
+// Rcpp::LogicalVector filter_MD_tag(std::string strand, int NM, std::string MD){
+//   if (NM == 0){
+//     return Rcpp::LogicalVector(true);
+//   }
+//   //std::cout << strand << NM << MD << "\n";
+//   int MD_length = MD.length();
+//   std::string value;
+//   int MD_value;
+//   std::string MD_string;
+//   if (strand == "+"){
+//     int i = 0;
+//     while (i < MD_length){
+//       value = MD.substr(i,1);
+//       if(value == "A" || value == "C" || value == "T" || value == "G" || value == "N"){
+//         break;
+//       }
+//       i++;
+//     }
+//     MD_string = MD.substr(0,i);
+//   }
+//
+//   if (strand == "-"){
+//     int i = MD_length;
+//     while (i > 0){
+//       i--;
+//       value = MD.substr(i,1);
+//       if(value == "A" || value == "C" || value == "T" || value == "G" || value == "N"){
+//         i = i+1;
+//         break;
+//       }
+//       //std::cout << strand << MD << i << MD_length << "\n";
+//       //printf("%d", i);
+//     }
+//     MD_string = MD.substr(i,MD_length-i);
+//   }
+//   std::stringstream(MD_string) >> MD_value;
+//   if (MD_value >= 22){
+//     return Rcpp::LogicalVector(true);
+//   }
+//   return Rcpp::LogicalVector(false);
+// }
 
 // [[Rcpp::export]]
 std::string reverse_complement(std::string DNAseq)

@@ -39,26 +39,38 @@ filter_alignments_by_size_range <- function(alignments, minimum=10, maximum=30){
 
 
 filter_BAM_tags <- function(gr){
+  # Get the index for alignments with no mismatches
   no_mismatches_index <- mcols(gr)$NM==0
+
+  # Get the index for alignments with up to 2 mismatches
   two_mismatches_index <- mcols(gr)$NM<=2
-  no_mismatches_in_seed_index <- mcmapply(FUN = filter_MD_tag, as.character(strand(gr)), as.numeric(mcols(gr)$NM), as.character(mcols(gr)$MD), USE.NAMES = FALSE)
+
+  # Get the index for alignments with no mismatches in the first 22 bases
+  MD_split <- strsplit(mcols(gr)$MD, split = "[A-Z]")
+  setA <- ifelse(as.numeric(mcols(gr)$NM)<=0, TRUE, FALSE)
+  setB <- ifelse(strand(gr)=="+"&unlist(lapply(X = MD_split, FUN = function(x) as.numeric(x[[1]][1])>=22)), TRUE, FALSE)
+  setC <- ifelse(strand(gr)=="-"&unlist(lapply(X = MD_split, FUN = function(x) as.numeric(x[[length(x)]][1])>=22)), TRUE, FALSE)
+  no_mismatches_in_seed_index <- setA | setB | setC
   return(list(no_mm=no_mismatches_index, two_mm=two_mismatches_index, no_mm_seed=no_mismatches_in_seed_index))
 }
-
-filter_MD_tag <- function(Strand, NM, MD){
-  MD_split <- strsplit(x = MD, split = "[A-Z]")
-  if(Strand=="-")
-    MD_split <- rev(MD_split[[1]])
-  if((as.numeric(MD_split[[1]][1])>=as.numeric(22)) | (as.numeric(NM)==0))
-    return(TRUE)
-  else
-    return(FALSE)
+#
+# filter_MD_tag <- function(strand, NM, MD){
+#   if(NM==0)
+#     return(TRUE)
+#   MD_split <- strsplit(x = MD, split = "[A-Z]")
+#   # return(filter_MD_tags3(strand = strand, MD = MD_split))
+#   if(strand=="-")
+#     MD_split <- rev(MD_split[[1]])
+#   if((as.numeric(MD_split[[1]][1])>=as.numeric(22)))
+#     return(TRUE)
+#   else
+#     return(FALSE)
   # MD <- strsplit(x = mcols(gr)$MD, split = "[A-Z]")
   # ((strand(gr)=="+" & unlist(lapply(X = MD, FUN = function(x) as.numeric(x[[1]])))>=22) |
   #    (strand(gr)=="-" & unlist(lapply(X = rev(MD), FUN = function(x) as.numeric(x[[1]])))>=22) | )
   #else()
-  #  return(FALSE)
-}
+#   #  return(FALSE)
+# }
 
 
 filter_by_metadata <- function(target, source, column){
