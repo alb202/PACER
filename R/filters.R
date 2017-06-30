@@ -47,6 +47,12 @@ filter_BAM_tags <- function(gr){
   return(list(no_mm=no_mismatches_index, two_mm=two_mismatches_index, no_mm_seed=no_mismatches_in_seed_index))
 }
 
+filter_by_metadata <- function(target, source, column){
+
+  matches <- mcols(target)[,column] %in% mcols(source)[,column]
+  results <- target[matches]
+  return(sort.GenomicRanges(results))
+}
 
 filter_reads_by_regions <- function(alignments, regions, type=c("both", "sense", "antisense"), invert=FALSE){
   if (type=="both") {
@@ -73,7 +79,6 @@ filter_RNA_from_intervals <- function(intervals){
                       gene_biotype!="snRNA")
   return(sort.GenomicRanges(results))
 }
-
 
 remove_overrepresented_sequences <- function(alignments, cutoff=0.001){
   counts <- rle(sort(as.character(mcols(alignments)$seq)))

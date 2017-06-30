@@ -1,12 +1,5 @@
-filter_by_metadata <- function(target, source, column){
-
-  matches <- mcols(target)[,column] %in% mcols(source)[,column]
-  results <- target[matches]
-  return(sort.GenomicRanges(results))
-}
-
 get_exons_from_biomart <- function(mart){
-  exons <- exons <- biomaRt::getBM(
+  exons <- biomaRt::getBM(
     attributes = c("strand", "exon_chrom_start", "exon_chrom_end", "chromosome_name",
                    "external_gene_name", "external_gene_source", "ensembl_gene_id",
                    "ensembl_exon_id", "rank"), mart = mart)
@@ -42,12 +35,19 @@ load_alignments <- function(path, params=ScanBamParam(reverseComplement = FALSE,
   return(sort.GenomicRanges(readGAlignments(file = path, param = params)))
 }
 
+load_chromosome_sizes <- function(genome){
+  mart_datasets <- listDatasets(useMart(biomart=mart_name <- c(listMarts()[[1,1]]), host="www.ensembl.org"))
+  dataset_id <- mart_datasets[mart_datasets$version==genome,][[1]]
+ chromosomes <- getChromInfoFromBiomart(biomart=marts[[1,1]],
+                                       dataset=dataset_id)
+  return(chromosomes)
+}
+
 load_fasta_genome <- function(path){
   # Load the genome as a Biostrings object
   genome_fasta <- Biostrings::readDNAStringSet(filepath = path, format = "fasta", use.names = TRUE)
   # Create an empty list to store the sequences of each chromosome
   genome_sequence <- list()
-  #genome_fasta[strsplit(x = names(a)[1], split = " " )[[1]][1]] <- as.character(a[names(a)[[1]]])
   # Loop over each DNAstring, split the chromosome name, and save it in the list
   for (i in 1:length(genome_fasta)){
     genome_sequence[strsplit(x = names(genome_fasta)[i], split = " " )[[1]][1]] <-
@@ -56,49 +56,73 @@ load_fasta_genome <- function(path){
   return(genome_sequence)
 }
 
-load_gene_intervals <- function(path){
- results <- import(con = "genomes/WBcel235/Caenorhabditis_elegans.WBcel235.89.gff3")
- return(sort.GenomicRanges(results))
-}
-
 load_genome_data <- function(genome){
-  marts <- listMarts()
-  useMart(marts[[1,1]])
-  mart_datasets <- listDatasets(useMart(biomart=marts[[1,1]], host="www.ensembl.org"))
-  dataset_id <- mart_datasets[mart_datasets$version==genome,][[1]]
-  chromosomes <- getChromInfoFromBiomart(biomart=marts[[1,1]],
-                                       dataset=dataset_id)
-  return(chromosomes)
+  genomes_path <- paste(getwd(),"genomes",genome, sep="/")
+  files <- dir(path = genomes_path)
+
+  gene_file_name <- paste(genome,"_gene_intervals.tsv", sep = "")
+  if(gene_file_name %in% files){
+    print("Found")
+    gene_intervals <- makeGRangesFromDataFrame(read_tsv(paste(genomes_path,
+                                                              gene_file_name,
+                                                              sep = "/"),
+                                                        col_names = TRUE),
+                                               keep.extra.columns = TRUE)
+  } else{
+    if(!exists("mart")){
+      mart <- get_mart(genome = genome)
+      "new mart"
+    }
+    gene_intervals <- get_genes_from_biomart(mart = mart)
+    gene_intervals <- filter_RNA_from_intervals(gene_intervals)
+    write_data_to_TSV(data = data.frame(gene_intervals),
+                      path = genomes_path,
+                      filename = gene_file_name)
+  }
+
+  exon_file_name <- paste(genome,"_exon_intervals.tsv", sep = "")
+  if(exon_file_name %in% files){
+    exon_intervals <- makeGRangesFromDataFrame(df = read_tsv(file = paste(genomes_path,
+                                                                          exon_file_name,
+                                                                          sep = "/"),
+                                                             col_names = TRUE),
+                                               keep.extra.columns = TRUE)
+  } else{
+    if(!exists("mart")){
+      mart <- get_mart(genome = genome)
+    }
+    exon_intervals <- get_exons_from_biomart(mart = mart)
+    exon_intervals <- filter_by_metadata(target = exon_intervals, source = gene_intervals, column = "ensembl_gene_id")
+    write_data_to_TSV(data = data.frame(exon_intervals),
+                      path = genomes_path,
+                      filename = exon_file_name)
+  }
+
+  chromosome_sizes_file <- paste(genome,"_chromosome_sizes.tsv", sep = "")
+  if(chromosome_sizes_file %in% files){
+    chromosome_sizes <- read_tsv(paste(genomes_path,
+                                       chromosome_sizes_file,
+                                       sep = "/"),
+                                 col_names = TRUE)
+  } else{
+    if(!exists("mart")){
+      mart <- get_mart(genome = genome)
+    }
+    chromosome_sizes <- load_chromosome_sizes(genome)
+    write_data_to_TSV(data = chromosome_sizes,
+                      path = genomes_path,
+                      filename = chromosome_sizes_file)
+  }
+
+  return(list(chromosome_sizes=chromosome_sizes,
+              gene_intervals=gene_intervals,
+              exon_intervals=exon_intervals))
 }
 
-# get exons by gene
-# txdb <- makeTxDbFromBiomart(biomart="ensembl",dataset="celegans_gene_ensembl")
-
-# library(ensembldb)
-# library(AnnotationHub)
-# source("https://bioconductor.org/biocLite.R")
-#biocLite("biomaRt")
-
-# marts <- listMarts()
-# useMart(marts[[1,1]])
-# GenomicFeatures::getChromInfoFromBiomart(dataset = dataset_id)
-# chrom_sizes <- GenomicFeatures::getChromInfoFromBiomart(dataset = dataset_id)
-# um <- useMart(marts[[1,1]], dataset = c(dataset_id))
-# biomaRt::useEnsembl("ensembl", a)
-# biomaRt::listFilters(um)
-# bm_exons <- biomaRt::getBM(
-#   attributes = c("external_gene_name", "external_gene_source","ensembl_gene_id",
-#                  "ensembl_exon_id", "strand", "start_position", "end_position",
-#                  "exon_chrom_start", "exon_chrom_end","rank",
-#                  "5_utr_start" ,"5_utr_end" ,"3_utr_start" ,"3_utr_end"), mart = um)
-#
-# bm_genes <- biomaRt::getBM(
-#   attributes = c("description", "external_gene_name", "external_gene_source",
-#                  "ensembl_gene_id", "chromosome_name", "strand", "start_position",
-#                  "end_position", "source", "status", "gene_biotype"), mart = um)
-# bm_genes$strand <- replace(x = bm_genes$strand, list = bm_genes$strand=="-1", "-")
-# bm_genes$strand <- replace(x = bm_genes$strand, list = bm_genes$strand=="1", "+")
-# GenomicRanges::makeGRangesFromDataFrame(
-#   df=genes, seqnames.field = "chromosome_name", start.field = "start_position",
-#   end.field = "end_position", strand.field = "strand", keep.extra.columns = TRUE)
-# useEnsembl(biomart = c(marts[[1,1]]))
+write_data_to_TSV <- function(data, path, filename){
+  write_delim(
+    data,
+    path = paste(path,filename, sep="/"),
+    delim = "\t",
+    col_names = TRUE)
+}
