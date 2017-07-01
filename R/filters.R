@@ -88,8 +88,7 @@ filter_reads_by_regions <- function(alignments, regions, type=c("both", "sense",
     results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
   }
   if (type=="antisense") {
-    strand_info <- as.character(strand(regions))
-    strand(regions) <- invert_vector(strand_info)
+    strand(regions) <- invert_vector(as.character(strand(regions)))
     results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
   }
   return(sort.GenomicRanges(results))

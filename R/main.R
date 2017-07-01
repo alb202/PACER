@@ -4,6 +4,7 @@ library(biomaRt)
 library(tidyverse)
 library(Rcpp)
 library(data.table)
+library(scales)
 source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
@@ -79,10 +80,10 @@ two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches,
                                              antisense = TRUE)
 
 ## Get the sequences for the actual and the shuffled alignments
-two_mismatches <- get_genome_sequence(
-  gr = two_mismatches, genome_sequence = genome_sequence)
-two_mismatches_shuffled <- get_genome_sequence(
-  gr = two_mismatches_shuffled, genome_sequence = genome_sequence)
+two_mm <- get_genome_sequence(
+  gr = two_mm, genome_sequence = genome_sequence)
+two_mm_shuffled <- get_genome_sequence(
+  gr = two_mm_shuffled, genome_sequence = genome_sequence)
 
-qplot(x = mcols(two_mismatches[width(two_mismatches)==22])$five)
-qplot(x = mcols(two_mismatches_shuffled[width(two_mismatches_shuffled)==22])$five)
+qplot(x = mcols(two_mm[width(two_mm)==22])$five)
+qplot(x = mcols(two_mm_shuffled[width(two_mm_shuffled)==22])$five)
