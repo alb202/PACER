@@ -16,21 +16,22 @@ five_prime_plot <- function(gr, min=NULL, max=NULL){
 }
 
 
-length_scatter_plot <- function(gr, regions, x_length, overlap = "sense", min=NULL, max=NULL){
-
-  df <- count_overlaps_by_width(gr = gr, regions = regions, overlap = overlap)
-  melted_df <- data.table::melt(df, id.vars=c(x_length, "Gene_strand"))
-  p <- ggplot(data = melted_df) +
-    geom_point(aes(x=melted_df[as.character(x_length)], y=melted_df$value)) +
-    xlab(paste(x_length, "nt reads", sep = "")) +
+length_scatter_plot <- function(df, comparison_col, min=NULL, max=NULL){
+  melted_df <- data.table::melt(df, id.vars=c(comparison_col, "Gene_strand"))
+  p <- ggplot(data = melted_df, aes(x=melted_df[as.character(comparison_col)], y=melted_df$value)) +
+    geom_point(inherit.aes = TRUE, size=.5) +
+    xlab(paste(comparison_col, "nt reads", sep = "")) +
     ylab("Count") +
     #scale_colour_manual(values = c("blue","red","darkgreen","purple")) +
     #theme(legend.title=element_blank()) +
-    #scale_x_continuous(labels=comma) +
-    #scale_y_continuous(labels=comma) +
+    scale_x_log10(labels=comma) +
+    scale_y_log10(labels=comma) +
     facet_grid(melted_df$variable ~ melted_df$Gene_strand,
+               scales = "fixed",
                space = "fixed",
-               widths = 1:4, heights = 4:1,
-               labeller = as_labeller(c("+"="Plus Strand", "-"="Minus Strand")))
-    return(p)
+               labeller = as_labeller(c("+"="Plus Strand", "-"="Minus Strand"))) +
+    #stat_smooth(geom="text",method="lm",hjust=0,parse=TRUE, inherit.aes = TRUE, fullrange = TRUE) +
+    geom_smooth(method="rq", se=FALSE, inherit.aes = TRUE, size=.5)
+  ggsave('testplot.png', height = 25, width = 8)
+  return(p)
 }

@@ -5,6 +5,8 @@ library(tidyverse)
 library(Rcpp)
 library(data.table)
 library(scales)
+library(svglite)
+library(quantreg)
 source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
@@ -84,6 +86,20 @@ two_mm <- get_genome_sequence(
   gr = two_mm, genome_sequence = genome_sequence)
 two_mm_shuffled <- get_genome_sequence(
   gr = two_mm_shuffled, genome_sequence = genome_sequence)
+
+## Make graphs
+# 5' by length
+p <- five_prime_plot(gr = two_mm)
+
+# 22 vs non-22
+df <- count_overlaps_by_width(gr = two_mm, regions = genome_data$gene_intervals, overlap = "antisense", normalized = TRUE)
+p <- length_scatter_plot(df = df, comparison_col = "22")
+
+# 22A vs 22C/G/T
+df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$gene_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
+df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$exon_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
+p <- length_scatter_plot(df = df, comparison_col = "G")
+
 
 qplot(x = mcols(two_mm[width(two_mm)==22])$five)
 qplot(x = mcols(two_mm_shuffled[width(two_mm_shuffled)==22])$five)

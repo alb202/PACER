@@ -13,7 +13,7 @@ count_overlaps_by_width <- function(gr, regions, overlap = "sense", normalized=F
     strand(regions) <- invert_vector(as.character(strand(regions)))
   }
   if (normalized==TRUE)
-    interval_widths <- (end(regions) - start(regions)) / 100
+    interval_widths <- (end(regions) - start(regions))
   for (i in 1:length(widths)){
     results[,i] <- GenomicRanges::countOverlaps(subject = gr[width(gr)==widths[i]],
                                             query = regions,
@@ -41,7 +41,7 @@ count_overlaps_by_width_and_base <- function(gr, regions, alignment_width, base_
     strand(regions) <- invert_vector(as.character(strand(regions)))
   }
   if (normalized==TRUE)
-    interval_widths <- (end(regions) - start(regions)) / 100
+    interval_widths <- (end(regions) - start(regions))
   for (i in 1:length(bases)){
     results[,i] <- GenomicRanges::countOverlaps(subject = gr[mcols(gr)[[base_col]]==bases[i]],
                                                 query = regions,
