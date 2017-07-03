@@ -53,3 +53,16 @@ count_overlaps_by_width_and_base <- function(gr, regions, alignment_width, base_
   return(cbind.data.frame("Gene_strand"=original_region_strand, results))
 }
 
+
+calculate_end_distance <- function(gr, main_length, main_length_end="five", other_end="five", overlap_type="sense"){
+  if(overlap_type=="sense")
+    strands <- list(c("+", "+"), c("-", "-"))
+  if(overlap_type=="antisense")
+    strands <- list(c("+", "-"), c("-", "+"))
+
+  set1_1 <- granges(gr[width(gr)==main_length & strand(gr)==strands[[1]][1]])
+  set1_2 <- granges(gr[width(gr)==main_length & strand(gr)==strands[[1]][2]])
+  set2_1 <- granges(gr[width(gr)==main_length & strand(gr)==strands[[2]][1]])
+  set2_2 <- granges(gr[width(gr)==main_length & strand(gr)==strands[[2]][2]])
+
+}
