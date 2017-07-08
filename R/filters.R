@@ -1,14 +1,15 @@
-assign_5prime_to_a_length <- function(alignments, aln_length){
-  positive <- alignments[qwidth(alignments)==aln_length & strand(alignments)=="+"]
-  negative <- alignments[qwidth(alignments)==aln_length & strand(alignments)=="-"]
-  positive_results <- findOverlaps(query = alignments, subject = positive, type = "start", select = "first", ignore.strand=FALSE)
-  negative_results <- findOverlaps(query = alignments, subject = negative, type = "end", select = "first", ignore.strand=FALSE)
-  positive_results <- replace(x = positive_results, !is.na(positive_results), FALSE)
-  positive_results <- replace(x = positive_results, is.na(positive_results), TRUE)
-  negative_results <- replace(x = negative_results, !is.na(negative_results), FALSE)
-  negative_results <- replace(x = negative_results, is.na(negative_results), TRUE)
-  full_results <- positive_results & negative_results
-  return(sort.GenomicRanges(c(alignments[full_results], positive, negative)))
+assign_5prime_to_a_length <- function(gr, primary_length){
+  # Filter alignments by strand
+  pos <- gr[strand(gr)=="+"]
+  neg <- gr[strand(gr)=="-"]
+  # Filter the primary length alignments
+  pos_primary <- pos[width(pos)==primary_length]
+  neg_primary <- neg[width(neg)==primary_length]
+  # Remove the alignments that share a 5' end with a primary alignment
+  pos_secondary <- pos[!start(pos) %in% as.vector(start(pos_primary))]
+  neg_secondary <- pos[!end(neg) %in% as.vector(end(neg_primary))]
+  # Concatenate, sort and return results
+  return(sort.GenomicRanges(c(pos_primary, neg_primary, pos_secondary, neg_secondary)))
 }
 
 assign_5prime_to_longer <- function(alignments, use_longer=c(TRUE, FALSE)){
