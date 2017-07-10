@@ -4,6 +4,110 @@
 #include <algorithm>
 #include <sstream>
 using namespace Rcpp;
+
+// [[Rcpp::export]]
+Rcpp::List CalculateOffset(std::string primaryChromosome,
+                                int primaryPosition,
+                                Rcpp::CharacterVector secondaryChromosome,
+                                Rcpp::IntegerVector secondaryPosition,
+                                Rcpp::IntegerVector secondaryWidth,
+                                const int& maxOffset){
+  int secondaryLength = secondaryChromosome.length();
+  Rcpp::IntegerVector offsets = Rcpp::IntegerVector::create();
+  Rcpp::IntegerVector widths = Rcpp::IntegerVector::create();
+  Rcpp::CharacterVector chromosomes = Rcpp::CharacterVector::create();
+  int offset;
+  std::cout << secondaryLength << "\n";
+  for(int i = 0; i < secondaryLength; i++){
+    offset = secondaryPosition[i] - primaryPosition;
+    if(Rcpp::as<std::string>(secondaryChromosome[i]) == primaryChromosome && std::abs(offset) <= maxOffset){
+      offsets.push_back(offset);
+      widths.push_back(secondaryWidth[i]);
+      chromosomes.push_back(secondaryChromosome[i]);
+
+    }
+  }
+  return Rcpp::List::create(Named("chromosomes") = chromosomes,
+                            Named("offsets") = offsets,
+                            Named("widths") = widths);
+}
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::NumericVector calculate_offset(const NumericMatrix& x, const NumericVector& A, const NumericVector& B) {
+  int x_row = x.nrow();
+  Rcpp::NumericVector results = Rcpp::NumericVector(x_row);
+  // int res;
+  for(int i = 0; i < x_row; i++){
+    results(i) = B(x(i,1)-1) - A(x(i,0)-1);
+    // std::cout << i << " " << x(i,0) << " " << x(i,1) << " " << A(x(i,0)-1) << " " << B(x(i,1)-1) << "\n";
+  }
+  // std::cout << x_row << " "  << " " << results.length() << "\n";
+  // std::cout << A(x(0,0)) << " " << B(x(0,1)) << "\n";
+  // results(1) = x(1,4);
+return results;
+}
+
+
+
+
+
+
+
+// [[Rcpp::export]]
+int min_index(NumericVector x) {
+  // Rcpp supports STL-style iterators
+  NumericVector::iterator it = std::min_element(x.begin(), x.end());
+  // we want the value so dereference
+  return it - x.begin();
+}
+
+
+// [[Rcpp::export]]
+Rcpp::NumericVector calculate_distance2(Rcpp::NumericVector A, Rcpp::NumericVector B){
+  int length = A.length();
+  Rcpp::NumericVector results = Rcpp::NumericVector(length);
+  for(int i = 0; i < length; i++){
+    //std::cout << i << " "<< A(i) << '\n';
+    // results(i) = A(min_index(B-A(i)));
+    Rcpp::NumericVector first = B-A(i);
+    int second = min_index(first);
+    //std::cout << "first" << first << "second" << second << '\n';
+    results(i) = A(second);
+  }
+  //int results = A(min(A)/13);
+  return results;
+}
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::NumericVector calculate_distance(Rcpp::NumericVector A, Rcpp::NumericVector B){
+//int calculate_distance(Rcpp::NumericVector A, Rcpp::NumericVector B){
+  //int results = min(A);
+  Rcpp::NumericVector results = 5-A;
+  return results;
+  //return A-B;
+//   int A_length = A.length();
+//   int B_length = B.length();
+//   Rcpp::NumericVector results = Rcpp::NumericVector(A_length);
+//   int num;
+//   for(int i = 0; i < A_length; i++){
+//     int num = A(i);
+//     int l = 0;
+//     int h = B_length;
+// //    while(num)
+
+  // }
+
+  // return results;
+}
+
+
 //
 // // [[Rcpp::export]]
 // Rcpp::LogicalVector filter_MD_tags3(std::string strand, Rcpp::StringVector MD){
