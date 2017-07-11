@@ -31,7 +31,7 @@ get_mart <- function(genome){
   return(mart)
 }
 
-load_alignments <- function(path, params=ScanBamParam(reverseComplement = FALSE, what = c("seq", "qname", "flag"), tag = c("XA", "MD", "NM"))){
+load_alignments <- function(path, params=ScanBamParam(reverseComplement = TRUE, what = c("seq", "qname", "flag"), tag = c("XA", "MD", "NM"))){
   return(sort.GenomicRanges(readGAlignments(file = path, param = params)))
 }
 
