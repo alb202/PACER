@@ -57,22 +57,32 @@ calculate_offsets <- function(gr, primary_length, overlap_type="sense"){
     strands <- list(c("+", "+"), c("-", "-"))
   if(overlap_type=="antisense")
     strands <- list(c("+", "-"), c("-", "+"))
-  gr <- gr[seqnames(gr)=="X"]
-  set1_1 <- granges(gr[width(gr)==primary_length & strand(gr)==strands[[1]][1]])
-  set1_2 <- granges(gr[width(gr)!=primary_length & strand(gr)==strands[[1]][2]])
-  set2_1 <- granges(gr[width(gr)==primary_length & strand(gr)==strands[[2]][1]])
-  set2_2 <- granges(gr[width(gr)!=primary_length & strand(gr)==strands[[2]][2]])
 
-  z <- mapply(FUN = CalculateOffset,
-              as.character(seqnames(set1_1)),
-              as.numeric(start(set1_1)),
-              MoreArgs = list(as.character(seqnames(set1_2)),
-                              as.numeric(start(set1_2)),
-                              as.numeric(width(set1_2)),
-                              10),
-              USE.NAMES = FALSE,
-              SIMPLIFY = TRUE)
-  results <- data.frame("chromosomes"=unlist(z[1, ]), "offsets"=unlist(z[2, ]), "widths"=unlist(z[3, ]))
+  chromosomes <- as.character(sort(base::unique(seqnames(gr))))
+  results <- NULL
+  for(i in 1:length(chromosomes)){
+
+    set1_1 <- granges(gr[width(gr)==primary_length & strand(gr)==strands[[1]][1] & seqnames(gr)==chromosomes[i]])
+    set1_2 <- granges(gr[width(gr)!=primary_length & strand(gr)==strands[[1]][2] & seqnames(gr)==chromosomes[i]])
+    set2_1 <- granges(gr[width(gr)==primary_length & strand(gr)==strands[[2]][1] & seqnames(gr)==chromosomes[i]])
+    set2_2 <- granges(gr[width(gr)!=primary_length & strand(gr)==strands[[2]][2] & seqnames(gr)==chromosomes[i]])
+
+    z <- mcmapply(FUN = CalculateOffset,
+                as.numeric(start(set1_1)),
+                MoreArgs = list(as.numeric(start(set1_2)),
+                                as.numeric(width(set1_2)),
+                                as.character(seqnames(set1_2)),
+                                10),
+                USE.NAMES = FALSE,
+                SIMPLIFY = TRUE)
+
+#    results <- rbind_list(results,
+    if(!is_empty(z))
+      results <- rbind.data.frame(results,
+                                  data.frame("offsets"=unlist(z[1, ]),
+                                             "widths"=unlist(z[2, ]),
+                                             "chromosomes"=unlist(z[3, ])))
+  }
   return(results)
 }
               # Rcpp::List CalculateOffset(std::string primaryChromosome,
@@ -130,3 +140,9 @@ find_minimum <- function(A, B){
 
 DFTest(primaryChromosome = c("I", "II", "III"), primaryStrand = c("+", "-", "+"), primaryPosition = c(100, 200, 300), secondaryChromosome = c("IV", "V", "X"), secondaryStrand = c("-", "+", "-"), primaryPosition = c(400, 500, 600))
 a <- data.frame(mapply(FUN = CalculateOffset, list("I", "II", "III"), list(1000, 1002, 1004), MoreArgs = list(secondaryChromosome = c("I", "IV", "II", "I", "X", "III", 'IV', "I"), secondaryPosition = c(1001, 1002, 1003, 1004, 1005, 997, 998, 999), secondaryWidth = c(18, 19, 20, 21, 22, 25, 28, 18), maxOffset = 10)))
+
+CalculateOffset(primaryPosition = 1000, secondaryPosition = c(990, 999, 1002, 1000, 1005), secondaryWidth = c(12, 23, 34, 45, 56), maxOffset = 10)
+
+gr <- two_mm[sample(x = 1:3499785, size = 100000, replace = FALSE)]
+
+p <- ggplot(data = a, mapping = aes(x = offsets, by = as.factor(a$widths))) + geom_freqpoly(binwidth = 1)

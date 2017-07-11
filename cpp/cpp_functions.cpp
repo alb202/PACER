@@ -6,30 +6,27 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-Rcpp::List CalculateOffset(std::string primaryChromosome,
-                                int primaryPosition,
-                                Rcpp::CharacterVector secondaryChromosome,
-                                Rcpp::IntegerVector secondaryPosition,
-                                Rcpp::IntegerVector secondaryWidth,
-                                const int& maxOffset){
-  int secondaryLength = secondaryChromosome.length();
-  Rcpp::IntegerVector offsets = Rcpp::IntegerVector::create();
-  Rcpp::IntegerVector widths = Rcpp::IntegerVector::create();
-  Rcpp::CharacterVector chromosomes = Rcpp::CharacterVector::create();
-  int offset;
-  std::cout << secondaryLength << "\n";
-  for(int i = 0; i < secondaryLength; i++){
-    offset = secondaryPosition[i] - primaryPosition;
-    if(Rcpp::as<std::string>(secondaryChromosome[i]) == primaryChromosome && std::abs(offset) <= maxOffset){
-      offsets.push_back(offset);
-      widths.push_back(secondaryWidth[i]);
-      chromosomes.push_back(secondaryChromosome[i]);
+Rcpp::List CalculateOffset(int primaryPosition,
+                           Rcpp::IntegerVector secondaryPosition,
+                           Rcpp::IntegerVector secondaryWidth,
+                           Rcpp::StringVector secondaryChromosome,
+                           const int& maxOffset){
+  // int secondaryLength = secondaryPosition.length();
+  // Rcpp::IntegerVector widths = Rcpp::IntegerVector::create();
+  // std::cout << secondaryLength << "\n";
+  Rcpp::IntegerVector offsets = secondaryPosition - primaryPosition;
+  Rcpp::LogicalVector offsetMatch = Rcpp::abs(offsets) <= maxOffset;
+  //
+  //   offset = secondaryPosition[i] - primaryPosition;
+  //   if(Rcpp::as<std::string>(secondaryChromosome[i]) == primaryChromosome && std::abs(offset) <= maxOffset){
+  //     offsets.push_back(offset);
+  //     widths.push_back(secondaryWidth[i]);
+  //     chromosomes.push_back(secondaryChromosome[i]);
 
-    }
-  }
-  return Rcpp::List::create(Named("chromosomes") = chromosomes,
-                            Named("offsets") = offsets,
-                            Named("widths") = widths);
+  // std::cout << "Offsets" << offsets << "offsetMatch" << offsetMatch << "\n";
+  return Rcpp::List::create(Named("offsets") = offsets[offsetMatch],
+                            Named("widths") = secondaryWidth[offsetMatch],
+                            Named("chromosomes") = secondaryChromosome[offsetMatch]);
 }
 
 

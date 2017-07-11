@@ -15,6 +15,8 @@ source("R/load.R")
 source("R/other.R")
 source("R/sequences.R")
 source("R/workflows.R")
+source("R/calculations.R")
+source("R/figures.R")
 Rcpp::sourceCpp(file = "cpp/cpp_functions.cpp")
 
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
@@ -99,6 +101,7 @@ p <- length_scatter_plot(df = df, comparison_col = "22")
 df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$gene_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
 df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$exon_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
 p <- length_scatter_plot(df = df, comparison_col = "G")
+
 
 
 qplot(x = mcols(two_mm[width(two_mm)==22])$five)
