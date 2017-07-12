@@ -6,6 +6,39 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
+Rcpp::List CalculateOffset2(Rcpp::IntegerVector queryHits,
+                           Rcpp::IntegerVector subjectHits,
+                           Rcpp::IntegerVector queryPositions,
+                           Rcpp::StringVector subjectChromosomes,
+                           Rcpp::IntegerVector subjectPositions,
+                           Rcpp::IntegerVector subjectWidths){
+  int queryLength = queryHits.length();
+  int subjectLength = subjectHits.length();
+  std::cout << "subject: " << subjectLength << " " << "query: " << queryLength << "\n";
+  //std::cout << "subject: " << subjectHits << " " << "query: " << queryHits;
+  Rcpp::IntegerVector offsets;
+  Rcpp::IntegerVector widths;
+  Rcpp::CharacterVector chromosomes;
+  int query_index;
+  int subject_index;
+  for(int i = 0; i < queryLength; i++){
+    query_index = queryHits[i];
+    subject_index = subjectHits[i];
+    offsets.push_back(subjectPositions[subject_index-1] - queryPositions[query_index-1]);
+    widths.push_back(subjectWidths[subject_index-1]);
+    chromosomes.push_back(subjectChromosomes[subject_index-1]);
+    if(i%10000 == 0){
+      std::cout << i << " "<< subjectPositions[subject_index-1] << " "<< queryPositions[query_index-1] << "\n";
+      std::cout << i << " "<< subject_index-1 << " "<< query_index-1 << "\n";
+    }
+  }
+  return Rcpp::List::create(Named("offsets") = offsets,
+                            Named("widths") = widths,
+                            Named("chromosomes") = chromosomes);
+}
+
+
+// [[Rcpp::export]]
 Rcpp::List CalculateOffset(int primaryPosition,
                            Rcpp::IntegerVector secondaryPosition,
                            Rcpp::IntegerVector secondaryWidth,
