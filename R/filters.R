@@ -5,11 +5,14 @@ assign_5prime_to_a_length <- function(gr, primary_length){
   # Filter the primary length alignments
   pos_primary <- pos[width(pos)==primary_length]
   neg_primary <- neg[width(neg)==primary_length]
-  # Remove the alignments that share a 5' end with a primary alignment
-  pos_secondary <- pos[!start(pos) %in% as.vector(start(pos_primary))]
-  neg_secondary <- pos[!end(neg) %in% as.vector(end(neg_primary))]
-  # Concatenate, sort and return results
-  return(sort.GenomicRanges(c(pos_primary, neg_primary, pos_secondary, neg_secondary)))
+  # Filter the secondary length alignments
+  pos_secondary <- pos[width(pos)!=primary_length]
+  neg_secondary <- neg[width(neg)!=primary_length]
+  # Filter secondary lengths by overlap
+  pos_secondary_filtered <- pos_secondary[-subjectHits(findOverlaps(query = pos_primary, subject = pos_secondary, minoverlap = 1, type = "start", select = "all"))]
+  neg_secondary_filtered <- neg_secondary[-subjectHits(findOverlaps(query = neg_primary, subject = neg_secondary, minoverlap = 1, type = "end", select = "all"))]
+  # Combine the primary length alignments with the filtered secondary length alignments, sort and return
+  return(sort.GenomicRanges(c(pos_primary, neg_primary, pos_secondary_filtered, neg_secondary_filtered)))
 }
 
 assign_5prime_to_longer_slower <- function(gr){
@@ -150,3 +153,12 @@ remove_overrepresented_sequences <- function(alignments, cutoff=0.001){
   results <- subset(alignments, seq %nin% overreppresented$values)
   return(sort.GenomicRanges(results))
 }
+
+subsample_gr <- function(gr, size){
+  return(sort.GenomicRanges(gr[sample(x = 1:length(gr), size = size, replace = FALSE)]))
+}
+
+# Test the 5' filter
+# table(start(two_mm_5prime_filtered[width(two_mm_5prime_filtered)!=22 & strand(two_mm_5prime_filtered)=="+" &
+# seqnames(two_mm_5prime_filtered)=="I"]) %in% start(two_mm_5prime_filtered[width(two_mm_5prime_filtered)==22 &
+# strand(two_mm_5prime_filtered)=="+" & seqnames(two_mm_5prime_filtered)=="I"]))
