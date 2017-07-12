@@ -77,24 +77,35 @@ calculate_offsets <- function(gr, primary_length, overlap_type="sense", maximum_
   neg_query_grs <- set2_1[queryHits(set2)]
   neg_subject_grs <- set2_2[subjectHits(set2)]
 
-  # Get the values that will be reported
-  pos_offsets <- start(pos_subject_grs) - start(pos_query_grs)
-  pos_widths <- width(pos_subject_grs)
-  pos_chromosomes <- seqnames(pos_subject_grs)
-  pos_strands <- strand(pos_subject_grs)
+  # # Get the values that will be reported
+  # pos_offsets <- start(pos_subject_grs) - start(pos_query_grs)
+  # pos_widths <- width(pos_subject_grs)
+  # pos_chromosomes <- seqnames(pos_subject_grs)
+  # pos_strands <- strand(pos_subject_grs)
+  #
+  # # Get the values that will be reported
+  # neg_offsets <- end(neg_subject_grs) - end(neg_query_grs)
+  # neg_widths <- width(neg_subject_grs)
+  # neg_chromosomes <- seqnames(neg_subject_grs)
+  # neg_strands <- strand(neg_subject_grs)
+  #
+  # # Create a data frame with the values from each strand
+  # pos_results <- data.frame("offsets" = pos_offsets, "widths"=pos_widths, "chromosomes"=pos_chromosomes, "strands"=pos_strands)
+  # neg_results <- data.frame("offsets" = neg_offsets, "widths"=neg_widths, "chromosomes"=neg_chromosomes, "strands"=neg_strands)
 
-  # Get the values that will be reported
-  neg_offsets <- end(neg_subject_grs) - end(neg_query_grs)
-  neg_widths <- width(neg_subject_grs)
-  neg_chromosomes <- seqnames(neg_subject_grs)
-  neg_strands <- strand(neg_subject_grs)
+  # Create a data frame with the values from each strand, and bind them into a single data frame
+  total_results <- rbind.data.frame(data.frame("offsets" = start(pos_subject_grs) - start(pos_query_grs),
+                                               "widths"= width(pos_subject_grs),
+                                               "chromosomes"= seqnames(pos_subject_grs),
+                                               "strands"= strand(pos_subject_grs)),
+                                    data.frame("offsets" = end(neg_query_grs) - end(neg_subject_grs),
+                                               "widths"= width(neg_subject_grs),
+                                               "chromosomes"= seqnames(neg_subject_grs),
+                                               "strands"= strand(neg_subject_grs)))
 
-  # Create a data frame with the values from each strand
-  pos_results <- data.frame("offsets" = pos_offsets, "widths"=pos_widths, "chromosomes"=pos_chromosomes, "strands"=pos_strands)
-  neg_results <- data.frame("offsets" = neg_offsets, "widths"=neg_widths, "chromosomes"=neg_chromosomes, "strands"=neg_strands)
 
   #Combine the results from each strand
-  total_results <- rbind.data.frame(pos_results, neg_results)
+  # total_results <- rbind.data.frame(pos_results, neg_results)
 
   # Count the unique rows and return a data table
   return(data.table(dplyr::count(x = total_results, offsets, widths, chromosomes, strands, sort = TRUE)))
@@ -220,12 +231,12 @@ find_minimum <- function(A, B){
 }
 
 
-DFTest(primaryChromosome = c("I", "II", "III"), primaryStrand = c("+", "-", "+"), primaryPosition = c(100, 200, 300), secondaryChromosome = c("IV", "V", "X"), secondaryStrand = c("-", "+", "-"), primaryPosition = c(400, 500, 600))
-a <- data.frame(mapply(FUN = CalculateOffset, list("I", "II", "III"), list(1000, 1002, 1004), MoreArgs = list(secondaryChromosome = c("I", "IV", "II", "I", "X", "III", 'IV', "I"), secondaryPosition = c(1001, 1002, 1003, 1004, 1005, 997, 998, 999), secondaryWidth = c(18, 19, 20, 21, 22, 25, 28, 18), maxOffset = 10)))
+#DFTest(primaryChromosome = c("I", "II", "III"), primaryStrand = c("+", "-", "+"), primaryPosition = c(100, 200, 300), secondaryChromosome = c("IV", "V", "X"), secondaryStrand = c("-", "+", "-"), primaryPosition = c(400, 500, 600))
+#a <- data.frame(mapply(FUN = CalculateOffset, list("I", "II", "III"), list(1000, 1002, 1004), MoreArgs = list(secondaryChromosome = c("I", "IV", "II", "I", "X", "III", 'IV', "I"), secondaryPosition = c(1001, 1002, 1003, 1004, 1005, 997, 998, 999), secondaryWidth = c(18, 19, 20, 21, 22, 25, 28, 18), maxOffset = 10)))
 
-CalculateOffset(primaryPosition = 1000, secondaryPosition = c(990, 999, 1002, 1000, 1005), secondaryWidth = c(12, 23, 34, 45, 56), maxOffset = 10)
+#CalculateOffset(primaryPosition = 1000, secondaryPosition = c(990, 999, 1002, 1000, 1005), secondaryWidth = c(12, 23, 34, 45, 56), maxOffset = 10)
 
 gr <- sort.GenomicRanges(two_mm[sample(x = 1:3499785, size = 1000000, replace = FALSE)])
 
-p <- ggplot(data = a, mapping = aes(x = offsets, by = as.factor(a$widths))) + geom_freqpoly(binwidth = 1)
+#p <- ggplot(data = a, mapping = aes(x = offsets, by = as.factor(a$widths))) + geom_freqpoly(binwidth = 1)
 p <- ggplot2::ggplot() + geom_line(mapping = aes(x = results$offsets, y = results$n, group = results$widths, color = results$widths))
