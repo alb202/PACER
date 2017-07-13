@@ -77,22 +77,6 @@ calculate_offsets <- function(gr, primary_length, overlap_type="sense", maximum_
   neg_query_grs <- set2_1[queryHits(set2)]
   neg_subject_grs <- set2_2[subjectHits(set2)]
 
-  # # Get the values that will be reported
-  # pos_offsets <- start(pos_subject_grs) - start(pos_query_grs)
-  # pos_widths <- width(pos_subject_grs)
-  # pos_chromosomes <- seqnames(pos_subject_grs)
-  # pos_strands <- strand(pos_subject_grs)
-  #
-  # # Get the values that will be reported
-  # neg_offsets <- end(neg_subject_grs) - end(neg_query_grs)
-  # neg_widths <- width(neg_subject_grs)
-  # neg_chromosomes <- seqnames(neg_subject_grs)
-  # neg_strands <- strand(neg_subject_grs)
-  #
-  # # Create a data frame with the values from each strand
-  # pos_results <- data.frame("offsets" = pos_offsets, "widths"=pos_widths, "chromosomes"=pos_chromosomes, "strands"=pos_strands)
-  # neg_results <- data.frame("offsets" = neg_offsets, "widths"=neg_widths, "chromosomes"=neg_chromosomes, "strands"=neg_strands)
-
   # Create a data frame with the values from each strand, and bind them into a single data frame
   total_results <- rbind.data.frame(data.frame("offsets" = start(pos_subject_grs) - start(pos_query_grs),
                                                "widths"= width(pos_subject_grs),
@@ -103,123 +87,14 @@ calculate_offsets <- function(gr, primary_length, overlap_type="sense", maximum_
                                                "chromosomes"= seqnames(neg_subject_grs),
                                                "strands"= strand(neg_subject_grs)))
 
-
-  #Combine the results from each strand
-  # total_results <- rbind.data.frame(pos_results, neg_results)
-
   # Count the unique rows and return a data table
-  return(data.table(dplyr::count(x = total_results, offsets, widths, chromosomes, strands, sort = TRUE)))
+  res_1 <- data.table(dplyr::count(x = total_results, offsets, widths, chromosomes, strands, sort = TRUE))
+  res_2 <- data.table(dplyr::count(x = total_results, widths, chromosomes, strands, sort = TRUE))
+  results <- dplyr::left_join(x = res_1, y = res_2, by = c("widths", "chromosomes", "strands"), copy = TRUE, suffix = c(".x", ".y"))
+  results["ratio"] <- results$n.x / results$n.y
+  return(results)
 }
-  #
-#   a <- CalculateOffset2(queryHits = queryHits(set1),
-#                    subjectHits = subjectHits(set1),
-#                    queryPositions = start(set1_1),
-#                    subjectChromosomes = as.character(seqnames(set1_2)),
-#                    subjectPositions = start(set1_2),
-#                    subjectWidths = width(set1_2))
-#   chromosomes <- as.character(sort(base::unique(seqnames(gr))))
-#   results <- NULL
-#   for(i in 1:length(chromosomes)){
-#
-#
-#
-#     z <- mcmapply(FUN = CalculateOffset,
-#                   as.numeric(start(set1_1)),
-#                   MoreArgs = list(as.numeric(start(set1_2)),
-#                                   as.numeric(width(set1_2)),
-#                                   as.character(seqnames(set1_2)),
-#                                   10),
-#                   USE.NAMES = FALSE,
-#                   SIMPLIFY = TRUE)
-#
-#     #    results <- rbind_list(results,
-#     if(!is_empty(z))
-#       results <- rbind.data.frame(results,
-#                                   data.frame("offsets"=unlist(z[1, ]),
-#                                              "widths"=unlist(z[2, ]),
-#                                              "chromosomes"=unlist(z[3, ])))
-#   }
-#   return(results)
-# }
-#
-#
-#
-#
-# calculate_offsets <- function(gr, primary_length, overlap_type="sense"){
-#   if(overlap_type=="sense")
-#     strands <- list(c("+", "+"), c("-", "-"))
-#   if(overlap_type=="antisense")
-#     strands <- list(c("+", "-"), c("-", "+"))
-#
-#   chromosomes <- as.character(sort(base::unique(seqnames(gr))))
-#   results <- NULL
-#   for(i in 1:length(chromosomes)){
-#
-#     set1_1 <- granges(gr[width(gr)==primary_length & strand(gr)==strands[[1]][1] & seqnames(gr)==chromosomes[i]])
-#     set1_2 <- granges(gr[width(gr)!=primary_length & strand(gr)==strands[[1]][2] & seqnames(gr)==chromosomes[i]])
-#     set2_1 <- granges(gr[width(gr)==primary_length & strand(gr)==strands[[2]][1] & seqnames(gr)==chromosomes[i]])
-#     set2_2 <- granges(gr[width(gr)!=primary_length & strand(gr)==strands[[2]][2] & seqnames(gr)==chromosomes[i]])
-#
-#     z <- mcmapply(FUN = CalculateOffset,
-#                 as.numeric(start(set1_1)),
-#                 MoreArgs = list(as.numeric(start(set1_2)),
-#                                 as.numeric(width(set1_2)),
-#                                 as.character(seqnames(set1_2)),
-#                                 10),
-#                 USE.NAMES = FALSE,
-#                 SIMPLIFY = TRUE)
-#
-# #    results <- rbind_list(results,
-#     if(!is_empty(z))
-#       results <- rbind.data.frame(results,
-#                                   data.frame("offsets"=unlist(z[1, ]),
-#                                              "widths"=unlist(z[2, ]),
-#                                              "chromosomes"=unlist(z[3, ])))
-#   }
-#   return(results)
-# }
-#               # Rcpp::List CalculateOffset(std::string primaryChromosome,
-#               #                            int primaryPosition,
-#               #                            Rcpp::CharacterVector secondaryChromosome,
-#               #                            Rcpp::IntegerVector secondaryPosition,
-#               #                            Rcpp::IntegerVector secondaryWidth,
-#               #                            const int& maxOffset){
 
-
-  ### This is all wrong. Go interval by interval with find overlap and then for each interval subtract the start positions to get an integer for each one.
-
-### for each comparison, send the two sets to C++. then compare and return a list containing a length vector and an offset vector, and maybe a Chromasome vector
-
-  # A <- c(1,4,6,8,25,58,87)
-  # B <- c(8,9,23,34,84,6,128)
-  #calculate_distance(A = A, B = B)
-  #  system.time(X <-  mapply(FUN = find_minimum, start(set1_1), MoreArgs = list(start(set1_2)), USE.NAMES = FALSE))
-
-  #  unlist(mapply(FUN = find_overlaps, as.list(set1_1), MoreArgs = list(set1_2), USE.NAMES = FALSE, SIMPLIFY = TRUE))
-  #set1 <- GenomicRanges::findOverlaps(query = set1_1, subject = set1_2, maxgap = 10, type = "any")
-  #set2 <- GenomicRanges::findOverlaps(query = set2_1, subject = set2_2, maxgap = 10, type = "any")
-  # set1_offsets <- CalculateOffset(x = as.matrix(set1),A = start(set1_1), B = start(set1_2))
-  # set2_offsets <- CalculateOffset(x = as.matrix(set2),A = end(set2_1), B = end(set2_2))
-  # set1_secondary_widths <- width(set1_2[subjectHits(set1)])
-  # set1_secondary_strands <- strand(set1_2[subjectHits(set1)])
-  # set1_secondary_chromosome <- seqnames(set1_2[subjectHits(set1)])
-  # set2_secondary_widths <- width(set2_2[subjectHits(set2)])
-  # set2_secondary_strands <- strand(set2_2[subjectHits(set2)])
-  # set2_secondary_chromosome <- seqnames(set2_2[subjectHits(set2)])
-  # set1_df <- data.frame(stringsAsFactors = FALSE,
-  #                       set1_offsets,
-  #                       width(set1_2[subjectHits(set1)]),
-  #                       strand(set1_2[subjectHits(set1)]),
-  #                       seqnames(set1_2[subjectHits(set1)]))
-  # set2_df <- data.frame(stringsAsFactors = FALSE,
-  #                       set2_offsets,
-  #                       width(set2_2[subjectHits(set2)]),
-  #                       strand(set2_2[subjectHits(set2)]),
-  #                       seqnames(set2_2[subjectHits(set2)]))
-  # names(set1_df) <- c("offsets", "widths", "strands", "seqname")
-  # names(set2_df) <- c("offsets", "widths", "strands", "seqname")
-  # return(rbind(set1_df, set2_df))
-  # }
 
 find_overlaps <- function(A, B){
   a <- subsetByOverlaps(query = A, subject = B, maxgap = 10, minoverlap = 1, type = "start", invert = FALSE)
@@ -230,13 +105,9 @@ find_minimum <- function(A, B){
   return(B[which.min(abs(B-A))]-A)
 }
 
-
-#DFTest(primaryChromosome = c("I", "II", "III"), primaryStrand = c("+", "-", "+"), primaryPosition = c(100, 200, 300), secondaryChromosome = c("IV", "V", "X"), secondaryStrand = c("-", "+", "-"), primaryPosition = c(400, 500, 600))
-#a <- data.frame(mapply(FUN = CalculateOffset, list("I", "II", "III"), list(1000, 1002, 1004), MoreArgs = list(secondaryChromosome = c("I", "IV", "II", "I", "X", "III", 'IV', "I"), secondaryPosition = c(1001, 1002, 1003, 1004, 1005, 997, 998, 999), secondaryWidth = c(18, 19, 20, 21, 22, 25, 28, 18), maxOffset = 10)))
-
-#CalculateOffset(primaryPosition = 1000, secondaryPosition = c(990, 999, 1002, 1000, 1005), secondaryWidth = c(12, 23, 34, 45, 56), maxOffset = 10)
-
 gr <- sort.GenomicRanges(two_mm[sample(x = 1:3499785, size = 1000000, replace = FALSE)])
 
 #p <- ggplot(data = a, mapping = aes(x = offsets, by = as.factor(a$widths))) + geom_freqpoly(binwidth = 1)
-p <- ggplot2::ggplot() + geom_line(mapping = aes(x = results$offsets, y = results$n, group = results$widths, color = results$widths))
+#p <- ggplot2::ggplot() + geom_line(mapping = aes(x = results$offsets, y = results$n, group = results$widths, color = results$widths))
+
+ggplot(data=results3, aes(x=offsets, y=ratio)) + geom_line(aes(group = widths), color=results3$widths, inherit.aes = TRUE, show.legend = TRUE) + facet_grid(chromosomes~strands) + ggplot2::theme(legend.position = "right")

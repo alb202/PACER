@@ -4,138 +4,138 @@
 #include <algorithm>
 #include <sstream>
 using namespace Rcpp;
+//
+// // [[Rcpp::export]]
+// Rcpp::List CalculateOffset2(Rcpp::IntegerVector queryHits,
+//                            Rcpp::IntegerVector subjectHits,
+//                            Rcpp::IntegerVector queryPositions,
+//                            Rcpp::StringVector subjectChromosomes,
+//                            Rcpp::IntegerVector subjectPositions,
+//                            Rcpp::IntegerVector subjectWidths){
+//   int queryLength = queryHits.length();
+//   int subjectLength = subjectHits.length();
+//   std::cout << "subject: " << subjectLength << " " << "query: " << queryLength << "\n";
+//   //std::cout << "subject: " << subjectHits << " " << "query: " << queryHits;
+//   Rcpp::IntegerVector offsets;
+//   Rcpp::IntegerVector widths;
+//   Rcpp::CharacterVector chromosomes;
+//   int query_index;
+//   int subject_index;
+//   for(int i = 0; i < queryLength; i++){
+//     query_index = queryHits[i];
+//     subject_index = subjectHits[i];
+//     offsets.push_back(subjectPositions[subject_index-1] - queryPositions[query_index-1]);
+//     widths.push_back(subjectWidths[subject_index-1]);
+//     chromosomes.push_back(subjectChromosomes[subject_index-1]);
+//     if(i%10000 == 0){
+//       std::cout << i << " "<< subjectPositions[subject_index-1] << " "<< queryPositions[query_index-1] << "\n";
+//       std::cout << i << " "<< subject_index-1 << " "<< query_index-1 << "\n";
+//     }
+//   }
+//   return Rcpp::List::create(Named("offsets") = offsets,
+//                             Named("widths") = widths,
+//                             Named("chromosomes") = chromosomes);
+// }
 
-// [[Rcpp::export]]
-Rcpp::List CalculateOffset2(Rcpp::IntegerVector queryHits,
-                           Rcpp::IntegerVector subjectHits,
-                           Rcpp::IntegerVector queryPositions,
-                           Rcpp::StringVector subjectChromosomes,
-                           Rcpp::IntegerVector subjectPositions,
-                           Rcpp::IntegerVector subjectWidths){
-  int queryLength = queryHits.length();
-  int subjectLength = subjectHits.length();
-  std::cout << "subject: " << subjectLength << " " << "query: " << queryLength << "\n";
-  //std::cout << "subject: " << subjectHits << " " << "query: " << queryHits;
-  Rcpp::IntegerVector offsets;
-  Rcpp::IntegerVector widths;
-  Rcpp::CharacterVector chromosomes;
-  int query_index;
-  int subject_index;
-  for(int i = 0; i < queryLength; i++){
-    query_index = queryHits[i];
-    subject_index = subjectHits[i];
-    offsets.push_back(subjectPositions[subject_index-1] - queryPositions[query_index-1]);
-    widths.push_back(subjectWidths[subject_index-1]);
-    chromosomes.push_back(subjectChromosomes[subject_index-1]);
-    if(i%10000 == 0){
-      std::cout << i << " "<< subjectPositions[subject_index-1] << " "<< queryPositions[query_index-1] << "\n";
-      std::cout << i << " "<< subject_index-1 << " "<< query_index-1 << "\n";
-    }
-  }
-  return Rcpp::List::create(Named("offsets") = offsets,
-                            Named("widths") = widths,
-                            Named("chromosomes") = chromosomes);
-}
-
-
-// [[Rcpp::export]]
-Rcpp::List CalculateOffset(int primaryPosition,
-                           Rcpp::IntegerVector secondaryPosition,
-                           Rcpp::IntegerVector secondaryWidth,
-                           Rcpp::StringVector secondaryChromosome,
-                           const int& maxOffset){
-  // int secondaryLength = secondaryPosition.length();
-  // Rcpp::IntegerVector widths = Rcpp::IntegerVector::create();
-  // std::cout << secondaryLength << "\n";
-  Rcpp::IntegerVector offsets = secondaryPosition - primaryPosition;
-  Rcpp::LogicalVector offsetMatch = Rcpp::abs(offsets) <= maxOffset;
-  //
-  //   offset = secondaryPosition[i] - primaryPosition;
-  //   if(Rcpp::as<std::string>(secondaryChromosome[i]) == primaryChromosome && std::abs(offset) <= maxOffset){
-  //     offsets.push_back(offset);
-  //     widths.push_back(secondaryWidth[i]);
-  //     chromosomes.push_back(secondaryChromosome[i]);
-
-  // std::cout << "Offsets" << offsets << "offsetMatch" << offsetMatch << "\n";
-  return Rcpp::List::create(Named("offsets") = offsets[offsetMatch],
-                            Named("widths") = secondaryWidth[offsetMatch],
-                            Named("chromosomes") = secondaryChromosome[offsetMatch]);
-}
-
-
+//
+// // [[Rcpp::export]]
+// Rcpp::List CalculateOffset(int primaryPosition,
+//                            Rcpp::IntegerVector secondaryPosition,
+//                            Rcpp::IntegerVector secondaryWidth,
+//                            Rcpp::StringVector secondaryChromosome,
+//                            const int& maxOffset){
+//   // int secondaryLength = secondaryPosition.length();
+//   // Rcpp::IntegerVector widths = Rcpp::IntegerVector::create();
+//   // std::cout << secondaryLength << "\n";
+//   Rcpp::IntegerVector offsets = secondaryPosition - primaryPosition;
+//   Rcpp::LogicalVector offsetMatch = Rcpp::abs(offsets) <= maxOffset;
+//   //
+//   //   offset = secondaryPosition[i] - primaryPosition;
+//   //   if(Rcpp::as<std::string>(secondaryChromosome[i]) == primaryChromosome && std::abs(offset) <= maxOffset){
+//   //     offsets.push_back(offset);
+//   //     widths.push_back(secondaryWidth[i]);
+//   //     chromosomes.push_back(secondaryChromosome[i]);
+//
+//   // std::cout << "Offsets" << offsets << "offsetMatch" << offsetMatch << "\n";
+//   return Rcpp::List::create(Named("offsets") = offsets[offsetMatch],
+//                             Named("widths") = secondaryWidth[offsetMatch],
+//                             Named("chromosomes") = secondaryChromosome[offsetMatch]);
+// }
 
 
-// [[Rcpp::export]]
-Rcpp::NumericVector calculate_offset(const NumericMatrix& x, const NumericVector& A, const NumericVector& B) {
-  int x_row = x.nrow();
-  Rcpp::NumericVector results = Rcpp::NumericVector(x_row);
-  // int res;
-  for(int i = 0; i < x_row; i++){
-    results(i) = B(x(i,1)-1) - A(x(i,0)-1);
-    // std::cout << i << " " << x(i,0) << " " << x(i,1) << " " << A(x(i,0)-1) << " " << B(x(i,1)-1) << "\n";
-  }
-  // std::cout << x_row << " "  << " " << results.length() << "\n";
-  // std::cout << A(x(0,0)) << " " << B(x(0,1)) << "\n";
-  // results(1) = x(1,4);
-return results;
-}
 
-
+//
+// // [[Rcpp::export]]
+// Rcpp::NumericVector calculate_offset(const NumericMatrix& x, const NumericVector& A, const NumericVector& B) {
+//   int x_row = x.nrow();
+//   Rcpp::NumericVector results = Rcpp::NumericVector(x_row);
+//   // int res;
+//   for(int i = 0; i < x_row; i++){
+//     results(i) = B(x(i,1)-1) - A(x(i,0)-1);
+//     // std::cout << i << " " << x(i,0) << " " << x(i,1) << " " << A(x(i,0)-1) << " " << B(x(i,1)-1) << "\n";
+//   }
+//   // std::cout << x_row << " "  << " " << results.length() << "\n";
+//   // std::cout << A(x(0,0)) << " " << B(x(0,1)) << "\n";
+//   // results(1) = x(1,4);
+// return results;
+// }
 
 
 
 
 
-// [[Rcpp::export]]
-int min_index(NumericVector x) {
-  // Rcpp supports STL-style iterators
-  NumericVector::iterator it = std::min_element(x.begin(), x.end());
-  // we want the value so dereference
-  return it - x.begin();
-}
+
+//
+// // [[Rcpp::export]]
+// int min_index(NumericVector x) {
+//   // Rcpp supports STL-style iterators
+//   NumericVector::iterator it = std::min_element(x.begin(), x.end());
+//   // we want the value so dereference
+//   return it - x.begin();
+// }
+
+//
+// // [[Rcpp::export]]
+// Rcpp::NumericVector calculate_distance2(Rcpp::NumericVector A, Rcpp::NumericVector B){
+//   int length = A.length();
+//   Rcpp::NumericVector results = Rcpp::NumericVector(length);
+//   for(int i = 0; i < length; i++){
+//     //std::cout << i << " "<< A(i) << '\n';
+//     // results(i) = A(min_index(B-A(i)));
+//     Rcpp::NumericVector first = B-A(i);
+//     int second = min_index(first);
+//     //std::cout << "first" << first << "second" << second << '\n';
+//     results(i) = A(second);
+//   }
+//   //int results = A(min(A)/13);
+//   return results;
+// }
 
 
-// [[Rcpp::export]]
-Rcpp::NumericVector calculate_distance2(Rcpp::NumericVector A, Rcpp::NumericVector B){
-  int length = A.length();
-  Rcpp::NumericVector results = Rcpp::NumericVector(length);
-  for(int i = 0; i < length; i++){
-    //std::cout << i << " "<< A(i) << '\n';
-    // results(i) = A(min_index(B-A(i)));
-    Rcpp::NumericVector first = B-A(i);
-    int second = min_index(first);
-    //std::cout << "first" << first << "second" << second << '\n';
-    results(i) = A(second);
-  }
-  //int results = A(min(A)/13);
-  return results;
-}
 
 
-
-
-
-// [[Rcpp::export]]
-Rcpp::NumericVector calculate_distance(Rcpp::NumericVector A, Rcpp::NumericVector B){
-//int calculate_distance(Rcpp::NumericVector A, Rcpp::NumericVector B){
-  //int results = min(A);
-  Rcpp::NumericVector results = 5-A;
-  return results;
-  //return A-B;
-//   int A_length = A.length();
-//   int B_length = B.length();
-//   Rcpp::NumericVector results = Rcpp::NumericVector(A_length);
-//   int num;
-//   for(int i = 0; i < A_length; i++){
-//     int num = A(i);
-//     int l = 0;
-//     int h = B_length;
-// //    while(num)
+//
+// // [[Rcpp::export]]
+// Rcpp::NumericVector calculate_distance(Rcpp::NumericVector A, Rcpp::NumericVector B){
+// //int calculate_distance(Rcpp::NumericVector A, Rcpp::NumericVector B){
+//   //int results = min(A);
+//   Rcpp::NumericVector results = 5-A;
+//   return results;
+//   //return A-B;
+// //   int A_length = A.length();
+// //   int B_length = B.length();
+// //   Rcpp::NumericVector results = Rcpp::NumericVector(A_length);
+// //   int num;
+// //   for(int i = 0; i < A_length; i++){
+// //     int num = A(i);
+// //     int l = 0;
+// //     int h = B_length;
+// // //    while(num)
 
   // }
 
   // return results;
-}
+// }
 
 
 //
