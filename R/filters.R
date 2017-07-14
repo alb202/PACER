@@ -1,3 +1,8 @@
+filter_unique_positions <- function(gr){
+  gr <- sort.GenomicRanges(gr)
+  return(gr[invert_vector(GenomicRanges::duplicated.GenomicRanges(x = gr))])
+}
+
 assign_5prime_to_a_length <- function(gr, primary_length){
   # Filter alignments by strand
   pos <- gr[strand(gr)=="+"]
