@@ -7,6 +7,7 @@ library(data.table)
 library(scales)
 library(svglite)
 library(quantreg)
+library(ggseqlogo)
 source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
@@ -26,10 +27,10 @@ genome_indexes <- c(ce10 = paste(getwd(), "indexes", "ce10", "ce10", sep="/"),
                     WBcel235 = paste(getwd(), "indexes", "WBcel235", "WBcel235", sep="/"))
 adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "/raw_data", sep="")
-datasets <- c(WT_early_rep1_="SRR5023999.fastq.gz")
+datasets <- c(WT_early_rep1="SRR5023999.fastq.gz")
 #datasets <- c(WT_early_rep1_TEST="SRR5023999_100K_sample.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
-alignment_settings <- c(zero_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
+alignment_settings <- c(two_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
 genome_files <- tibble(type = c("genome", "sizes", "genes"),
                        WBcel235 = c("Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
@@ -63,8 +64,8 @@ genome_data <- load_genome_data(genome = genome)
 genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes",genome,as.character(genome_files[genome][1,]), sep="/"))
 
 ## Load and filter the main alignment file
-#alignments <- load_alignments(path = alignment_file)
-alignments <- load_alignments(path = "output/WT_early_rep1_/zero_seed_mm_SRR5023999.bam")
+alignments <- load_alignments(path = alignment_file)
+#alignments <- load_alignments(path = "output/WT_early_rep1_/zero_seed_mm_SRR5023999.bam")
 alignments <- filter_alignments(alignments = alignments,
                   regions = genome_data[["gene_intervals"]],
                   regions_filter = "both",
