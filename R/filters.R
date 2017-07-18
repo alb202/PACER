@@ -163,6 +163,13 @@ subsample_gr <- function(gr, size){
   return(sort.GenomicRanges(gr[sample(x = 1:length(gr), size = size, replace = FALSE)]))
 }
 
+filter_ambiguous_bases <- function(seqs){
+  return(!unlist(mclapply(X = as.character(seqs),
+                         FUN = function(x) grepl(pattern = "R|Y|S|W|K|M|B|D|H|V|N|\\.",
+                                                 x = x,
+                                                 ignore.case = TRUE,
+                                                 fixed = FALSE))))
+}
 # Test the 5' filter
 # table(start(two_mm_5prime_filtered[width(two_mm_5prime_filtered)!=22 & strand(two_mm_5prime_filtered)=="+" &
 # seqnames(two_mm_5prime_filtered)=="I"]) %in% start(two_mm_5prime_filtered[width(two_mm_5prime_filtered)==22 &
