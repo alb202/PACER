@@ -13,7 +13,7 @@ make_adapter_string <- function(adapter_file){
 make_cutadapt_command <- function(trimmed_fastq_file, adapter_file, dataset_info){
   adapter_string <- make_adapter_string(adapter_file)
   file_path <- paste(input_dir, "/", dataset_info["fastq_file"], sep="")
-  cutadapt_cmd <- paste("cutadapt","-m10", adapter_string, "-o", paste(dataset_info["output_dir"],'/',trimmed_fastq_file, sep = ""), file_path)
+  cutadapt_cmd <- paste("cutadapt","--max-n=0", "-m10", adapter_string, "-o", paste(dataset_info["output_dir"],'/',trimmed_fastq_file, sep = ""), file_path)
   return(cutadapt_cmd)
 }
 
