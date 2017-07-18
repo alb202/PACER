@@ -15,7 +15,6 @@ five_prime_plot <- function(gr, min=NULL, max=NULL){
   return(p)
 }
 
-
 length_scatter_plot <- function(df, comparison_col, min=NULL, max=NULL){
   melted_df <- data.table::melt(df, id.vars=c(comparison_col, "Gene_strand"))
   p <- ggplot(data = melted_df, aes(x=melted_df[as.character(comparison_col)], y=melted_df$value)) +
@@ -34,4 +33,14 @@ length_scatter_plot <- function(df, comparison_col, min=NULL, max=NULL){
     geom_smooth(method="rq", se=FALSE, inherit.aes = TRUE, size=.5)
   ggsave('testplot.png', height = 25, width = 8)
   return(p)
+}
+
+sequence_logo_comparison <- function(gr, method="bits"){
+  colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
+                        groups=c('A', 'C', 'G', 'T'),
+                        cols=c('blue', 'red', 'green', 'purple'))
+  ggplot() +
+    geom_logo(gr, col_scheme=colors_scheme, method = method) +
+    theme_logo() +
+    scale_y_continuous(limits = c(0, 2))
 }
