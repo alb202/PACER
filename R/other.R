@@ -155,3 +155,9 @@ write_granges_as_BED <- function(gr, filename, directory){
               append = FALSE,
               col_names = FALSE)
 }
+
+pretty_base1 <- function(start, end){
+  result <- pretty(start:end)
+  result[ result==0 ] <- 1
+  return(result)
+}

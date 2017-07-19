@@ -35,12 +35,31 @@ length_scatter_plot <- function(df, comparison_col, min=NULL, max=NULL){
   return(p)
 }
 
-sequence_logo_comparison <- function(gr, method="bits"){
+sequence_logo_comparison <- function(gr, method="bits", flanks=0){
   colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
-                        groups=c('A', 'C', 'G', 'T'),
-                        cols=c('blue', 'red', 'green', 'purple'))
-  ggplot() +
+                                  groups=c('A', 'C', 'G', 'T'),
+                                  cols=c('blue', 'red', 'green', 'purple'))
+  p <- ggplot() +
     geom_logo(gr, col_scheme=colors_scheme, method = method) +
-    theme_logo() +
-    scale_y_continuous(limits = c(0, 2))
-}
+    #theme_logo() +
+    theme(panel.grid.minor.x = element_blank()) +
+    #coord_cartesian(ylim = c(0, 2)) +
+    #coord_cartesian(ylim = c(0, 2), xlim = c(0-flanks, 22+flanks)) +
+    #scale_x_discrete(breaks = seq(from = 0,to = 22, by = 5)) +
+    #scale_y_discrete(breaks = seq(0, 2, by = .5)) +
+    facet_grid(.~seq_group) +
+    scale_y_continuous(limits = c(0, 2)) +
+    scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,2), labels = seq(1,22, by=5))
+  return(p)
+
+
+
+  #p <- ggplot() + geom_logo(sequences, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,22))
+  #q <- ggplot() + geom_logo(sequences2, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(1, 42), breaks = pretty_base1(1,45)+1, labels = pretty_base1(-9,35))
+
+
+
+
+  }
+
+
