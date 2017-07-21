@@ -39,6 +39,7 @@ sequence_logo_comparison <- function(gr, method="bits", flanks=0){
   colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
                                   groups=c('A', 'C', 'G', 'T'),
                                   cols=c('blue', 'red', 'green', 'purple'))
+
   p <- ggplot() +
     geom_logo(gr, col_scheme=colors_scheme, method = method) +
     #theme_logo() +
@@ -47,7 +48,7 @@ sequence_logo_comparison <- function(gr, method="bits", flanks=0){
     #coord_cartesian(ylim = c(0, 2), xlim = c(0-flanks, 22+flanks)) +
     #scale_x_discrete(breaks = seq(from = 0,to = 22, by = 5)) +
     #scale_y_discrete(breaks = seq(0, 2, by = .5)) +
-    facet_grid(.~seq_group) +
+    facet_wrap(.~seq_group) #+
     scale_y_continuous(limits = c(0, 2)) +
     scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,2), labels = seq(1,22, by=5))
   return(p)
@@ -55,11 +56,61 @@ sequence_logo_comparison <- function(gr, method="bits", flanks=0){
 
 
   #p <- ggplot() + geom_logo(sequences, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,22))
-  #q <- ggplot() + geom_logo(sequences2, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(1, 42), breaks = pretty_base1(1,45)+1, labels = pretty_base1(-9,35))
+  #q <- ggplot() + geom_logo(sequences2, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(0, 42), breaks = pretty_base1(1,45)+1, labels = pretty_base1(-9,35))
 
+  sequences <- list("plus_seq"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$seq),
+                    "minus_seq"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$seq))
+  sequences2 <- list("plus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$with_flanks),
+                     "minus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$with_flanks))
+  sequences3 <- c(sequences, sequences2)
 
-
-
+  p <- ggplot() +
+    geom_logo(sequences,
+              col_scheme=colors_scheme,
+              method = "bits") +
+    theme(panel.grid.minor.x = element_blank()) +
+    #coord_fixed(ratio=5) +
+    facet_grid(.~seq_group,space = "free_x", scales = "free_x") +
+    scale_y_continuous(limits = c(0, 2),
+                       breaks = c(0,1,2)) +
+    scale_x_continuous(limits = c(0, 24),
+                       breaks = pretty_base1(1,22))
+  q <- ggplot() +
+    geom_logo(sequences2,
+            col_scheme=colors_scheme,
+            method = "bits") +
+    theme(panel.grid.minor.x = element_blank()) +
+    facet_grid(.~seq_group) +
+    #coord_fixed(ratio=8) +
+    scale_y_continuous(limits = c(0, 2),
+                       breaks = c(0,1,2)) +
+    scale_x_continuous(limits = c(0, 42),
+                       breaks = pretty_base1(0,45, c(0,10), c(1,11)),
+                       labels = pretty_base1(-9,35, c(-9, 0), c(-10, 1)))
+  pgt <- ggplot_gtable(ggplot_build(p))
+  qgt <- ggplot_gtable(ggplot_build(q))
+  maxWidth <- unit.pmax(pgt$widths[2:3], qgt$widths[2:3])
+  pgt$widths[2:3] <- maxWidth
+  qgt$widths[2:3] <- maxWidth
+  #grid.arrange(pgt, qgt, heights = c(7, 3), nrow = 2, ncol = 2)
+  gtable::gtable_show_layout(arrangeGrob(pgt, qgt,
+                        heights = c(6, 6), #,
+                        widths = c(5, 5)))
+                        nrow = 2,
+                        ncol = 2))
+  gtable::gtable_show_layout(arrangeGrob(pgt, qgt))
+  q + annotate(geom = "text",
+               x = c(11),
+               y = c(),
+               label = c("5'"),
+               color=c("black"),
+               size=c(5)) +
+    annotate(geom = "text",
+             x = c(33),
+             y = c(2),
+             label = c("3'"),
+             color=c("black"),
+             size=c(5))
   }
 
 
