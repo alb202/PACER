@@ -156,8 +156,13 @@ write_granges_as_BED <- function(gr, filename, directory){
               col_names = FALSE)
 }
 
-pretty_base1 <- function(start, end){
-  result <- pretty(start:end)
-  result[ result==0 ] <- 1
+pretty_base1 <- function(start, end, old=c(0), new=c(1)){
+  # Create the initial pretty number sequence
+  #result <- pretty(start:end)
+  result <- seq(start, end, 10)
+  # For each set of values, replace the old with the new
+  for(i in 1:length(old))
+    result[ result==old[i] ] <- new[i]
+  # Return the new sequence
   return(result)
 }
