@@ -114,6 +114,40 @@ find_minimum <- function(A, B){
   return(B[which.min(abs(B-A))]-A)
 }
 
+calculate_phasing <- function(gr, length=26, start_base=c("A|C|T|G")){
+  gr <- sort.GenomicRanges(gr)
+  filtered_gr <- gr[width(gr) %like% length & mcols(gr)$five %like% start_base]
+  plus <- start(filtered_gr[strand(filtered_gr)=="+"])
+  plus1 <- c(plus[1], plus)[1:length(plus)]
+  plus2 <- c(plus[1], plus[1], plus)[1:length(plus)]
+  plus3 <- c(plus[1], plus[1], plus[1], plus)[1:length(plus)]
+  plus_first <- plus2 - plus3
+  plus_first <- plus_first[plus_first >= 1 & plus_first <= 50]
+  plus_second <- plus1 - plus3
+  plus_second <- plus_second[plus_second >= 1 & plus_second <= 50]
+  plus_third <- plus - plus3
+  plus_third <- plus_third[plus_third >= 1 & plus_third <= 50]
+
+  minus <- rev(end(filtered_gr[strand(filtered_gr)=="-"]))
+  minus1 <- c(minus[1], minus)[1:length(minus)]
+  minus2 <- c(minus[1], minus[1], minus)[1:length(minus)]
+  minus3 <- c(minus[1], minus[1], minus[1], minus)[1:length(minus)]
+  minus_first <- minus3 - minus2
+  minus_first <- minus_first[minus_first >= 1 & minus_first <= 50]
+  minus_second <- minus3 - minus1
+  minus_second <- minus_second[minus_second >= 1 & minus_second <= 50]
+  minus_third <- minus3 - minus
+  minus_third <- minus_third[minus_third >= 1 & minus_third <= 50]
+
+  return(list("plus_first"=plus_first,
+              "plus_second"=plus_second,
+              "plus_third"=plus_third,
+              "minus_first"=minus_first,
+              "minus_second"=minus_second,
+              "minus_third"=minus_third))
+}
+
+
 gr <- sort.GenomicRanges(two_mm[sample(x = 1:3499785, size = 1000000, replace = FALSE)])
 
 #p <- ggplot(data = a, mapping = aes(x = offsets, by = as.factor(a$widths))) + geom_freqpoly(binwidth = 1)

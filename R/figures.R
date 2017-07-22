@@ -1,3 +1,30 @@
+phasing_plot <- function(gr, length=26, start_base=c("A|C|T|G")){
+  phasing_data <- calculate_read_phasing(gr = gr, length = length, start_base = start_base)
+  melted_phasing_data <- melt(phasing_data)
+  data <- data.frame(cbind("distance" = melted_phasing_data$value,
+                           "strand" = unlist(lapply(strsplit(x = melted_phasing_data$L1, split = "_"), '[', 1)),
+                           "order" = unlist(lapply(strsplit(x = melted_phasing_data$L1, split = "_"), '[', 2))),
+                     row.names = NULL, stringsAsFactors = FALSE)
+  data$strand_f = factor(data$strand, levels=c('plus','minus'))
+  p <- ggplot() +
+    geom_line(data = data,
+              stat = "bin",
+              bins = 50,
+              mapping = aes(x = as.numeric(data$distance),
+                            group=order,
+                            color=order)) +
+    facet_grid(.~strand_f,
+               labeller = as_labeller(c("plus"="Plus Strand",
+                                        "minus"="Minus Strand"))) +
+    scale_color_manual(values = c("orange", "blue", "red")) +
+    scale_x_continuous(breaks = seq(0,50,10), expand = c(0,0)) +
+    scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
+    theme(legend.title=element_blank()) +
+    xlab("Distance to Subsequent Position") +
+    ylab("Count of Positions")
+  return(p)
+}
+
 five_prime_plot <- function(gr, min=NULL, max=NULL){
   #df <- data.frame(width=width(two_mismatches), strand=strand(two_mismatches), five=mcols(two_mismatches)$five)
   df <- data.frame(width=width(gr), strand=strand(gr), five=mcols(gr)$five, stringsAsFactors = FALSE)
