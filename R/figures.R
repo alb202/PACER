@@ -63,16 +63,17 @@ sequence_logo_comparison <- function(gr, method="bits", flanks=0){
   sequences2 <- list("plus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$with_flanks),
                      "minus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$with_flanks))
   sequences3 <- c(sequences, sequences2)
+}
 
-seq_logos <- function(gr, length){
+seq_logo_comparisons <- function(gr, length){
   colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
                                   groups=c('A', 'C', 'G', 'T'),
                                   cols=c('blue', 'red', 'green', 'purple'))
 
-  interval_plus_data <- as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$seq)
-  interval_minus_data <- as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$seq)
-  flanks_plus_data <- as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$with_flanks)
-  flanks_minus_data <- as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$with_flanks)
+  interval_plus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="+"])$seq)
+  interval_minus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="-"])$seq)
+  flanks_plus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="+"])$with_flanks)
+  flanks_minus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="-"])$with_flanks)
 
   interval_plus <- ggplot() +
     geom_logo(interval_plus_data,
@@ -81,26 +82,20 @@ seq_logos <- function(gr, length){
     theme(panel.grid.minor.x = element_blank(),
           plot.title = element_text(lineheight=.5, hjust = 0.5)) +
     ggtitle(label = "+ Strand") +
-    #geom_tile(mapping = aes(x = 0:43, y = 2, color = "gray")) +
-    #coord_fixed(ratio=5) +
-    #facet_grid(.~seq_group,space = "free_x", scales = "free_x") +
-    geom_rect(mapping = aes(xmin=0.5, xmax=22+0.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
+    annotate("text", x = -5, y = 1.8,
+             label = paste("N = ", length(interval_plus_data), sep = "")) +
+    geom_rect(mapping = aes(xmin=0.5, xmax=length+0.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
     scale_y_continuous(limits = c(0, 2),
                        breaks = c(0,1,2)) +
-    scale_x_continuous(limits = c(0-10, 22+1+10),
-                       breaks = pretty_base1(0,22))
+    scale_x_continuous(limits = c(0-10, length+1+10),
+                       breaks = pretty_base1(0,length))
 
   interval_minus <- ggplot() +
     geom_logo(interval_minus_data,
               col_scheme=colors_scheme,
               method = "bits") +
     theme(panel.grid.minor.x = element_blank(),
-          #axis.text.y=element_text("RNA Sequence"),
-          #axis.title.y=element_blank(),
-          #axis.text.y=element_text(),
-          #axis.text.y = element_text("RNA Sequence"),
           axis.ticks.y = element_blank(),
-          #axis.title.y.right = element_text("RNA Sequence"),
           axis.title.y = element_text(family = "Sans",
                                       size = 12),
           plot.title = element_text(lineheight=.5,
@@ -109,103 +104,102 @@ seq_logos <- function(gr, length){
                                     size = 12)) +
     ylab("RNA Sequence") +
     ggtitle(label = "- Strand") +
-    #coord_fixed(ratio=5) +
-    #facet_grid(.~seq_group,space = "free_x", scales = "free_x") +
-    geom_rect(mapping = aes(xmin=0.5, xmax=22+0.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
+    annotate("text", x = -5, y = 1.8,
+             label = paste("N = ", length(interval_minus_data), sep = "")) +
+    geom_rect(mapping = aes(xmin=0.5, xmax=length+0.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
     scale_y_continuous(limits = c(0, 2),
                        breaks = c(0,1,2),
                        position = "right",
                        labels = NULL) +
-    scale_x_continuous(limits = c(0-10, 22+1+10),
-                       breaks = pretty_base1(0,22))
+    scale_x_continuous(limits = c(0-10, length+1+10),
+                       breaks = pretty_base1(0,length))
 
   flanks_plus <- ggplot() +
     geom_logo(flanks_plus_data,
-            col_scheme=colors_scheme,
-            method = "bits") +
+              col_scheme=colors_scheme,
+              method = "bits") +
     theme(panel.grid.minor.x = element_blank()) +
-    #facet_grid(.~seq_group) +
-    #coord_fixed(ratio=8) +
-    geom_rect(mapping = aes(xmin=10.5, xmax=22+10.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
+    geom_rect(mapping = aes(xmin=10.5, xmax=length+10.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
+    annotate("text", x = 5, y = 1.8,
+             label = paste("N = ", length(flanks_plus_data), sep = "")) +
     scale_y_continuous(limits = c(0, 2),
                        breaks = c(0,1,2)) +
-    scale_x_continuous(limits = c(0, 22+20+1),
-                       #breaks = pretty_base1(0,22+20+1, c(0,10), c(1,11)),
-                       breaks = pretty_base1(0,22+20+1, c(0,10), c(1,11)),
-                       labels = pretty_base1(0-10,22+20+1-10, c(-9, 0), c(-10, 1)))
+    scale_x_continuous(limits = c(0, length+20+1),
+                       breaks = pretty_base1(0,length+20+1, c(0,10), c(1,11)),
+                       labels = pretty_base1(0-10,length+20+1-10, c(-9, 0), c(-10, 1)))
 
   flanks_minus <- ggplot() +
     geom_logo(flanks_minus_data,
               col_scheme=colors_scheme,
               method = "bits") +
     theme(panel.grid.minor.x = element_blank(),
-          #axis.title.y=element_blank(),
           axis.text.y=element_blank(),
           axis.ticks.y=element_blank(),
           axis.title.y = element_text(family = "Sans",
                                       size = 12)) +
     ylab("DNA Sequence") +
-    #facet_grid(.~seq_group) +
-    #coord_fixed(ratio=8) +
-    geom_rect(mapping = aes(xmin=10.5, xmax=22+10.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
+    annotate("text", x = 5, y = 1.8,
+             label = paste("N = ", length(flanks_minus_data), sep = "")) +
+    geom_rect(mapping = aes(xmin=10.5, xmax=length+10.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
     scale_y_continuous(limits = c(0, 2),
                        breaks = c(0,1,2),
                        position = "right",
                        labels = NULL) +
-    scale_x_continuous(limits = c(0, 22+20+1),
-                       #breaks = pretty_base1(0,22+20+1, c(0,10), c(1,11)),
-                       breaks = pretty_base1(0,22+20+1, c(0,10), c(1,11)),
-                       labels = pretty_base1(0-10,22+20+1-10, c(-9, 0), c(-10, 1)))
+    scale_x_continuous(limits = c(0, length+20+1),
+                       breaks = pretty_base1(0,length+20+1, c(0,10), c(1,11)),
+                       labels = pretty_base1(0-10,length+20+1-10, c(-9, 0), c(-10, 1)))
 
    ip <- ggplot_gtable(ggplot_build(interval_plus))
    im <- ggplot_gtable(ggplot_build(interval_minus))
    fp <- ggplot_gtable(ggplot_build(flanks_plus))
    fm <- ggplot_gtable(ggplot_build(flanks_minus))
-   #c1_label <- rectGrob() + textGrob("column1")
-   full <- grid.arrange(textGrob(label = paste(as.character(22), "nt Reads", sep = ""),
+
+   full <- grid.arrange(textGrob(label = paste(as.character(length), "nt Reads", sep = ""),
                                  gp=gpar(fontfamily = "Sans", size=24), vjust = 0),
                         arrangeGrob(ip, im, ncol = 2),
                         arrangeGrob(fp, fm, ncol = 2),
                         textGrob(label = "Position along RNA or Genome (1 is 5' end)",
                                  gp=gpar(fontfamily = "Sans", size=12), vjust = 0),
                         nrow = 4, ncol = 1, heights = c(.15,1,1,.07))
-   #full <- grid.arrange(ip, im, fp, fm, nrow = 2, ncol = 2)
-   gtable::gtable_show_layout(full)
-   grid.draw(full)
-  # maxWidth <- unit.pmax(pgt$widths[2:3], qgt$widths[2:3])
-  # pgt$widths[2:3] <- maxWidth
-  # qgt$widths[2:3] <- maxWidth
-  # #grid.arrange(pgt, qgt, heights = c(7, 3), nrow = 2, ncol = 2)
-  # gtable::gtable_show_layout(arrangeGrob(pgt, qgt,
-  #                       heights = c(5, 5), #,
-  #                       widths = c(6, 6)))
-  #                       nrow = 2,
-  #                       ncol = 2))
-  # gtable::gtable_show_layout(arrangeGrob(pgt, qgt))
-  # q + annotate(geom = "text",
-  #              x = c(11),
-  #              y = c(),
-  #              label = c("5'"),
-  #              color=c("black"),
-  #              size=c(5)) +
-  #   annotate(geom = "text",
-  #            x = c(33),
-  #            y = c(2),
-  #            label = c("3'"),
-  #            color=c("black"),
-  #            size=c(5))
-  vplayout <- function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-  grid.newpage()
-  pushViewport(viewport(layout = grid.layout(2, 100)))
-  # print(interval_plus, vp = vplayout(1, (20-5):42))
-  # print(interval_minus, vp = vplayout(1, 62:(62+22)))
-  print(interval_plus, vp = vplayout(1, (10-5):52))
-  print(interval_minus, vp = vplayout(1, 52:94))
-  print(flanks_plus, vp = vplayout(2, (10-5):52))
-  print(flanks_minus, vp = vplayout(2, 52:94))
-
-
+   return(full)
 }
-}
+#   full <- grid.arrange(ip, im, fp, fm, nrow = 2, ncol = 2)
+#    gtable::gtable_show_layout(full)
+#   grid.draw(full)
+#   maxWidth <- unit.pmax(pgt$widths[2:3], qgt$widths[2:3])
+#   pgt$widths[2:3] <- maxWidth
+#   qgt$widths[2:3] <- maxWidth
+#   #grid.arrange(pgt, qgt, heights = c(7, 3), nrow = 2, ncol = 2)
+#   gtable::gtable_show_layout(arrangeGrob(pgt, qgt,
+#                         heights = c(5, 5), #,
+#                         widths = c(6, 6)))
+#                         nrow = 2,
+#                         ncol = 2))
+#   gtable::gtable_show_layout(arrangeGrob(pgt, qgt))
+#   q + annotate(geom = "text",
+#                x = c(11),
+#                y = c(),
+#                label = c("5'"),
+#                color=c("black"),
+#                size=c(5)) +
+#     annotate(geom = "text",
+#              x = c(33),
+#              y = c(2),
+#              label = c("3'"),
+#              color=c("black"),
+#              size=c(5))
+#   vplayout <- function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
+#   grid.newpage()
+#   pushViewport(viewport(layout = grid.layout(2, 100)))
+#   # print(interval_plus, vp = vplayout(1, (20-5):42))
+#   # print(interval_minus, vp = vplayout(1, 62:(62+22)))
+#   print(interval_plus, vp = vplayout(1, (10-5):52))
+#   print(interval_minus, vp = vplayout(1, 52:94))
+#   print(flanks_plus, vp = vplayout(2, (10-5):52))
+#   print(flanks_minus, vp = vplayout(2, 52:94))
+#
+#
+# }
+# }
 
 
