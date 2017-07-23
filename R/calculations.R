@@ -1,14 +1,54 @@
 
-calculate_heatmaps <- function(gr, bg=NULL, length=NULL){
-  a <- as.data.table(mcols(gr))
-  group_by(.data = a, fu3, five)
-  count(group_by(.data = a, fu3, five))
-  fu3 <- count(group_by(.data = a, fu3, five))
-  fu2 <- count(group_by(.data = a, fu2, five))
-  fu1 <- count(group_by(.data = a, fu1, five))
-  z <- tapply(X = fu1$n, INDEX = fu1$five, FUN = sum)
-  df_z <- tibble("n_five"=z, "five"=names(z))
-  inner_join(x = fu1, y = df_z, by = "five")
+calculate_heatmaps <- function(gr, length=NULL, strand=NULL){
+  # Filter by length if necessary
+  if(!is.null(length))
+    gr <- gr[width(gr)==length]
+  # Filter by strand if necessary
+  if(!is.null(strand))
+    gr <- gr[strand(gr)==strand]
+
+  # Names of columns for positions at the 5' end
+  five_positions <- c("fu3", "fu2", "fu1", "fd1", "fd2", "fd3")
+  # Names of columns for positions at the 3' end
+  three_positions <- c("tu3", "tu2", "tu1", "td1", "td2", "td3")
+
+  # Get the nucleotide data for the 5' end
+  five_raw <- as.data.table(mcols(gr)[,c("five", five_positions)])
+  # Get the nucleotide data for the 3' end
+  three_raw <- as.data.table(mcols(gr)[,c("three", three_positions)])
+
+  # Get the total number of reads for each base at 5' end and rename columns
+  five_n <- count(group_by(.data = five_raw,  five))
+  names(five_n) <- c("X", "five_n")
+
+  # Get the total number of reads for each base at 3' end and rename columns
+  three_n <- count(group_by(.data = three_raw,  three))
+  names(three_n) <- c("X", "three_n")
+
+  # Create the results data frame with X and Y columns and the counts per base
+  results <- data.table("X" = rep(c("A", "C", "G", "T"), each = 4), "Y" = rep(c("A", "C", "G", "T"), 4))
+  results <- left_join(x = results, y = five_n, by = "X")
+  results <- left_join(x = results, y = three_n, by = "X")
+
+  # Loop through 5' positions, calculate percentages and add to results
+  for(i in 1:6){
+    # Count the bases per each 5' end, then set the names
+    z <- count(group_by_at(.tbl = five_raw, .vars = vars(five, five_positions[i])))
+    names(z) <- c("X", "Y", five_positions[i])
+    # Merge the raw counts with the results
+    results <- merge.data.frame(x = results, y = z, by = c("X", "Y"))
+    # Replace the raw counts with the ratio per 5' base
+    results[five_positions[i]] <- results[five_positions[i]] / results$five_n
+  }
+
+  # Loop through 3' positions, calculate percentages and add to results
+  for(i in 1:6){
+    z <- count(group_by_at(.tbl = three_raw, .vars = vars(three, three_positions[i])))
+    names(z) <- c("X", "Y", three_positions[i])
+    results <- merge.data.frame(x = results, y = z, by = c("X", "Y"))
+    results[three_positions[i]] <- results[three_positions[i]] / results$three_n
+  }
+  return(results)
 }
 
 count_overlaps_by_width <- function(gr, regions, overlap = "sense", normalized=FALSE){
