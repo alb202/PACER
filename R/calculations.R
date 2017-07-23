@@ -1,4 +1,16 @@
 
+calculate_heatmaps <- function(gr, bg=NULL, length=NULL){
+  a <- as.data.table(mcols(gr))
+  group_by(.data = a, fu3, five)
+  count(group_by(.data = a, fu3, five))
+  fu3 <- count(group_by(.data = a, fu3, five))
+  fu2 <- count(group_by(.data = a, fu2, five))
+  fu1 <- count(group_by(.data = a, fu1, five))
+  z <- tapply(X = fu1$n, INDEX = fu1$five, FUN = sum)
+  df_z <- tibble("n_five"=z, "five"=names(z))
+  inner_join(x = fu1, y = df_z, by = "five")
+}
+
 count_overlaps_by_width <- function(gr, regions, overlap = "sense", normalized=FALSE){
   widths <- sort(base::unique(width(gr)))
   results <- as.data.frame(matrix(ncol=length(widths), nrow=length(regions)))
