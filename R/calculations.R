@@ -36,7 +36,9 @@ calculate_heatmaps <- function(gr, length=NULL, strand=NULL){
     z <- count(group_by_at(.tbl = five_raw, .vars = vars(five, five_positions[i])))
     names(z) <- c("X", "Y", five_positions[i])
     # Merge the raw counts with the results
-    results <- merge.data.frame(x = results, y = z, by = c("X", "Y"))
+    results <- merge.data.frame(x = results, y = z, by = c("X", "Y"), all.x = TRUE)
+    # Replace any NA values with 0
+    results[is.na(results[five_positions[i]]), five_positions[i]] <- 0
     # Replace the raw counts with the ratio per 5' base
     results[five_positions[i]] <- results[five_positions[i]] / results$five_n
   }
@@ -45,7 +47,8 @@ calculate_heatmaps <- function(gr, length=NULL, strand=NULL){
   for(i in 1:6){
     z <- count(group_by_at(.tbl = three_raw, .vars = vars(three, three_positions[i])))
     names(z) <- c("X", "Y", three_positions[i])
-    results <- merge.data.frame(x = results, y = z, by = c("X", "Y"))
+    results <- merge.data.frame(x = results, y = z, by = c("X", "Y"), all.x = TRUE)
+    results[is.na(results[three_positions[i]]), three_positions[i]] <- 0
     results[three_positions[i]] <- results[three_positions[i]] / results$three_n
   }
   return(results)
