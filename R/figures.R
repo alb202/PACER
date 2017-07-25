@@ -1,3 +1,44 @@
+
+
+heatmap_plot <- function(heatmap_data, label=NULL){
+
+  df_melted <- melt.data.table(data = as.data.table(heatmap_data),
+                               id.vars = c("X", "Y"),
+                               variable.name = "Position",
+                               value.name = "Ratio",
+                               measure.vars = c("fu3", "fu2", "fu1", "fd1", "fd2", "fd3", "tu3", "tu2", "tu1", "td1", "td2", "td3"))
+
+  df_melted$Position <- factor(x = df_melted$Position,
+                               ordered = TRUE,
+                               levels = c("fu3","tu3","fu2","tu2","fu1","tu1","fd1","td1","fd2","td2","fd3","td3"),
+                               labels = c("3 Upstream of 5'","3 Upstream of 3'",
+                                          "2 Upstream of 5'","2 Upstream of 3'",
+                                          "1 Upstream of 5'","1 Upstream of 3'",
+                                          "1 Downstream of 5'","1 Downstream of 3'",
+                                          "2 Downstream of 5'","2 Downstream of 3'",
+                                          "3 Downstream of 5'","3 Downstream of 3'"))
+  p <- ggplot() +
+    geom_raster(data = df_melted,
+                mapping = aes(x = X, y = Y,
+                              fill = Ratio)) +
+    theme(legend.title = element_text("% Above Background")) +
+    ylab("Position") +
+    xlab("5' Base") +
+    scale_x_discrete(position = "top") +
+    scale_y_discrete(position = "left",
+                     limits = ordered(x = rev(levels(as.factor(df_melted$Y))))) +
+    facet_wrap(~ Position, ncol = 2) +
+    scale_fill_gradient2(low = muted("purple"),
+                         mid = "white",
+                         high = muted("green"),
+                         midpoint = 0,
+                         space = "Lab",
+                         limits=c(-.4,.4))
+  return(p)
+}
+
+
+scale_color_gradient2(low = "purple", midpoint = "white", high = )
 phasing_plot <- function(gr, length=26, start_base=c("A|C|T|G")){
   phasing_data <- calculate_read_phasing(gr = gr, length = length, start_base = start_base)
   melted_phasing_data <- melt(phasing_data)
@@ -61,36 +102,36 @@ length_scatter_plot <- function(df, comparison_col, min=NULL, max=NULL){
   ggsave('testplot.png', height = 25, width = 8)
   return(p)
 }
-
-sequence_logo_comparison <- function(gr, method="bits", flanks=0){
-  colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
-                                  groups=c('A', 'C', 'G', 'T'),
-                                  cols=c('blue', 'red', 'green', 'purple'))
-
-  p <- ggplot() +
-    geom_logo(gr, col_scheme=colors_scheme, method = method) +
-    #theme_logo() +
-    theme(panel.grid.minor.x = element_blank()) +
-    #coord_cartesian(ylim = c(0, 2)) +
-    #coord_cartesian(ylim = c(0, 2), xlim = c(0-flanks, 22+flanks)) +
-    #scale_x_discrete(breaks = seq(from = 0,to = 22, by = 5)) +
-    #scale_y_discrete(breaks = seq(0, 2, by = .5)) +
-    facet_wrap(.~seq_group) #+
-    scale_y_continuous(limits = c(0, 2)) +
-    scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,2), labels = seq(1,22, by=5))
-  return(p)
-
-
-
-  #p <- ggplot() + geom_logo(sequences, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,22))
-  #q <- ggplot() + geom_logo(sequences2, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(0, 42), breaks = pretty_base1(1,45)+1, labels = pretty_base1(-9,35))
-
-  sequences <- list("plus_seq"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$seq),
-                    "minus_seq"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$seq))
-  sequences2 <- list("plus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$with_flanks),
-                     "minus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$with_flanks))
-  sequences3 <- c(sequences, sequences2)
-}
+#
+# sequence_logo_comparison <- function(gr, method="bits", flanks=0){
+#   colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
+#                                   groups=c('A', 'C', 'G', 'T'),
+#                                   cols=c('blue', 'red', 'green', 'purple'))
+#
+#   p <- ggplot() +
+#     geom_logo(gr, col_scheme=colors_scheme, method = method) +
+#     #theme_logo() +
+#     theme(panel.grid.minor.x = element_blank()) +
+#     #coord_cartesian(ylim = c(0, 2)) +
+#     #coord_cartesian(ylim = c(0, 2), xlim = c(0-flanks, 22+flanks)) +
+#     #scale_x_discrete(breaks = seq(from = 0,to = 22, by = 5)) +
+#     #scale_y_discrete(breaks = seq(0, 2, by = .5)) +
+#     facet_wrap(.~seq_group) #+
+#     scale_y_continuous(limits = c(0, 2)) +
+#     scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,2), labels = seq(1,22, by=5))
+#   return(p)
+#
+#
+#
+#   #p <- ggplot() + geom_logo(sequences, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(0, 24), breaks = pretty_base1(1,22))
+#   #q <- ggplot() + geom_logo(sequences2, col_scheme=colors_scheme, method = "bits") + theme(panel.grid.minor.x = element_blank()) + facet_grid(.~seq_group) + scale_y_continuous(limits = c(0, 2)) + scale_x_continuous(limits = c(0, 42), breaks = pretty_base1(1,45)+1, labels = pretty_base1(-9,35))
+#
+#   sequences <- list("plus_seq"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$seq),
+#                     "minus_seq"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$seq))
+#   sequences2 <- list("plus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="+"])$with_flanks),
+#                      "minus_int"=as.character(mcols(gr[width(gr)==22 & strand(gr)=="-"])$with_flanks))
+#   sequences3 <- c(sequences, sequences2)
+# }
 
 seq_logo_comparisons <- function(gr, length){
   colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),

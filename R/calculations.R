@@ -1,4 +1,12 @@
 
+subtract_heatmap_background <- function(gr, bg){
+  data_columns <- c("fu3","tu3","fu2","tu2","fu1","tu1",
+                    "fd1","td1","fd2","td2","fd3","td3")
+  gr[data_columns] <- gr[data_columns] - bg[data_columns]
+  #results22[c("fu3","tu3","fu2","tu2","fu1","tu1","fd1","td1","fd2","td2","fd3","td3")] <- results22[,c("fu3","tu3","fu2","tu2","fu1","tu1","fd1","td1","fd2","td2","fd3","td3")] - results20[,c("fu3","tu3","fu2","tu2","fu1","tu1","fd1","td1","fd2","td2","fd3","td3")]
+  return(gr)
+}
+
 calculate_heatmaps <- function(gr, length=NULL, strand=NULL){
   # Filter by length if necessary
   if(!is.null(length))
