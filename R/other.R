@@ -2,12 +2,12 @@
 ### Other helper functions below
 
 ## Create the output directory for a dataset
-create_output_dirs <- function(name){
+create_output_dirs <- function(out_dir, name){
   # If the main output dir does not exist, create it
-  if(!dir.exists(output_dir))
-    dir.create(output_dir)
+  if(!dir.exists(out_dir))
+    dir.create(out_dir)
   # Pick the name of the new directory
-  new_dir <- paste(output_dir, name, sep = "/")
+  new_dir <- paste(out_dir, name, sep = "/")
   # If the new directory doesn't exist, create it
   if(!dir.exists(new_dir))
     dir.create(new_dir)
