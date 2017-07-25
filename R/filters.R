@@ -3,6 +3,19 @@ filter_unique_positions <- function(gr){
   return(sort.GenomicRanges(gr[invert_vector(GenomicRanges::duplicated.GenomicRanges(x = gr))]))
 }
 
+filter_by_gene <- function(gr, gene_list, invert=FALSE, ensembl_id=TRUE){
+  # If the gene list is Ensembl, use the Ensembl ID for comparison
+  if(isTRUE(ensembl_id))
+    matches <- mcols(gr)$ensembl_gene_id %in% gene_list
+  # If the gene list is not Ensembl, use the external ID for comparison
+  if(!isTRUE(ensembl_id))
+    matches <- mcols(gr)$external_gene_name %in% gene_list
+  # If you want genes that are not in the list, invert the matching index
+  if(isTRUE(invert))
+    matches <- !matches
+  return(gr[matches])
+}
+
 assign_5prime_to_a_length <- function(gr, primary_length){
   # Filter alignments by strand
   pos <- gr[strand(gr)=="+"]
@@ -19,36 +32,36 @@ assign_5prime_to_a_length <- function(gr, primary_length){
   # Combine the primary length alignments with the filtered secondary length alignments, sort and return
   return(sort.GenomicRanges(c(pos_primary, neg_primary, pos_secondary_filtered, neg_secondary_filtered)))
 }
-
-assign_5prime_to_longer_slower <- function(gr){
-  chromosomes <- sort(unique.Vector(seqnames(gr)))
-  lengths <- sort(unique.Vector(width(gr)), decreasing = TRUE)
-  results <- GAlignments()
-  for(j in 1:length(chromosomes)){
-    #print(chromosomes[j])
-    # Filter alignments by strand
-    pos <- gr[strand(gr)=="+" & seqnames(gr)==chromosomes[j]]
-    neg <- gr[strand(gr)=="-" & seqnames(gr)==chromosomes[j]]
-    #results <- c(gr[width(gr)==lengths[1]])
-    for (i in 1:(length(lengths))){
-      #print(lengths[i])
-      #print(length(pos))
-      #print(length(neg))
-      # Filter the primary length alignments
-      pos_primary <- pos[width(pos)==lengths[i]]
-      neg_primary <- neg[width(neg)==lengths[i]]
-      #print(length(pos_primary))
-      #print(length(neg_primary))
-      # Remove the alignments that share a 5' end with a primary alignment
-      pos <- pos[!start(pos) %in% as.vector(start(pos_primary))]
-      neg <- neg[!end(neg) %in% as.vector(end(neg_primary))]
-      # Concatenate, sort and return results
-      results <- c(results, pos_primary, neg_primary)
-    }
-  }
-  #print(class(results))
-  return(sort.GenomicRanges(results))
-}
+#
+# assign_5prime_to_longer_slower <- function(gr){
+#   chromosomes <- sort(unique.Vector(seqnames(gr)))
+#   lengths <- sort(unique.Vector(width(gr)), decreasing = TRUE)
+#   results <- GAlignments()
+#   for(j in 1:length(chromosomes)){
+#     #print(chromosomes[j])
+#     # Filter alignments by strand
+#     pos <- gr[strand(gr)=="+" & seqnames(gr)==chromosomes[j]]
+#     neg <- gr[strand(gr)=="-" & seqnames(gr)==chromosomes[j]]
+#     #results <- c(gr[width(gr)==lengths[1]])
+#     for (i in 1:(length(lengths))){
+#       #print(lengths[i])
+#       #print(length(pos))
+#       #print(length(neg))
+#       # Filter the primary length alignments
+#       pos_primary <- pos[width(pos)==lengths[i]]
+#       neg_primary <- neg[width(neg)==lengths[i]]
+#       #print(length(pos_primary))
+#       #print(length(neg_primary))
+#       # Remove the alignments that share a 5' end with a primary alignment
+#       pos <- pos[!start(pos) %in% as.vector(start(pos_primary))]
+#       neg <- neg[!end(neg) %in% as.vector(end(neg_primary))]
+#       # Concatenate, sort and return results
+#       results <- c(results, pos_primary, neg_primary)
+#     }
+#   }
+#   #print(class(results))
+#   return(sort.GenomicRanges(results))
+# }
 assign_5prime_to_longer <- function(gr){
   lengths <- sort(unique.Vector(width(gr)), decreasing = TRUE)
   results <- c(gr[width(gr)==lengths[1]])
@@ -125,7 +138,7 @@ filter_by_metadata <- function(target, source, column){
   return(sort.GenomicRanges(results))
 }
 
-filter_reads_by_regions <- function(alignments, regions, type=c("both", "sense", "antisense"), invert=FALSE){
+filter_by_regions <- function(alignments, regions, type=c("both", "sense", "antisense"), invert=FALSE){
   if (type=="both") {
     results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=TRUE)
   }

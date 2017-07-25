@@ -35,10 +35,14 @@ datasets <- c(WT_early_rep1="SRR5023999.fastq.gz")
 output_dir <- paste(getwd(), "/output", sep="")
 alignment_settings <- c(two_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
-genome_files <- tibble(type = c("genome", "sizes", "genes"),
-                       WBcel235 = c("Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
-                                    "ce11.chrom.sizes",
-                                    "Caenorhabditis_elegans.WBcel235.89.gff3"))
+genome_files <- list(WBcel235 = list(genome_file="Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
+                                     gene_list_files=list(mut="celegans_mut_ensembl.txt",
+                                                     csr1="celegans_csr1_ensembl.txt",
+                                                     wago1="celegans_wago1_ensembl.txt")))
+# genome_files <- tibble(type = c("genome", "sizes", "genes"),
+#                        WBcel235 = c("Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
+#                                     "ce11.chrom.sizes",
+#                                     "Caenorhabditis_elegans.WBcel235.89.gff3"))
 length_range <- c(minimum=10, maximum=30)
 sequence_cutoff <- 0.001
 
@@ -64,11 +68,11 @@ gzip_a_file(dir = dataset_info["output_dir"], file = trimmed_fastq_file)
 #### Import other genomic data
 ## Get genomic features
 genome_data <- load_genome_data(genome = genome)
-genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes",genome,as.character(genome_files[genome][1,]), sep="/"))
-
+genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes",genome,as.character(genome_files[[genome]]$genome_file), sep="/"))
+gene_lists <- load_gene_lists(path = paste(getwd(),"genomes",genome, sep = "/"), gene_lists_files = genome_files[[genome]]$gene_list_files)
 ## Load and filter the main alignment file
-alignments <- load_alignments(path = alignment_file)
-#alignments <- load_alignments(path = "output/WT_early_rep1_/zero_seed_mm_SRR5023999.bam")
+#alignments <- load_alignments(path = alignment_file)
+alignments <- load_alignments(path = "output/WT_early_rep1/two_seed_mm_SRR5023999.bam")
 alignments <- filter_alignments(alignments = alignments,
                   regions = genome_data[["gene_intervals"]],
                   regions_filter = "both",
@@ -83,7 +87,7 @@ no_mm_in_seed <- alignments[mm_indexes$no_mm_seed]
 
 
 ## Create a shuffled version of the file
-two_mismatches_shuffled <- shuffle_intervals(alignments = two_mismatches,
+two_mm_shuffled <- shuffle_intervals(alignments = two_mm,
                                              intervals = genome_data[["exon_intervals"]],
                                              antisense = TRUE)
 
@@ -92,21 +96,3 @@ two_mm <- get_genome_sequence(
   gr = two_mm, genome_sequence = genome_sequence)
 two_mm_shuffled <- get_genome_sequence(
   gr = two_mm_shuffled, genome_sequence = genome_sequence)
-
-## Make graphs
-# 5' by length
-p <- five_prime_plot(gr = two_mm)
-
-# 22 vs non-22
-df <- count_overlaps_by_width(gr = two_mm, regions = genome_data$gene_intervals, overlap = "antisense", normalized = TRUE)
-p <- length_scatter_plot(df = df, comparison_col = "22")
-
-# 22A vs 22C/G/T
-df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$gene_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
-df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$exon_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
-p <- length_scatter_plot(df = df, comparison_col = "G")
-
-
-
-qplot(x = mcols(two_mm[width(two_mm)==22])$five)
-qplot(x = mcols(two_mm_shuffled[width(two_mm_shuffled)==22])$five)

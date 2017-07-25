@@ -57,6 +57,16 @@ load_fasta_genome <- function(path){
   return(genome_sequence)
 }
 
+load_gene_lists <- function(path, gene_lists_files){
+  # Create an empty list
+  results <- list()
+  # Loop through the filenames, load the list of genes, and add as a named list
+  for(i in 1:length(gene_lists_files)){
+    results[names(gene_lists_files)[i]] <- list(scan(paste(paste(path, gene_lists_files[i], sep = "/")), character(), quote = ""))
+  }
+  return(results)
+}
+
 load_genome_data <- function(genome){
   genomes_path <- paste(getwd(),"genomes",genome, sep="/")
   files <- dir(path = genomes_path)
