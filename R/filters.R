@@ -153,8 +153,8 @@ filter_by_regions <- function(alignments, regions, type=c("both", "sense", "anti
 }
 
 
-filter_RNA_from_intervals <- function(intervals){
-  results <- subset(x = intervals,
+filter_RNA_from_intervals <- function(gr){
+  results <- subset(x = gr,
                     gene_biotype!="snoRNA" &
                       gene_biotype!="miRNA" &
                       gene_biotype!="rRNA" &
