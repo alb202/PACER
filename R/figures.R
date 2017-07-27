@@ -1,5 +1,3 @@
-
-
 heatmap_plot <- function(heatmap_data, label=NULL){
 
   df_melted <- melt.data.table(data = as.data.table(heatmap_data),
@@ -38,7 +36,6 @@ heatmap_plot <- function(heatmap_data, label=NULL){
 }
 
 
-scale_color_gradient2(low = "purple", midpoint = "white", high = )
 phasing_plot <- function(gr, length=26, start_base=c("A|C|T|G")){
   phasing_data <- calculate_read_phasing(gr = gr, length = length, start_base = start_base)
   melted_phasing_data <- melt(phasing_data)
@@ -83,23 +80,49 @@ five_prime_plot <- function(gr, min=NULL, max=NULL){
   return(p)
 }
 
-length_scatter_plot <- function(df, comparison_col, min=NULL, max=NULL){
-  melted_df <- data.table::melt(df, id.vars=c(comparison_col, "Gene_strand"))
-  p <- ggplot(data = melted_df, aes(x=melted_df[as.character(comparison_col)], y=melted_df$value)) +
+scatter_plot <- function(df, x, y){
+  melted_df <- data.table::melt(df[, c("Gene_strand",
+                                       as.character(x),
+                                       as.character(y))],
+                                id.vars=c(1,2,3))
+  lm_results <- list(pos=summary(lm(formula = melted_df[melted_df[,1]=="+",][,2]~melted_df[melted_df[,1]=="+",][,3], na.action = na.omit)),
+                     neg=summary(lm(formula = melted_df[melted_df[,1]=="-",][,2]~melted_df[melted_df[,1]=="-",][,3], na.action = na.omit)))
+  #vars <- data.frame(expand.grid(levels(melted_df$Gene_strand)), stringsAsFactors = TRUE)
+  vars <- data.frame("Gene_strand"=c("+","-"), stringsAsFactors = TRUE)
+  #vars <- data.frame(expand.grid(levels(melted_df$Gene_strand)), stringsAsFactors = TRUE)
+  #names(vars) <- "Gene_strand"
+  r2_df <- data.frame(x=c(.0001, .0001),
+                      y=c(1,1),
+                      vars,
+                      "labels"=as.factor(c(paste("R-squared: ", as.character(round(lm_results$pos$r.squared, 3)), sep = ""),
+                                           paste("R-squared: ", as.character(round(lm_results$neg$r.squared, 3)), sep = ""))),
+                      stringsAsFactors = TRUE)
+  p <- ggplot(data = melted_df,
+              aes(x=melted_df[as.character(x)],
+                  y=melted_df[as.character(y)])) +
     geom_point(inherit.aes = TRUE, size=.5) +
-    xlab(paste(comparison_col, "nt reads", sep = "")) +
-    ylab("Count") +
+    xlab(paste("log(10) of ", x, "nt reads / bp", sep = "")) +
+    ylab(paste("log(10) of ", y, "nt reads / bp", sep = "")) +
     #scale_colour_manual(values = c("blue","red","darkgreen","purple")) +
     #theme(legend.title=element_blank()) +
     scale_x_log10(labels=comma) +
     scale_y_log10(labels=comma) +
-    facet_grid(melted_df$variable ~ melted_df$Gene_strand,
+    facet_grid(. ~ Gene_strand,
                scales = "fixed",
                space = "fixed",
-               labeller = as_labeller(c("+"="Plus Strand", "-"="Minus Strand"))) +
+               labeller = as_labeller(c("+"="Plus Strand", "-"="Minus Strand", names(df)[2:length(names(df))]))) +
     #stat_smooth(geom="text",method="lm",hjust=0,parse=TRUE, inherit.aes = TRUE, fullrange = TRUE) +
-    geom_smooth(method="rq", se=FALSE, inherit.aes = TRUE, size=.5)
-  ggsave('testplot.png', height = 25, width = 8)
+    #stat_smooth_func(geom="text",method="rq",hjust=0,parse=TRUE) +
+    #geom_smooth(method="rq", se=FALSE, inherit.aes = TRUE, size=.5) +
+    geom_smooth(method="lm", se=FALSE, inherit.aes = TRUE, size=.5) +
+    geom_text(aes(x=x,
+                  y=y,
+                  label = labels,
+                  group=NULL),
+              data = r2_df) #parse = TRUE)
+p
+
+  #ggsave('testplot.png', height = 25, width = 8)
   return(p)
 }
 #
@@ -269,5 +292,4 @@ seq_logo_comparisons <- function(gr, length){
 #
 # }
 # }
-
 
