@@ -81,50 +81,57 @@ five_prime_plot <- function(gr, min=NULL, max=NULL){
 }
 
 scatter_plot <- function(df, x, y){
+  # Melt the reads/gene data for the two widths
   melted_df <- data.table::melt(df[, c("Gene_strand",
                                        as.character(x),
                                        as.character(y))],
                                 id.vars=c(1,2,3))
+  # calculate the linear regresssion for each strand
   lm_results <- list(pos=summary(lm(formula = melted_df[melted_df[,1]=="+",][,2]~melted_df[melted_df[,1]=="+",][,3], na.action = na.omit)),
                      neg=summary(lm(formula = melted_df[melted_df[,1]=="-",][,2]~melted_df[melted_df[,1]=="-",][,3], na.action = na.omit)))
-  #vars <- data.frame(expand.grid(levels(melted_df$Gene_strand)), stringsAsFactors = TRUE)
+
+  # Create the strand variables as factors
   vars <- data.frame("Gene_strand"=c("+","-"), stringsAsFactors = TRUE)
-  #vars <- data.frame(expand.grid(levels(melted_df$Gene_strand)), stringsAsFactors = TRUE)
-  #names(vars) <- "Gene_strand"
-  r2_df <- data.frame(x=c(.0001, .0001),
-                      y=c(1,1),
-                      vars,
-                      "labels"=as.factor(c(paste("R-squared: ", as.character(round(lm_results$pos$r.squared, 3)), sep = ""),
-                                           paste("R-squared: ", as.character(round(lm_results$neg$r.squared, 3)), sep = ""))),
-                      stringsAsFactors = TRUE)
+
+
+
+  # Make the main plot faceted with Rsquared annotation
   p <- ggplot(data = melted_df,
               aes(x=melted_df[as.character(x)],
                   y=melted_df[as.character(y)])) +
     geom_point(inherit.aes = TRUE, size=.5) +
     xlab(paste("log(10) of ", x, "nt reads / bp", sep = "")) +
     ylab(paste("log(10) of ", y, "nt reads / bp", sep = "")) +
-    #scale_colour_manual(values = c("blue","red","darkgreen","purple")) +
-    #theme(legend.title=element_blank()) +
     scale_x_log10(labels=comma) +
     scale_y_log10(labels=comma) +
     facet_grid(. ~ Gene_strand,
                scales = "fixed",
                space = "fixed",
                labeller = as_labeller(c("+"="Plus Strand", "-"="Minus Strand", names(df)[2:length(names(df))]))) +
-    #stat_smooth(geom="text",method="lm",hjust=0,parse=TRUE, inherit.aes = TRUE, fullrange = TRUE) +
-    #stat_smooth_func(geom="text",method="rq",hjust=0,parse=TRUE) +
-    #geom_smooth(method="rq", se=FALSE, inherit.aes = TRUE, size=.5) +
-    geom_smooth(method="lm", se=FALSE, inherit.aes = TRUE, size=.5) +
-    geom_text(aes(x=x,
-                  y=y,
-                  label = labels,
-                  group=NULL),
-              data = r2_df) #parse = TRUE)
-p
+    geom_smooth(method="lm", se=FALSE, inherit.aes = TRUE, size=.5)
 
-  #ggsave('testplot.png', height = 25, width = 8)
-  return(p)
+    # Find location of annotation at .2x by .8y
+    x_anno <- 10**layer_scales(p)$x$range$range
+    y_anno <- 10**layer_scales(p)$y$range$range
+    x_anno <- (x_anno[2] - x_anno[1]) * .001 + x_anno[1]
+    y_anno <- (y_anno[2] - y_anno[1]) * .7 + y_anno[1]
+    # Generate the annotation data frame
+    r2_df <- data.frame(x=c(x_anno, x_anno),
+                        y=c(y_anno, y_anno),
+                        vars,
+                        "labels"=as.factor(c(paste("R-squared: ", as.character(round(lm_results$pos$r.squared, 3)), sep = ""),
+                                             paste("R-squared: ", as.character(round(lm_results$neg$r.squared, 3)), sep = ""))),
+                        stringsAsFactors = TRUE)
+    p <- p +
+      geom_text(aes(x=x,
+                    y=y,
+                    label = labels,
+                    group=NULL),
+                data = r2_df)
+    return(p)
 }
+
+
 #
 # sequence_logo_comparison <- function(gr, method="bits", flanks=0){
 #   colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
