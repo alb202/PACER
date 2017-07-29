@@ -124,7 +124,13 @@ load_genome_data <- function(genome){
                       path = genomes_path,
                       filename = chromosome_sizes_file)
   }
-
+  # Get the total exonic bp length for each gene
+  gene_intervals <- calculate_exonic_bp_of_gene(exons = exon_intervals,
+                                             genes = gene_intervals)
+  # Get the length of each exon
+  mcols(exon_intervals) <- data.frame(mcols(exon_intervals),
+                                      exon_bp=end(exon_intervals)-start(exon_intervals)+1,
+                                      stringsAsFactors = FALSE)
   return(list(chromosome_sizes=chromosome_sizes,
               gene_intervals=gene_intervals,
               exon_intervals=exon_intervals))

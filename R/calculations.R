@@ -210,60 +210,42 @@ calculate_phasing <- function(gr, length=26, start_base=c("A|C|T|G")){
               "minus_third"=minus_third))
 }
 
-calculate_exonic_of_gene <- function(exons, genes){
-  # use_names <- FALSE
-  # if(is.null(genes)){
-  #   gene_ids <- sort(unique(mcols(exons)$ensembl_gene_id))
-  #   use_names <- TRUE
-  # } else {
-  #   gene_ids <- mcols(genes)$ensembl_gene_id
-  # }
-  #exons <- unique(exons)
-  #df <- data.frame("width"=end(exons)-start(exons), "ensembl_gene_id"=mcols(exons)$ensembl_gene_id, stringsAsFactors = FALSE)
-  #df <- data.table("start"=start(exons), "end"=end(exons), "ensembl_gene_id"=mcols(exons)$ensembl_gene_id, stringsAsFactors = FALSE)
-  #df_agg <- aggregate(x = df$width, by=list(ensembl_gene_id=df$ensembl_gene_id), FUN=unique)
-  #new_mcols <- inner_join(x = as.data.frame(mcols(genes)), y = df_agg, by = c("ensembl_gene_id"))
-  #mcols(genes) <- new_mcols
-  # return(genes)
-  #exons2 <- exons[1:5000]
+calculate_exonic_bp_of_gene <- function(exons, genes){
+  # Create a data frame with the start and end and gene ID columns
   df <- data.frame(start=start(exons),
                    end=end(exons),
                    ensembl_gene_id=mcols(exons)$ensembl_gene_id, stringsAsFactors = FALSE)
-  #df_seq <- mapply(df$start, df$end, FUN = seq)
+
+  # Aggregate the start and end position by gene ID, and Name the columns
   df_agg <- aggregate(x = list(df$start, df$end),
                       by=list(df$ensembl_gene_id, df$ensembl_gene_id),
                       FUN=c)
   names(df_agg) <- c("ensembl_gene_id", "ensembl_gene_id", "starts", "ends")
+
+  # With the helper function sum_exons, sum up the total number of positions for each gene
   df_agg$exon_bp <- mapply(df_agg$starts,
                       df_agg$ends,
                       FUN = sum_exons,
                       USE.NAMES = FALSE)
-  #d[,c(2,5)]
+  # Create a new set of metadata columns by joining the new counts with the old gene IDs
   new_mcols <- inner_join(x = as.data.frame(mcols(genes)),
                           y = df_agg[,c(2,5)],
                           by = c("ensembl_gene_id"))
+  # Add the new columns to the gene intervals
   mcols(genes) <- new_mcols
   return(genes)
 }
 
-  #results <- mapply(FUN = sum_exons, USE.NAMES = use_names, gene_ids, MoreArgs = list(exon_gr = exons))
-#   if(!is.null(genes)){
-#     return(results)
-#   } else{
-#     mcols(genes)["exonic_bp"] <- results
-#   }
-# }
-
 sum_exons <- function(starts, ends){
+  # initialize the list of positions
   positions <- NULL
+  # Loop through each start and end and add each position to the list
   for(i in 1:length(starts)){
     positions <- c(positions, starts[i]:ends[i])
   }
+  # return the length of the list of unique positions
   return(length(unique(positions)))
 }
-  #gr <- exon_gr[mcols(exon_gr)$ensembl_gene_id==gene_id]
-  #return(sum(end(gr[mcols(exon_gr)$ensembl_gene_id==gene_id])-start(gr[mcols(exon_gr)$ensembl_gene_id==gene_id])))
-
 
 gr <- sort.GenomicRanges(two_mm[sample(x = 1:3499785, size = 1000000, replace = FALSE)])
 
