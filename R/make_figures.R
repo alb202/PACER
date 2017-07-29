@@ -1,8 +1,40 @@
 ##########################################################################################
 ### The main workflow ###
 
+## Make plots and save
+make_length_plots <- function(gr, path, label){
+#make_length_plots <- function(gr, regions=NULL, overlap="both", invert=FALSE, gene_list=NULL, invert_gl=FALSE, ensembl_id=path, label){
+  # if(!is.null(regions) & !is.null(gene_list))
+  #   regions <- filter_by_gene(gr = regions, gene_list = gene_list, invert = invert_gl, ensembl_id = ensembl_id)
+  # if(!is.null(regions))
+  # gr <- filter_by_regions(alignments = gr, regions = regions, type = type, invert = invert)
+  p <- five_prime_plot(gr = gr)
+  ggsave(filename = paste("five_prime_plot__", label, sep = ""),
+         plot = p,
+         device = "svg",
+         path = path)
+  return(p)
+}
+
+make_length_scatter_plots <- function(gr, primary_length=22, regions, overlap="antisense", path, label){
+  df <- count_overlaps_by_width(gr = gr,
+                                regions = regions,
+                                overlap = "antisense",
+                                normalized = TRUE)
+  p <- scatter_plot(df = df, comparison_col = as.character(primary_length))
+  ggsave(filename = paste("scatter_plot__", label, sep = ""),
+         plot = p,
+         device = "png",
+         path = path)
+  return(p)
+}
+
+
+
+
+
 ### 5' plots
-p <- five_prime_plot(gr = two_mm, min = NULL, max = NULL)
+p <- five_prime_plot(gr = two_mm)
 ggsave(filename = "five_prime_plot__two_mm__all.svg",
        plot = p,
        device = "svg",
@@ -25,13 +57,13 @@ ggsave(filename = "five_prime_plot__two_mm__antisense_to_genes.svg",
        path = dataset_info$figure_dir)
 
 ### 5' plots - 5' shared with 22nt removed
-two_mm_22nt_5prime_filtered <- assign_5prime_to_a_length(gr = two_mm, primary_length = 22)
-p <- five_prime_plot(gr = two_mm_22nt_5prime_filtered, min = NULL, max = NULL)
+two_mm__22nt_5prime_filtered <- assign_5prime_to_a_length(gr = two_mm, primary_length = 22)
+p <- five_prime_plot(gr = two_mm__22nt_5prime_filtered, min = NULL, max = NULL)
 ggsave(filename = "five_prime_plot__two_mm_22nt5prime_filtered__all.svg",
        plot = p,
        device = "svg",
        path = dataset_info$figure_dir)
-p <- five_prime_plot(gr = filter_by_regions(alignments = two_mm_22nt_5prime_filtered,
+p <- five_prime_plot(gr = filter_by_regions(alignments = two_mm__22nt_5prime_filtered,
                                             regions = genome_data$gene_intervals,
                                             type = "sense",
                                             invert = FALSE))
@@ -39,7 +71,7 @@ ggsave(filename = "five_prime_plot__two_mm_22nt5prime_filtered__sense_to_genes.s
        plot = p,
        device = "svg",
        path = dataset_info$figure_dir)
-p <- five_prime_plot(gr = filter_by_regions(alignments = two_mm_22nt_5prime_filtered,
+p <- five_prime_plot(gr = filter_by_regions(alignments = two_mm__22nt_5prime_filtered,
                                             regions = genome_data$gene_intervals,
                                             type = "antisense",
                                             invert = FALSE))
@@ -48,7 +80,44 @@ ggsave(filename = "five_prime_plot__two_mm_22nt5prime_filtered__antisense_to_gen
        device = "svg",
        path = dataset_info$figure_dir)
 
-### 5' plots - 5' shared with 22nt removed
+### 5' plots - 5' shared with 22nt removed - MUT targets
+#two_mm__22nt_5prime_filtered <- assign_5prime_to_a_length(gr = two_mm, primary_length = 22)
+p <- five_prime_plot(gr = filter_by_regions(alignments = two_mm__22nt_5prime_filtered,
+                                            regions = filter_by_gene(gr = genome_data$gene_intervals,
+                                                                     gene_list = gene_lists$mut,
+                                                                     invert = FALSE,
+                                                                     ensembl_id = FALSE),
+                                            type = "both",
+                                            invert = FALSE))
+ggsave(filename = "five_prime_plot__two_mm_22nt5prime_filtered__MUT_targets.svg",
+       plot = p,
+       device = "svg",
+       path = dataset_info$figure_dir)
+p <- five_prime_plot(gr = filter_by_regions(alignments = two_mm__22nt_5prime_filtered,
+                                            regions = filter_by_gene(gr = genome_data$gene_intervals,
+                                                                     gene_list = gene_lists$mut,
+                                                                     invert = FALSE,
+                                                                     ensembl_id = FALSE),
+                                            type = "sense",
+                                            invert = FALSE))
+ggsave(filename = "five_prime_plot__two_mm_22nt5prime_filtered__sense_MUT_targets.svg",
+       plot = p,
+       device = "svg",
+       path = dataset_info$figure_dir)
+p <- five_prime_plot(gr = filter_by_regions(alignments = two_mm__22nt_5prime_filtered,
+                                            regions = filter_by_gene(gr = genome_data$gene_intervals,
+                                                                     gene_list = gene_lists$mut,
+                                                                     invert = FALSE,
+                                                                     ensembl_id = FALSE),
+                                            type = "antisense",
+                                            invert = FALSE))
+ggsave(filename = "five_prime_plot__two_mm_22nt5prime_filtered__antisense_MUT_targets.svg",
+       plot = p,
+       device = "svg",
+       path = dataset_info$figure_dir)
+
+
+
 # mut filter_by_gene(gr = genome_data$gene_intervals, gene_list = gene_lists$mut, invert = FALSE, ensembl_id = FALSE)
 # csr1 filter_by_gene(gr = genome_data$gene_intervals, gene_list = gene_lists$csr1, invert = FALSE, ensembl_id = TRUE)
 # wago1 filter_by_gene(gr = genome_data$gene_intervals, gene_list = gene_lists$wago1, invert = FALSE, ensembl_id = TRUE)
@@ -60,12 +129,13 @@ p <- five_prime_plot(gr = two_mm)
 
 # 22 vs non-22
 df <- count_overlaps_by_width(gr = two_mm, regions = genome_data$gene_intervals, overlap = "antisense", normalized = TRUE)
-p <- length_scatter_plot(df = df, comparison_col = "22")
+#p <- scatter_plot(df = df, comparison_col = "22")
+p <- scatter_plot(df = df, x = 22, y = 20)
 
 # 22A vs 22C/G/T
 df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$gene_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
 df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$exon_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
-p <- length_scatter_plot(df = df, comparison_col = "G")
+p <- scatter_plot(df = df, comparison_col = "G")
 
 two_mm_hm <- calculate_heatmaps(gr = two_mm, length = 22, strand = "+")
 two_mm_shuffled_hm <- calculate_heatmaps(gr = two_mm_shuffled, length = 22, strand = "+")
