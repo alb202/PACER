@@ -83,7 +83,7 @@ count_overlaps_by_width <- function(gr, regions, overlap = "sense", normalized=F
                                             type = "any",
                                             ignore.strand=ignore_strand)
     if (normalized==TRUE)
-      results[,i] <- results[,i] / interval_widths
+      results[,i] <- results[,i] / (mcols(regions)$exon_bp/100)
   }
   return(cbind.data.frame("Gene_strand"=original_region_strand, results))
 }
@@ -247,12 +247,12 @@ sum_exons <- function(starts, ends){
   return(length(unique(positions)))
 }
 
-gr <- sort.GenomicRanges(two_mm[sample(x = 1:3499785, size = 1000000, replace = FALSE)])
+#gr <- sort.GenomicRanges(two_mm[sample(x = 1:3499785, size = 1000000, replace = FALSE)])
 
 #p <- ggplot(data = a, mapping = aes(x = offsets, by = as.factor(a$widths))) + geom_freqpoly(binwidth = 1)
 #p <- ggplot2::ggplot() + geom_line(mapping = aes(x = results$offsets, y = results$n, group = results$widths, color = results$widths))
 
-ggplot(data=results3, aes(x=offsets, y=ratio)) + geom_line(aes(group = widths), color=results3$widths, inherit.aes = TRUE, show.legend = TRUE) + facet_grid(chromosomes~strands) + ggplot2::theme(legend.position = "right")
+#ggplot(data=results3, aes(x=offsets, y=ratio)) + geom_line(aes(group = widths), color=results3$widths, inherit.aes = TRUE, show.legend = TRUE) + facet_grid(chromosomes~strands) + ggplot2::theme(legend.position = "right")
 
 adjust_ggplot_units <- function(maxWidths, x1, x2){
   widths <- as.numeric(maxWidth2[[2]][[1]][[2]])
