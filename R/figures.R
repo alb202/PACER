@@ -19,9 +19,10 @@ heatmap_plot <- function(heatmap_data, label=NULL){
     geom_raster(data = df_melted,
                 mapping = aes(x = X, y = Y,
                               fill = Ratio)) +
-    theme(legend.title = element_text("% Above Background")) +
+    theme(plot.title = element_text(hjust = 0.5)) +
     ylab("Position") +
     xlab("5' Base") +
+    ggtitle(label = label) +
     scale_x_discrete(position = "top") +
     scale_y_discrete(position = "left",
                      limits = ordered(x = rev(levels(as.factor(df_melted$Y))))) +
@@ -86,6 +87,7 @@ scatter_plot <- function(df, x, y){
                                        as.character(x),
                                        as.character(y))],
                                 id.vars=c(1,2,3))
+  #names(melted_df) <- c("Gene_strand", as.character(x), as.character(y))
   # calculate the linear regresssion for each strand
   lm_results <- list(pos=summary(lm(formula = melted_df[melted_df[,1]=="+",][,2]~melted_df[melted_df[,1]=="+",][,3], na.action = na.omit)),
                      neg=summary(lm(formula = melted_df[melted_df[,1]=="-",][,2]~melted_df[melted_df[,1]=="-",][,3], na.action = na.omit)))
@@ -100,8 +102,8 @@ scatter_plot <- function(df, x, y){
               aes(x=melted_df[as.character(x)],
                   y=melted_df[as.character(y)])) +
     geom_point(inherit.aes = TRUE, size=.5) +
-    xlab(paste("log(10) of ", x, "nt reads / bp", sep = "")) +
-    ylab(paste("log(10) of ", y, "nt reads / bp", sep = "")) +
+    xlab(paste("log(10) of ", x, " reads / bp", sep = "")) +
+    ylab(paste("log(10) of ", y, " reads / bp", sep = "")) +
     scale_x_log10(labels=comma) +
     scale_y_log10(labels=comma) +
     facet_grid(. ~ Gene_strand,
@@ -163,16 +165,26 @@ scatter_plot <- function(df, x, y){
 #   sequences3 <- c(sequences, sequences2)
 # }
 
-seq_logo_comparisons <- function(gr, length){
+seq_logo_comparisons <- function(gr, shuffled_gr, length, five_prime_base=NULL){
+  # Set the color scheme for each base
   colors_scheme = make_col_scheme(chars=c('A', 'C', 'G', 'T'),
                                   groups=c('A', 'C', 'G', 'T'),
                                   cols=c('blue', 'red', 'green', 'purple'))
 
+  # If the reads should be limited to a 5' base, filter the alignments here
+  if(!is.null(five_prime_base)){
+    gr <- c(gr[strand(gr)=="+" & mcols(gr)$five == five_prime_base],
+            gr[strand(gr)=="-" & mcols(gr)$five == five_prime_base])
+    shuffled_gr <- c(shuffled_gr[strand(shuffled_gr)=="+" & mcols(shuffled_gr)$five == five_prime_base],
+                     shuffled_gr[strand(shuffled_gr)=="-" & mcols(shuffled_gr)$five == five_prime_base])
+  }
+
+  ### Process the RNA sequences
+  # Get the alignments
   interval_plus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="+"])$seq)
   interval_minus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="-"])$seq)
-  flanks_plus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="+"])$with_flanks)
-  flanks_minus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="-"])$with_flanks)
 
+  # Run ggplot with geom_logo for the + strand
   interval_plus <- ggplot() +
     geom_logo(interval_plus_data,
               col_scheme=colors_scheme,
@@ -188,6 +200,7 @@ seq_logo_comparisons <- function(gr, length){
     scale_x_continuous(limits = c(0-10, length+1+10),
                        breaks = pretty_base1(0,length))
 
+  # Run ggplot with geom_logo for the - strand
   interval_minus <- ggplot() +
     geom_logo(interval_minus_data,
               col_scheme=colors_scheme,
@@ -212,6 +225,16 @@ seq_logo_comparisons <- function(gr, length){
     scale_x_continuous(limits = c(0-10, length+1+10),
                        breaks = pretty_base1(0,length))
 
+  # Build the plots
+  ip <- ggplot_gtable(ggplot_build(interval_plus))
+  im <- ggplot_gtable(ggplot_build(interval_minus))
+
+  ### Process the DNA sequences with the flanks
+  # Get the alignments
+  flanks_plus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="+"])$with_flanks)
+  flanks_minus_data <- as.character(mcols(gr[width(gr)==length & strand(gr)=="-"])$with_flanks)
+
+  # Run ggplot with geom_logo for the + strand
   flanks_plus <- ggplot() +
     geom_logo(flanks_plus_data,
               col_scheme=colors_scheme,
@@ -226,6 +249,7 @@ seq_logo_comparisons <- function(gr, length){
                        breaks = pretty_base1(0,length+20+1, c(0,10), c(1,11)),
                        labels = pretty_base1(0-10,length+20+1-10, c(-9, 0), c(-10, 1)))
 
+  # Run ggplot with geom_logo for the - strand
   flanks_minus <- ggplot() +
     geom_logo(flanks_minus_data,
               col_scheme=colors_scheme,
@@ -247,20 +271,76 @@ seq_logo_comparisons <- function(gr, length){
                        breaks = pretty_base1(0,length+20+1, c(0,10), c(1,11)),
                        labels = pretty_base1(0-10,length+20+1-10, c(-9, 0), c(-10, 1)))
 
-   ip <- ggplot_gtable(ggplot_build(interval_plus))
-   im <- ggplot_gtable(ggplot_build(interval_minus))
-   fp <- ggplot_gtable(ggplot_build(flanks_plus))
-   fm <- ggplot_gtable(ggplot_build(flanks_minus))
+  # Build the plots
+  fp <- ggplot_gtable(ggplot_build(flanks_plus))
+  fm <- ggplot_gtable(ggplot_build(flanks_minus))
 
-   full <- grid.arrange(textGrob(label = paste(as.character(length), "nt Reads", sep = ""),
-                                 gp=gpar(fontfamily = "Sans", size=24), vjust = 0),
-                        arrangeGrob(ip, im, ncol = 2),
-                        arrangeGrob(fp, fm, ncol = 2),
-                        textGrob(label = "Position along RNA or Genome (1 is 5' end)",
-                                 gp=gpar(fontfamily = "Sans", size=12), vjust = 0),
-                        nrow = 4, ncol = 1, heights = c(.15,1,1,.07))
-   return(full)
+  ### Process the shuffled DNA sequences with flanks
+  # Get the alignments
+  shuffled_flanks_plus_data <- as.character(mcols(shuffled_gr[width(shuffled_gr)==length & strand(shuffled_gr)=="+"])$with_flanks)
+  shuffled_flanks_minus_data <- as.character(mcols(shuffled_gr[width(shuffled_gr)==length & strand(shuffled_gr)=="-"])$with_flanks)
+
+  # Run ggplot with geom_logo for the + strand
+  shuffled_flanks_plus <- ggplot() +
+    geom_logo(shuffled_flanks_plus_data,
+              col_scheme=colors_scheme,
+              method = "bits") +
+    theme(panel.grid.minor.x = element_blank()) +
+    geom_rect(mapping = aes(xmin=10.5, xmax=length+10.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
+    annotate("text", x = 5, y = 1.8,
+             label = paste("N = ", length(shuffled_flanks_plus_data), sep = "")) +
+    scale_y_continuous(limits = c(0, 2),
+                       breaks = c(0,1,2)) +
+    scale_x_continuous(limits = c(0, length+20+1),
+                       breaks = pretty_base1(0,length+20+1, c(0,10), c(1,11)),
+                       labels = pretty_base1(0-10,length+20+1-10, c(-9, 0), c(-10, 1)))
+
+  # Run ggplot with geom_logo for the - strand
+  shuffled_flanks_minus <- ggplot() +
+    geom_logo(shuffled_flanks_minus_data,
+              col_scheme=colors_scheme,
+              method = "bits") +
+    theme(panel.grid.minor.x = element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_text(family = "Sans",
+                                      size = 12)) +
+    ylab("Shuffled DNA Sequence") +
+    annotate("text", x = 5, y = 1.8,
+             label = paste("N = ", length(shuffled_flanks_minus_data), sep = "")) +
+    geom_rect(mapping = aes(xmin=10.5, xmax=length+10.5, ymin=0, ymax=2), fill="yellow", alpha=0.1, inherit.aes = FALSE) +
+    scale_y_continuous(limits = c(0, 2),
+                       breaks = c(0,1,2),
+                       position = "right",
+                       labels = NULL) +
+    scale_x_continuous(limits = c(0, length+20+1),
+                       breaks = pretty_base1(0,length+20+1, c(0,10), c(1,11)),
+                       labels = pretty_base1(0-10,length+20+1-10, c(-9, 0), c(-10, 1)))
+
+  # Build the plots
+  sfp <- ggplot_gtable(ggplot_build(shuffled_flanks_plus))
+  sfm <- ggplot_gtable(ggplot_build(shuffled_flanks_minus))
+
+  # Arrange the plots with the labels
+  arranged_grobs <- list(textGrob(label = paste(as.character(length),
+                                                as.character(five_prime_base),
+                                                " Reads",
+                                                sep = ""),
+                                  gp=gpar(fontfamily = "Sans", size=24), vjust = 0),
+                         arrangeGrob(ip, im, ncol = 2),
+                         arrangeGrob(fp, fm, ncol = 2),
+                         arrangeGrob(sfp, sfm, ncol = 2),
+                         textGrob(label = "Position along RNA or Genome (1 is 5' end)",
+                                  gp=gpar(fontfamily = "Sans", size=12), vjust = 0))
+
+  # Arrange all the plots
+  full <- grid.arrange(grobs = arranged_grobs,
+                       nrow = 5, ncol = 1, heights = c(.15,1,1,1,.07))
+  return(full)
 }
+
+
+
 #   full <- grid.arrange(ip, im, fp, fm, nrow = 2, ncol = 2)
 #    gtable::gtable_show_layout(full)
 #   grid.draw(full)

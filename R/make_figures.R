@@ -128,18 +128,30 @@ ggsave(filename = "five_prime_plot__two_mm_22nt5prime_filtered__antisense_MUT_ta
 p <- five_prime_plot(gr = two_mm)
 
 # 22 vs non-22
-df <- count_overlaps_by_width(gr = two_mm, regions = genome_data$gene_intervals, overlap = "antisense", normalized = TRUE)
+df <- count_overlaps_by_width(gr = two_mm, regions = genome_data$gene_intervals, overlap = "antisense", normalized = FALSE)
+df_norm <- count_overlaps_by_width(gr = two_mm, regions = genome_data$gene_intervals, overlap = "antisense", normalized = TRUE)
 #p <- scatter_plot(df = df, comparison_col = "22")
-p <- scatter_plot(df = df, x = 22, y = 20)
+p <- scatter_plot(df = df, x = 22, y = 23)
+p_norm <- scatter_plot(df = df_norm, x = 22, y = 23)
 
 # 22A vs 22C/G/T
-df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$gene_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
 df <- count_overlaps_by_width_and_base(gr = two_mm, regions = genome_data$exon_intervals, alignment_width = 22, base_col = "five", overlap =  "antisense", normalized = TRUE )
-p <- scatter_plot(df = df, comparison_col = "G")
+p <- scatter_plot(df = df, x = "G", y = "C")
 
-two_mm_hm <- calculate_heatmaps(gr = two_mm, length = 22, strand = "+")
-two_mm_shuffled_hm <- calculate_heatmaps(gr = two_mm_shuffled, length = 22, strand = "+")
-two_mm_bgremoved <- subtract_heatmap_background(gr = two_mm_hm, bg = two_mm_shuffled_hm)
+# Heatmaps
+df_hm_two_mm <- calculate_heatmaps(gr = two_mm, length = 22, strand = "+")
+df_hm_two_mm_shuffled <- calculate_heatmaps(gr = two_mm_shuffled, length = 22, strand = "+")
+df_hm_bgremoved_two_mm <- subtract_heatmap_background(gr = df_hm_two_mm, bg = df_hm_two_mm_shuffled)
+p <- heatmap_plot(heatmap_data = df_hm_two_mm)
+p <- heatmap_plot(heatmap_data = df_hm_two_mm_shuffled)
+p <- heatmap_plot(heatmap_data = df_hm_bgremoved_two_mm)
 
+### Sequence Logos
+p <- seq_logo_comparisons(gr = two_mm, shuffled_gr = two_mm_shuffled, length = 15, five_prime_base = "G")
+
+# Check to make sure the 5' end are mostly G in the real datasets and random in the shuffled datasets
 qplot(x = mcols(two_mm[width(two_mm)==22])$five)
 qplot(x = mcols(two_mm_shuffled[width(two_mm_shuffled)==22])$five)
+
+
+
