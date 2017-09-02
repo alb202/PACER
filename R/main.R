@@ -26,13 +26,13 @@ Rcpp::sourceCpp(file = "cpp/cpp_functions.cpp")
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
 
 #### Load settings
-genome_indexes <- c(ce10 = paste(getwd(), "indexes", "ce10", "ce10", sep="/"),
-                    WBcel235 = paste(getwd(), "indexes", "WBcel235", "WBcel235", sep="/"))
-adapter_file <- paste(getwd(), "/adapters/adapters.txt", sep="")
-input_dir <- paste(getwd(), "/raw_data", sep="")
+genome_indexes <- c(ce10 = paste(getwd(), "data", "indexes", "ce10", "ce10", sep="/"),
+                    WBcel235 = paste(getwd(), "data", "indexes", "WBcel235", "WBcel235", sep="/"))
+adapter_file <- paste(getwd(), "data/adapters/adapters.txt", sep="")
+input_dir <- paste(getwd(), "data/input", sep="")
 datasets <- c(WT_early_rep1="SRR5023999.fastq.gz")
 #datasets <- c(WT_early_rep1_TEST="SRR5023999_100K_sample.fastq.gz")
-output_dir <- paste(getwd(), "/output", sep="")
+output_dir <- paste(getwd(), "data/output", sep="")
 alignment_settings <- c(two_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
 genome_files <- list(WBcel235 = list(genome_file="Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
@@ -72,7 +72,7 @@ genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes",genome,as.ch
 gene_lists <- load_gene_lists(path = paste(getwd(),"genomes",genome, sep = "/"), gene_lists_files = genome_files[[genome]]$gene_list_files)
 ## Load and filter the main alignment file
 #alignments <- load_alignments(path = alignment_file)
-alignments <- load_alignments(path = "output/WT_early_rep1/two_seed_mm_SRR5023999.bam")
+alignments <- load_alignments(path = "data/output/WT_early_rep1/two_seed_mm_SRR5023999.bam")
 alignments <- filter_alignments(alignments = alignments,
                   regions = genome_data[["gene_intervals"]],
                   regions_filter = "both",
@@ -96,3 +96,6 @@ two_mm <- get_genome_sequence(
   gr = two_mm, genome_sequence = genome_sequence)
 two_mm_shuffled <- get_genome_sequence(
   gr = two_mm_shuffled, genome_sequence = genome_sequence)
+
+no_mm <- get_genome_sequence(
+  gr = no_mm, genome_sequence = genome_sequence)
