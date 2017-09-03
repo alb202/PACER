@@ -21,3 +21,10 @@ save_adapters <- function(x, path){
   return(file.exists(path))
 }
 
+make_choices <- function(choices, numbered=TRUE){
+  if(isTRUE(numbered)){
+    return(mapply(paste(1:length(choices), choices, sep = " - "), 1:length(choices), FUN = function(x, y){x=y}))
+  }else{
+    return(mapply(choices, 1:length(choices), FUN = function(x, y){x=y}))
+  }
+}

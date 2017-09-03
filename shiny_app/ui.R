@@ -26,6 +26,11 @@ ui <- fluidPage(
                                                      label="Align dataset"))),
                              fluidRow(tags$hr()),
                              fluidRow(
+                               actionButton(inputId = "select_genome",
+                                            icon = icon("check", lib = "glyphicon"),
+                                            label="Select genome")),
+                             fluidRow(tags$hr()),
+                             fluidRow(
                                actionButton(inputId = "view_adapters",
                                                      icon = icon("check", lib = "glyphicon"),
                                                      label="View Adapters"))
