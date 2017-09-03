@@ -68,7 +68,7 @@ load_gene_lists <- function(path, gene_lists_files){
 }
 
 load_genome_data <- function(genome){
-  genomes_path <- paste(getwd(),"genomes",genome, sep="/")
+  genomes_path <- paste(getwd(),"data/genomes",genome, sep="/")
   files <- dir(path = genomes_path)
 
   gene_file_name <- paste(genome,"_gene_intervals.tsv", sep = "")

@@ -32,7 +32,7 @@ adapter_file <- paste(getwd(), "data/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "data/input", sep="")
 datasets <- c(WT_early_rep1="SRR5023999.fastq.gz")
 #datasets <- c(WT_early_rep1_TEST="SRR5023999_100K_sample.fastq.gz")
-output_dir <- paste(getwd(), "data/output", sep="")
+output_dir <- paste(getwd(), "/data/output", sep="")
 alignment_settings <- c(two_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
 genome_files <- list(WBcel235 = list(genome_file="Caenorhabditis_elegans.WBcel235.dna.chromosome.fa",
