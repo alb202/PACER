@@ -5,6 +5,7 @@ library(shinyjs)
 library(DT)
 
 source("shiny_helper.R")
+source("modals.R")
 
 server <- function(input, output, session){
 
@@ -12,7 +13,7 @@ server <- function(input, output, session){
   values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
   values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
   values$adapters <- read.delim(file = "../data/adapters/adapters.txt", header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
-  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", header = FALSE, sep = ",", col.names = c("Description", "Version", "Dataset", "Status"))
+  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", header = FALSE, sep = ",", col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
 
   observe({
     # Set the initial value of the input directory to the first entry in the volumes list
@@ -20,12 +21,12 @@ server <- function(input, output, session){
     values$output_dir <- values$output_volumes[[1]]
   })
 
-  observe( {
+  observe({
     # Only show the "Align dataset" button if a dataset has been selected
     toggleState(id = "align_dataset", condition = !is.null(input$input_file))
   })
 
-  observe( {
+  observe({
     # Only show the "Align dataset" button if a dataset has been selected
     toggleState(id = "view_dataset", condition = !is.null(input$processed_file))
   })
@@ -96,190 +97,69 @@ server <- function(input, output, session){
     print("button pressed")
     input_file <- input$input_file
     print(input_file)
-    showModal(modalDialog(
-      title = paste("File: ", input$input_file, sep = ""),
-      easyClose = TRUE,
-      textInput("dataset_name", "Choose a name for this dataset (optional)",
-                placeholder = ""
-      ),
-      footer = tagList(
-        modalButton(label = "Cancel"),
-        actionButton(inputId = "begin_processing", label = "Begin...")
-      )
-    ))
+    showModal(align_modal)
+    output$align_modal_title <- renderText({paste("File: ", input$input_file, sep = "")})
   })
 
-
+  ### Genome dialogue
   observeEvent(select_genome_listener(), {
-    showModal(modalDialog(size = "l",
-                          title = "Genomes",
-                          easyClose = TRUE,
-                          fluidRow(
-                            renderTable(expr =  values$genomes, rownames = TRUE)),
-                          fluidRow(
-                            column(width = 4, style = "margin-top:0px; margin:0px;",
-                                   selectInput(inputId = "genome_list",label = "Select genome", multiple = FALSE, choices = "")),
-                            column(width = 2, style = "margin-top:23px;",
-                                   disabled(actionButton(inputId = "load_genome", label = "Load Genome"))),
-                            column(width = 2, style = "margin-top:23px;",
-                                   disabled(actionButton(inputId = "view_genome", label = "View Genome Info")))),
-                          div(tags$hr()),
-                          hidden(
-                            div(id = "genome_details", style = "border:5;border-color:grey;",
-                              fluidRow(
-                                       column(width = 4, style = "margin-top:0px; margin:0px;",
-                                              textInput(inputId = "add_adapter_sequence_input", label = "Adapter")),
-                                       column(width = 4, style = "margin-top:0px; margin:0px;",
-                                              textInput(inputId = "add_adapter_description_input", label = "Description")),
-                                       column(width = 4, style = "margin-top:25px",
-                                              actionButton(inputId = "add_adapter", label = "Add Adapter"))),
-                              div(tags$hr()))),
-                          fluidRow(
-                            column(width = 6, style = "margin-top:0px",
-                                   selectInput(inputId = "ensembl_genome_list", selectize=TRUE, width = "100%", label = "ENSEMBL Genomes", multiple = FALSE, choices = "")),
-                            column(width = 3, style = "margin-top:0px",
-                                   actionButton(inputId = "get_genomes", label = "View ENSEMBL genomes")),
-                            column(width = 3, style = "margin-top:24px",
-                                   disabled(actionButton(inputId = "add_genome", label = "Get genome")))),
-                          footer = tagList(
-                            modalButton(label = "Exit"),
-                            actionButton(inputId = "save_adapters", label = "Save Changes"),
-                            textOutput(outputId = "changes_saved")
-                          )
-    ))
-    if(nrow(values$genomes)>0){
-      row.names(values$genomes) <- 1:nrow(values$genomes)
-      row_choices <- make_choices(values$genomes$description)
-      toggleState(id = "load_genome", condition = TRUE)
-      toggleState(id = "view_genome", condition = TRUE)
-    } else{
-      row_choices <- c("")
-      toggleState(id = "load_genome", condition = FALSE)
-      toggleState(id = "view_genome", condition = FALSE)
-    }
-    updateSelectInput(session = session,
-                      label = NULL,
-                      inputId = "genome_list",
-                      selected = NULL,
-                      choices = row_choices)
-  })
-
-
-
-
-
-  observeEvent(view_adapters_listener(), {
-    showModal(modalDialog(size = "l",
-                          title = "Adapters",
-                          easyClose = TRUE,
-                          renderTable(expr =  values$adapters, rownames = TRUE),
-                          div(tags$hr()),
-                          fluidRow(
-                            column(width = 4, style = "margin-top:0px; margin:0px;",
-                                   textInput(inputId = "add_adapter_sequence_input", label = "Adapter")),
-                            column(width = 4, style = "margin-top:0px; margin:0px;",
-                                   textInput(inputId = "add_adapter_description_input", label = "Description")),
-                            column(width = 4, style = "margin-top:25px",
-                                   actionButton(inputId = "add_adapter", label = "Add Adapter"))),
-                          div(tags$hr()),
-                          fluidRow(
-                            column(width = 6, style = "margin-top:0px",
-                                   selectInput(inputId = "adapter_index",label = "Select adapter to remove", multiple = FALSE, choices = make_choices(values$adapters$Description))),
-                            column(width = 2, style = "margin-top:24px",
-                                   actionButton(inputId = "remove_adapter", label = "Remove Adapter"))
-                            #, column(width = 6)
-                          ),
-                          footer = tagList(
-                            modalButton(label = "Exit"),
-                            actionButton(inputId = "save_adapters", label = "Save Changes"),
-                            textOutput(outputId = "changes_saved")
-                          )
-    ))
-    output$changes_saved <- renderText(expr = {return("")})
-  })
-
-  observeEvent(add_adapter_listener(), {
-    values$adapters <- rbind(values$adapters, data.frame("Adapter"=input$add_adapter_sequence_input, "Description"=input$add_adapter_description_input))
-    if(nrow(values$adapters)>0){
-      row.names(values$adapters) <- 1:nrow(values$adapters)
-      row_choices <- make_choices(values$adapters$Description)
-      toggleState(id = "remove_adapter", condition = TRUE)
-    } else{
-      row_choices <- c("")
-      toggleState(id = "remove_adapter", condition = FALSE)
-    }
-
-    print(values$adapters)
-    updateSelectInput(session = session,
-                      inputId = "adapter_index",
-                      label = NULL,
-                      choices = row_choices,
-                      selected = NULL)
-  })
-
-  observeEvent(remove_adapter_listener(), {
-    values$adapters <- values$adapters[-c(as.numeric(input$adapter_index)), ]
-    if(nrow(values$adapters)>0){
-      row.names(values$adapters) <- 1:nrow(values$adapters)
-      row_choices <- make_choices(values$adapters$Description)
-      toggleState(id = "remove_adapter", condition = TRUE)
-    } else{
-      row_choices <- c("")
-      toggleState(id = "remove_adapter", condition = FALSE)
-    }
-    print(input$adapter_index)
-    print(values$adapters)
-    #choice_list <- ifelse(test = nrow(values$adapters)>0, yes = 1:nrow(values$adapters), no = "")
-    updateSelectInput(session = session,
-                      inputId = "adapter_index",
-                      label = NULL,
-                      choices = row_choices, #1:nrow(values$adapters),
-                      selected = NULL)
+    print("Select genome")
+    showModal(genomes_modal)
+    update_genome_index(session = session, genomes = values$genomes)
   })
 
   observeEvent(view_genome_listener(), {
     print("view genome listener")
     toggleElement(id = "genome_details", condition = TRUE)
-
+    genome_row <- values$genomes[input$genome_index, ]
+    print(genome_row)
+    output$genome_interval_status <- renderUI({
+      if(as.character(genome_row[1,"Interval.Status"])=="NA"){
+        return(HTML("<font color='red'>Incomplete</font>"))
+      } else {
+        return(HTML("<font color='green'>Ready</font>"))
+      }
+    })
   })
 
-  observeEvent(get_genomes_listener(), {
-    values$mart_info <- listMarts()[1,]
-    values$biomart <- useMart(biomart = values$mart_info[[1,1]])
-    values$ensembl_genome_list <- listDatasets(mart = values$biomart)
-
-    if(nrow(values$ensembl_genome_list)>0){
-      row.names(values$ensembl_genome_list) <- 1:nrow(values$ensembl_genome_list)
-      row_choices <- make_choices(choices = values$ensembl_genome_list$description, numbered = FALSE)
-      toggleState(id = "add_genome", condition = TRUE)
-    } else{
-      row_choices <- c("")
-      toggleState(id = "add_genome", condition = FALSE)
-    }
-    updateSelectInput(session = session,
-                      inputId = "ensembl_genome_list",
-                      label = NULL,
-                      choices = row_choices,
-                      selected = NULL)
+  observeEvent(get_ensembl_genomes_listener(), {
+    print("get_ensembl_genomes_listener")
+    withProgress(message = "Getting genomes from ENSEMBL", {
+      values$mart_info <- listMarts()[1,]
+      incProgress(amount = .4)
+      values$biomart <- useMart(biomart = values$mart_info[[1,1]])
+      incProgress(amount = .8)
+      values$ensembl_genome_index <- listDatasets(mart = values$biomart)
+    })
+    update_ensembl_genome_index(session = session, genomes = values$ensembl_genome_index)
   })
 
   observeEvent(add_genome_listener(), {
-    print(input$ensembl_genome_list)
-    if(values$ensembl_genome_list[input$ensembl_genome_list, "dataset"] %in% values$genomes$dataset) return(NULL)
-    values$genomes <- rbind(values$genomes, data.frame(row.names = NULL, values$ensembl_genome_list[input$ensembl_genome_list, ], "Status"="Incomplete"))
+    print(input$ensembl_genome_index)
+    if(values$ensembl_genome_index[input$ensembl_genome_index, "dataset"] %in% values$genomes$dataset) return(NULL)
+    values$genomes <- rbind(values$genomes, data.frame(row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval Status"="NA", "Genome FASTA"="NA", "Bowtie Index"="NA", "Gene Sets"="NA"))
     print(values$genomes)
+    update_genome_index(session = session, genomes = values$genomes)
+  })
 
-    # if(nrow(values$genomes)>0){
-    row.names(values$genomes) <- 1:nrow(values$genomes)
-    row_choices <- make_choices(choices = values$genomes$description, numbered = FALSE)
-    toggleState(id = "load_genome", condition = TRUE)
-    toggleState(id = "view_genome", condition = TRUE)
-    # }
-    updateSelectInput(session = session,
-                      inputId = "genome_list",
-                      label = NULL,
-                      choices = row_choices,
-                      selected = NULL)
+  ### Adapter modal
+  observeEvent(view_adapters_listener(), {
+    print("Viewing adapters modal")
+    showModal(adapter_modal)
+    update_adapter_index(session = session, adapters = values$adapters)
+    output$changes_saved <- renderText(expr = {return("")})
+  })
+
+  observeEvent(add_adapter_listener(), {
+    print("Adding an adapter")
+    values$adapters <- rbind(values$adapters, data.frame("Adapter"=input$add_adapter_sequence_input, "Description"=input$add_adapter_description_input))
+    update_adapter_index(session = session, adapters = values$adapters)
+  })
+
+  observeEvent(remove_adapter_listener(), {
+    values$adapters <- values$adapters[-c(as.numeric(input$adapter_index)), ]
+    update_adapter_index(session = session, adapters = values$adapters)
+    print("Removing an adapter")
   })
 
   observeEvent(save_adapters_listener(), {
@@ -290,17 +170,17 @@ server <- function(input, output, session){
     }
   })
 
-  observeEvent(begin_processing_listener(), {
-  })
   ### Listeners
   align_dataset_listener <- reactive({input$align_dataset})
   view_results_listener <- reactive({input$view_results})
   begin_processing_listener <- reactive({input$begin_processing})
+
   select_genome_listener <- reactive({input$select_genome})
   load_genome_listener <- reactive({input$load_genome})
   view_genome_listener <- reactive({input$view_genome})
-  get_genomes_listener <- reactive({input$get_genomes})
+  get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
   add_genome_listener <- reactive({input$add_genome})
+
   view_adapters_listener <- reactive({input$view_adapters})
   add_adapter_listener <- reactive({input$add_adapter})
   remove_adapter_listener <- reactive({input$remove_adapter})
@@ -315,11 +195,113 @@ server <- function(input, output, session){
   # })
 
 
-}
 
-# # Get the current time
-# timestamp <- strsplit(x = as.character(Sys.time()), split = " ")
-#
-# # Make the full output directory with timestamp
-# values$output_dir <- paste(values$save_dir, "/", timestamp[[1]][1], "_", timestamp[[1]][2], sep = "")
+  # # Get the current time
+  # timestamp <- strsplit(x = as.character(Sys.time()), split = " ")
+  #
+  # # Make the full output directory with timestamp
+  # values$output_dir <- paste(values$save_dir, "/", timestamp[[1]][1], "_", timestamp[[1]][2], sep = "")
+  #
+
+  align_modal <- modalDialog(
+    size = "m",
+    title = textOutput(outputId = "align_modal_title"),
+    easyClose = TRUE,
+    fluidRow(column(width = 12,
+                    textInput("dataset_name", "Choose a name for this dataset (optional)",
+                              placeholder = ""
+                    ))),
+    footer = tagList(
+      modalButton(label = "Cancel"),
+      actionButton(inputId = "begin_processing", label = "Begin...")
+    )
+  )
+
+  adapter_modal <- modalDialog(size = "l",
+                               title = "Adapters",
+                               easyClose = FALSE,
+                               renderTable(expr =  values$adapters,
+                                           rownames = TRUE),
+                               div(tags$hr()),
+                               fluidRow(
+                                 column(width = 4, style = "margin-top:0px; margin:0px;",
+                                        textInput(inputId = "add_adapter_sequence_input",
+                                                  label = "Adapter")),
+                                 column(width = 4, style = "margin-top:0px; margin:0px;",
+                                        textInput(inputId = "add_adapter_description_input",
+                                                  label = "Description")),
+                                 column(width = 4, style = "margin-top:25px",
+                                        actionButton(inputId = "add_adapter",
+                                                     label = "Add Adapter"))),
+                               div(tags$hr()),
+                               fluidRow(
+                                 column(width = 6, style = "margin-top:0px",
+                                        selectInput(inputId = "adapter_index",
+                                                    label = "Select adapter to remove",
+                                                    multiple = FALSE,
+                                                    choices = NULL)),
+                                 column(width = 2, style = "margin-top:24px",
+                                        actionButton(inputId = "remove_adapter",
+                                                     label = "Remove Adapter"))
+                               ),
+                               footer = tagList(
+                                 modalButton(label = "Exit"),
+                                 actionButton(inputId = "save_adapters",
+                                              label = "Save Changes"),
+                                 textOutput(outputId = "changes_saved")
+                               )
+  )
+
+  genomes_modal <- modalDialog(size = "l",
+                               title = "Genomes",
+                               easyClose = FALSE,
+                               fluidRow(
+                                 renderTable(expr =  values$genomes,
+                                             rownames = TRUE)),
+                               fluidRow(
+                                 column(width = 4,
+                                        style = "margin-top:0px;",
+                                        selectInput(inputId = "genome_index",
+                                                    label = "Select genome",
+                                                    multiple = FALSE,
+                                                    choices = "")),
+                                 column(width = 2, style = "margin-top:23px;",
+                                        disabled(actionButton(inputId = "load_genome",
+                                                              label = "Load Genome"))),
+                                 column(width = 2, style = "margin-top:23px;",
+                                        disabled(actionButton(inputId = "view_genome",
+                                                              label = "View Genome Info")))),
+                               div(tags$hr()),
+                               hidden(
+                                 div(id = "genome_details", style = "border:5;border-color:grey;",wellPanel(
+                                     fluidRow(
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              "ENSEMBL Intervals"),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              htmlOutput(outputId = "genome_interval_status")),
+                                       column(width = 2, style = "margin-top:25px",
+                                              actionButton(inputId = "get_intervals", label = "Get Intervals")))),
+                                 # fluidRow(
+                                 #   column(width = 2, style = "margin-top:0px; margin:0px;",
+                                 #          "ENSEMBL Intervals"),
+                                 #   column(width = 2, style = "margin-top:0px; margin:0px;",
+                                 #          htmlOutput(outputId = "genome_interval_status")),
+                                 #   column(width = 2, style = "margin-top:25px",
+                                 #          actionButton(inputId = "get_intervals", label = "Get Intervals"))),
+                                 div(tags$hr()))),
+                               fluidRow(
+                                 column(width = 6, style = "margin-top:0px",
+                                        selectInput(inputId = "ensembl_genome_index", selectize=TRUE, width = "100%",
+                                                    label = "ENSEMBL Genomes", multiple = FALSE, choices = "")),
+                                 column(width = 3, style = "margin-top:0px",
+                                        actionButton(inputId = "get_ensembl_genomes", label = "View ENSEMBL genomes")),
+                                 column(width = 3, style = "margin-top:24px",
+                                        disabled(actionButton(inputId = "add_genome", label = "Add genome")))),
+                               footer = tagList(
+                                 modalButton(label = "Exit"),
+                                 actionButton(inputId = "save_adapters", label = "Save Changes"),
+                                 textOutput(outputId = "changes_saved")
+                               )
+  )
+}
 
