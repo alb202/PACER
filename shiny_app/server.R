@@ -105,6 +105,7 @@ server <- function(input, output, session){
   observeEvent(select_genome_listener(), {
     print("Select genome")
     showModal(genomes_modal)
+    output$genome_table <- renderTable(expr =  values$genomes, rownames = TRUE)
     update_genome_index(session = session, genomes = values$genomes)
   })
 
@@ -146,6 +147,7 @@ server <- function(input, output, session){
   observeEvent(view_adapters_listener(), {
     print("Viewing adapters modal")
     showModal(adapter_modal)
+    output$adapter_table <- renderTable(expr =  values$adapters, rownames = TRUE)
     update_adapter_index(session = session, adapters = values$adapters)
     output$changes_saved <- renderText(expr = {return("")})
   })
@@ -203,105 +205,4 @@ server <- function(input, output, session){
   # values$output_dir <- paste(values$save_dir, "/", timestamp[[1]][1], "_", timestamp[[1]][2], sep = "")
   #
 
-  align_modal <- modalDialog(
-    size = "m",
-    title = textOutput(outputId = "align_modal_title"),
-    easyClose = TRUE,
-    fluidRow(column(width = 12,
-                    textInput("dataset_name", "Choose a name for this dataset (optional)",
-                              placeholder = ""
-                    ))),
-    footer = tagList(
-      modalButton(label = "Cancel"),
-      actionButton(inputId = "begin_processing", label = "Begin...")
-    )
-  )
-
-  adapter_modal <- modalDialog(size = "l",
-                               title = "Adapters",
-                               easyClose = FALSE,
-                               renderTable(expr =  values$adapters,
-                                           rownames = TRUE),
-                               div(tags$hr()),
-                               fluidRow(
-                                 column(width = 4, style = "margin-top:0px; margin:0px;",
-                                        textInput(inputId = "add_adapter_sequence_input",
-                                                  label = "Adapter")),
-                                 column(width = 4, style = "margin-top:0px; margin:0px;",
-                                        textInput(inputId = "add_adapter_description_input",
-                                                  label = "Description")),
-                                 column(width = 4, style = "margin-top:25px",
-                                        actionButton(inputId = "add_adapter",
-                                                     label = "Add Adapter"))),
-                               div(tags$hr()),
-                               fluidRow(
-                                 column(width = 6, style = "margin-top:0px",
-                                        selectInput(inputId = "adapter_index",
-                                                    label = "Select adapter to remove",
-                                                    multiple = FALSE,
-                                                    choices = NULL)),
-                                 column(width = 2, style = "margin-top:24px",
-                                        actionButton(inputId = "remove_adapter",
-                                                     label = "Remove Adapter"))
-                               ),
-                               footer = tagList(
-                                 modalButton(label = "Exit"),
-                                 actionButton(inputId = "save_adapters",
-                                              label = "Save Changes"),
-                                 textOutput(outputId = "changes_saved")
-                               )
-  )
-
-  genomes_modal <- modalDialog(size = "l",
-                               title = "Genomes",
-                               easyClose = FALSE,
-                               fluidRow(
-                                 renderTable(expr =  values$genomes,
-                                             rownames = TRUE)),
-                               fluidRow(
-                                 column(width = 4,
-                                        style = "margin-top:0px;",
-                                        selectInput(inputId = "genome_index",
-                                                    label = "Select genome",
-                                                    multiple = FALSE,
-                                                    choices = "")),
-                                 column(width = 2, style = "margin-top:23px;",
-                                        disabled(actionButton(inputId = "load_genome",
-                                                              label = "Load Genome"))),
-                                 column(width = 2, style = "margin-top:23px;",
-                                        disabled(actionButton(inputId = "view_genome",
-                                                              label = "View Genome Info")))),
-                               div(tags$hr()),
-                               hidden(
-                                 div(id = "genome_details", style = "border:5;border-color:grey;",wellPanel(
-                                     fluidRow(
-                                       column(width = 2, style = "margin-top:0px; margin:0px;",
-                                              "ENSEMBL Intervals"),
-                                       column(width = 2, style = "margin-top:0px; margin:0px;",
-                                              htmlOutput(outputId = "genome_interval_status")),
-                                       column(width = 2, style = "margin-top:25px",
-                                              actionButton(inputId = "get_intervals", label = "Get Intervals")))),
-                                 # fluidRow(
-                                 #   column(width = 2, style = "margin-top:0px; margin:0px;",
-                                 #          "ENSEMBL Intervals"),
-                                 #   column(width = 2, style = "margin-top:0px; margin:0px;",
-                                 #          htmlOutput(outputId = "genome_interval_status")),
-                                 #   column(width = 2, style = "margin-top:25px",
-                                 #          actionButton(inputId = "get_intervals", label = "Get Intervals"))),
-                                 div(tags$hr()))),
-                               fluidRow(
-                                 column(width = 6, style = "margin-top:0px",
-                                        selectInput(inputId = "ensembl_genome_index", selectize=TRUE, width = "100%",
-                                                    label = "ENSEMBL Genomes", multiple = FALSE, choices = "")),
-                                 column(width = 3, style = "margin-top:0px",
-                                        actionButton(inputId = "get_ensembl_genomes", label = "View ENSEMBL genomes")),
-                                 column(width = 3, style = "margin-top:24px",
-                                        disabled(actionButton(inputId = "add_genome", label = "Add genome")))),
-                               footer = tagList(
-                                 modalButton(label = "Exit"),
-                                 actionButton(inputId = "save_adapters", label = "Save Changes"),
-                                 textOutput(outputId = "changes_saved")
-                               )
-  )
 }
-
