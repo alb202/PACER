@@ -67,7 +67,12 @@ gzip_a_file(dir = dataset_info["output_dir"], file = trimmed_fastq_file)
 
 #### Import other genomic data
 ## Get genomic features
-genome_data <- load_genome_data(genome = genome)
+
+if(!check_for_intervals(path = "data/genomes", genome = "WBcel235")){
+  get_ensembl_intervals(path = "data/genomes", genome = "WBcel235")
+}
+genome_data <- load_genome_data(path = "data/genomes", genome = "WBcel235")
+#genome_data <- load_genome_data(path = paste(getwd(),"data/genomes", sep="/"), genome = genome)
 genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes",genome,as.character(genome_files[[genome]]$genome_file), sep="/"))
 gene_lists <- load_gene_lists(path = paste(getwd(),"genomes",genome, sep = "/"), gene_lists_files = genome_files[[genome]]$gene_list_files)
 ## Load and filter the main alignment file
