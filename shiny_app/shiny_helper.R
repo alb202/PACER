@@ -49,7 +49,7 @@ update_genome_index <- function(session, genomes){
   if(nrow(genomes)>0){
     row.names(genomes) <- 1:nrow(genomes)
     row_choices <- make_choices(genomes$description,
-                                numbered = FALSE)
+                                numbered = TRUE)
     toggleState(id = "load_genome", condition = TRUE)
     toggleState(id = "view_genome", condition = TRUE)
   } else {

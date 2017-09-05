@@ -3,17 +3,21 @@ library(shiny)
 library(shinyFiles)
 library(shinyjs)
 library(DT)
+library(R.utils)
 
 source("shiny_helper.R")
 source("modals.R")
+source("../R/load.R")
 
 server <- function(input, output, session){
 
   values <- reactiveValues()
   values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
   values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
+  values$fasta_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
   values$adapters <- read.delim(file = "../data/adapters/adapters.txt", header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
   values$genomes <- read.delim(file = "../data/genomes/genomes.txt", header = FALSE, sep = ",", col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
+  values$genome_dir <- "../data/genomes/"
 
   observe({
     # Set the initial value of the input directory to the first entry in the volumes list
@@ -53,7 +57,8 @@ server <- function(input, output, session){
     )
     # Parse the result and save the output directory
     if(!is.null(input$find_input_dir))
-      values$input_dir <- parseDirPath(values$volumes, input$find_input_dir)
+      values$input_dir <- parseDirPath(roots = values$input_volumes,
+                                       selection = input$find_input_dir)
     # Print the output directories
     print(values$input_dir)
   })
@@ -68,7 +73,8 @@ server <- function(input, output, session){
     )
     # Parse the result and save the output directory
     if(!is.null(input$find_output_dir))
-      values$output_dir <- parseDirPath(values$output_volumes, input$find_output_dir)
+      values$output_dir <- parseDirPath(roots = values$output_volumes,
+                                        selection = input$find_output_dir)
     # Print the output directories
     print(values$output_dir)
   })
@@ -105,22 +111,68 @@ server <- function(input, output, session){
   observeEvent(select_genome_listener(), {
     print("Select genome")
     showModal(genomes_modal)
-    output$genome_table <- renderTable(expr =  values$genomes, rownames = TRUE)
+    print("genome dir WBcel999")
+    print(getwd())
+    #print(values$genome_dir)
+    #print(paste(getwd(), values$genome_dir, sep = "/"))
+    #print(get_ensembl_intervals(genome = "WBAAA", path = values$genome_dir))
+    output$genome_table <- renderTable(expr =  {
+      print(class(values$genomes))
+      print(values$genomes)
+      new_table <- values$genomes
+      if(nrow(new_table)>0){
+        new_table[,5:8][new_table[ ,5:8]!="NA"] <- "OK"
+      }
+      return(new_table)
+      }, rownames = TRUE, spacing = "s")
     update_genome_index(session = session, genomes = values$genomes)
   })
 
   observeEvent(view_genome_listener(), {
-    print("view genome listener")
-    toggleElement(id = "genome_details", condition = TRUE)
+    print("view the genome details")
+    #toggleElement(id = "genome_details", condition = TRUE)
+    toggleElement(id = "genome_details")
+  })
+
+  observeEvent(view_genome_listener(), {
+    print("reload the genome view")
     genome_row <- values$genomes[input$genome_index, ]
     print(genome_row)
     output$genome_interval_status <- renderUI({
-      if(as.character(genome_row[1,"Interval.Status"])=="NA"){
+      if(as.character(genome_row[5])=="NA"){
         return(HTML("<font color='red'>Incomplete</font>"))
       } else {
         return(HTML("<font color='green'>Ready</font>"))
       }
     })
+    output$genome_fasta_location <- renderUI({
+      if(as.character(genome_row[6])=="NA"){
+        return(HTML("<font color='red'>Incomplete</font>"))
+      } else {
+        return(HTML("<font color='green'>",genome_row[6][["Genome.FASTA"]],"</font>"))
+      }
+    })
+    shinyFileChoose(input = input,
+                    session = session,
+                    id = "genome_fasta_finder",
+                    roots = isolate(values$fasta_volumes),
+                    filetypes = c("fasta", "fa"))
+
+  })
+
+  observe({
+    print("getting genome fasta file")
+    #print(input$genome_index)
+    if(!is.null(input$genome_fasta_finder)){
+      fasta_location <- parseFilePaths(roots = values$fasta_volumes, selection = input$genome_fasta_finder)
+      print("fasta_location")
+      print(fasta_location)
+      print(as.character(fasta_location[["datapath"]]))
+      values$genomes[isolate(input$genome_index), 6] <- as.character(fasta_location[["datapath"]])
+      print(values$genomes)
+      # updateTextInput(session, "genome_fasta_finder", value = NA)
+    }
+      #print(values$genomes[input$genome_index, "Genome.FASTA"])}
   })
 
   observeEvent(get_ensembl_genomes_listener(), {
@@ -138,9 +190,19 @@ server <- function(input, output, session){
   observeEvent(add_genome_listener(), {
     print(input$ensembl_genome_index)
     if(values$ensembl_genome_index[input$ensembl_genome_index, "dataset"] %in% values$genomes$dataset) return(NULL)
-    values$genomes <- rbind(values$genomes, data.frame(row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval Status"="NA", "Genome FASTA"="NA", "Bowtie Index"="NA", "Gene Sets"="NA"))
+    values$genomes <- rbind(values$genomes, data.frame(stringsAsFactors = FALSE, row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval Status"="NA", "Genome FASTA"="NA", "Bowtie Index"="NA", "Gene Sets"="NA"))
     print(values$genomes)
     update_genome_index(session = session, genomes = values$genomes)
+  })
+
+  observeEvent(get_intervals_listener(), {
+    print("Get gene intervals")
+    genome <- values$genomes[isolate(input$genome_index), 3]
+    print(genome)
+    if(!check_for_intervals(path = "../data/genomes", genome = genome)){
+      get_ensembl_intervals(path = "../data/genomes", genome = genome)
+    }
+    values$genomes[isolate(input$genome_index), 5] <- "OK"
   })
 
   ### Adapter modal
@@ -182,6 +244,7 @@ server <- function(input, output, session){
   view_genome_listener <- reactive({input$view_genome})
   get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
   add_genome_listener <- reactive({input$add_genome})
+  get_intervals_listener <- reactive({input$get_intervals})
 
   view_adapters_listener <- reactive({input$view_adapters})
   add_adapter_listener <- reactive({input$add_adapter})

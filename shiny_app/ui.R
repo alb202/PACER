@@ -2,6 +2,7 @@
 library(shiny)
 library(shinyFiles)
 library(shinyjs)
+library(biomaRt)
 
 ui <- fluidPage(
   shinyjs::useShinyjs(),

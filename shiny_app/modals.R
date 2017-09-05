@@ -69,22 +69,29 @@ genomes_modal <- modalDialog(size = "l",
                                                             label = "View Genome Info")))),
                              div(tags$hr()),
                              hidden(
-                               div(id = "genome_details", style = "border:5;border-color:grey;",wellPanel(
-                                 fluidRow(
-                                   column(width = 2, style = "margin-top:0px; margin:0px;",
-                                          "ENSEMBL Intervals"),
-                                   column(width = 2, style = "margin-top:0px; margin:0px;",
-                                          htmlOutput(outputId = "genome_interval_status")),
-                                   column(width = 2, style = "margin-top:25px",
-                                          actionButton(inputId = "get_intervals", label = "Get Intervals")))),
-                                 # fluidRow(
-                                 #   column(width = 2, style = "margin-top:0px; margin:0px;",
-                                 #          "ENSEMBL Intervals"),
-                                 #   column(width = 2, style = "margin-top:0px; margin:0px;",
-                                 #          htmlOutput(outputId = "genome_interval_status")),
-                                 #   column(width = 2, style = "margin-top:25px",
-                                 #          actionButton(inputId = "get_intervals", label = "Get Intervals"))),
-                                 div(tags$hr()))),
+                               div(id = "genome_details", style = "border:5;border-color:grey;",
+                                   wellPanel(
+                                     fluidRow(
+                                       column(width = 2, style = "margin-top:25px",
+                                              actionButton(inputId = "get_intervals", label = "Get Intervals")),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              "ENSEMBL Intervals"),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              htmlOutput(outputId = "genome_interval_status"))
+                                     ),
+                                     fluidRow(
+                                       column(width = 2, style = "margin-top:25px",
+                                              shinyFilesButton(id = "genome_fasta_finder",
+                                                               title = "Find genome FASTA",
+                                                               label = "Find file ...",
+                                                               multiple = FALSE)),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              "ENSEMBL Genome FASTA"),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              htmlOutput(outputId = "genome_fasta_location"))
+                                     )
+                                   )),
+                               div(tags$hr())),
                              fluidRow(
                                column(width = 6, style = "margin-top:0px",
                                       selectInput(inputId = "ensembl_genome_index", selectize=TRUE, width = "100%",
