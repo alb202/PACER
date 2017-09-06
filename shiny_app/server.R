@@ -145,18 +145,37 @@ server <- function(input, output, session){
         return(HTML("<font color='green'>Ready</font>"))
       }
     })
-    output$genome_fasta_location <- renderUI({
-      if(as.character(genome_row[6])=="NA"){
-        return(HTML("<font color='red'>Incomplete</font>"))
+
+    output$gene_list_status <- renderUI({
+      if(as.character(genome_row[["Gene.Sets"]])=="NA"){
+        return(HTML("<font color='red'>None</font>"))
       } else {
-        return(HTML("<font color='green'>",genome_row[6][["Genome.FASTA"]],"</font>"))
+        return(HTML(text = paste("<font color='green'>",
+                    strsplit(x = genome_row[["Gene.Sets"]],
+                             split = ";",
+                             fixed = TRUE)[[1]],
+                    "</font>", sep = "")))
       }
     })
+
+    output$genome_fasta_location <- renderUI({
+      if(as.character(genome_row[["Genome.FASTA"]])=="NA"){
+        return(HTML("<font color='red'>Incomplete</font>"))
+      } else {
+        return(HTML("<font color='green'>",genome_row[["Genome.FASTA"]],"</font>"))
+      }
+    })
+
     shinyFileChoose(input = input,
                     session = session,
                     id = "genome_fasta_finder",
                     roots = isolate(values$fasta_volumes),
                     filetypes = c("fasta", "fa"))
+    shinyFileChoose(input = input,
+                    session = session,
+                    id = "gene_list_finder",
+                    roots = isolate(values$fasta_volumes),
+                    filetypes = c("txt", "tsv"))
 
   })
 
@@ -168,12 +187,36 @@ server <- function(input, output, session){
       print("fasta_location")
       print(fasta_location)
       print(as.character(fasta_location[["datapath"]]))
-      values$genomes[isolate(input$genome_index), 6] <- as.character(fasta_location[["datapath"]])
+      values$genomes[isolate(input$genome_index), "Genome.FASTA"] <- as.character(fasta_location[["datapath"]])
       print(values$genomes)
       # updateTextInput(session, "genome_fasta_finder", value = NA)
     }
       #print(values$genomes[input$genome_index, "Genome.FASTA"])}
   })
+
+  observe({
+    print("getting gene lists")
+    #print(input$genome_index)
+    if(!is.null(input$gene_list_finder)){
+      gene_list_location <- parseFilePaths(roots = values$fasta_volumes, selection = input$gene_list_finder)
+      print("fasta_location")
+      print(gene_list_location)
+      print(as.character(gene_list_location[["datapath"]]))
+      isolate(
+        if(values$genomes[input$genome_index, "Gene.Sets"]=="NA"){
+          values$genomes[[input$genome_index, "Gene.Sets"]] <- getAbsolutePath(gene_list_location[["datapath"]])
+        } else {
+          values$genomes[[input$genome_index, "Gene.Sets"]] <- paste(values$genomes[input$genome_index, "Gene.Sets"],
+                                                                              getAbsolutePath(gene_list_location[["datapath"]]), sep = ";")
+        }
+      )
+      #print(values$genomes)
+      # updateTextInput(session, "genome_fasta_finder", value = NA)
+    }
+    #print(values$genomes[input$genome_index, "Genome.FASTA"])}
+  })
+
+
 
   observeEvent(get_ensembl_genomes_listener(), {
     print("get_ensembl_genomes_listener")
@@ -245,6 +288,7 @@ server <- function(input, output, session){
   get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
   add_genome_listener <- reactive({input$add_genome})
   get_intervals_listener <- reactive({input$get_intervals})
+
 
   view_adapters_listener <- reactive({input$view_adapters})
   add_adapter_listener <- reactive({input$add_adapter})

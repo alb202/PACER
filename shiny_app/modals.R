@@ -81,6 +81,17 @@ genomes_modal <- modalDialog(size = "l",
                                      ),
                                      fluidRow(
                                        column(width = 2, style = "margin-top:25px",
+                                              shinyFilesButton(id = "gene_list_finder",
+                                                               title = "Find gene lists",
+                                                               label = "Find gene list(s) ...",
+                                                               multiple = TRUE)),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              "Gene lists"),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              htmlOutput(outputId = "gene_list_status"))
+                                     ),
+                                     fluidRow(
+                                       column(width = 2, style = "margin-top:25px",
                                               shinyFilesButton(id = "genome_fasta_finder",
                                                                title = "Find genome FASTA",
                                                                label = "Find file ...",
