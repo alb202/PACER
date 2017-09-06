@@ -14,7 +14,7 @@ server <- function(input, output, session){
   values <- reactiveValues()
   values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
   values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
-  values$fasta_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
+  values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
   values$adapters <- read.delim(file = "../data/adapters/adapters.txt", header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
   values$genomes <- read.delim(file = "../data/genomes/genomes.txt", header = FALSE, sep = ",", col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
   values$genome_dir <- "../data/genomes/"
@@ -146,17 +146,12 @@ server <- function(input, output, session){
       }
     })
 
-    output$gene_list_status <- renderUI({
-      if(as.character(genome_row[["Gene.Sets"]])=="NA"){
-        return(HTML("<font color='red'>None</font>"))
-      } else {
-        return(HTML(text = paste("<font color='green'>",
-                    strsplit(x = genome_row[["Gene.Sets"]],
-                             split = ";",
-                             fixed = TRUE)[[1]],
-                    "</font>", sep = "")))
-      }
-    })
+    updateSelectInput(session = session,
+                      inputId = "gene_list_status",
+                      choices = make_choices(choices = strsplit(x = genome_row[["Gene.Sets"]],
+                                                                split = ";",
+                                                                fixed = TRUE)[[1]],
+                                             numbered = FALSE))
 
     output$genome_fasta_location <- renderUI({
       if(as.character(genome_row[["Genome.FASTA"]])=="NA"){
@@ -166,24 +161,35 @@ server <- function(input, output, session){
       }
     })
 
+    output$genome_index_location <- renderUI({
+      if(as.character(genome_row[["Bowtie.Index"]])=="NA"){
+        return(HTML("<font color='red'>Incomplete</font>"))
+      } else {
+        return(HTML("<font color='green'>",genome_row[["Bowtie.Index"]],"</font>"))
+      }
+    })
+
     shinyFileChoose(input = input,
                     session = session,
                     id = "genome_fasta_finder",
-                    roots = isolate(values$fasta_volumes),
+                    roots = isolate(values$genome_volumes),
                     filetypes = c("fasta", "fa"))
+     shinyDirChoose(input = input,
+                    session = session,
+                    id = "genome_index_finder",
+                    roots = isolate(values$genome_volumes))
     shinyFileChoose(input = input,
                     session = session,
                     id = "gene_list_finder",
-                    roots = isolate(values$fasta_volumes),
+                    roots = isolate(values$genome_volumes),
                     filetypes = c("txt", "tsv"))
-
   })
 
   observe({
     print("getting genome fasta file")
     #print(input$genome_index)
     if(!is.null(input$genome_fasta_finder)){
-      fasta_location <- parseFilePaths(roots = values$fasta_volumes, selection = input$genome_fasta_finder)
+      fasta_location <- parseFilePaths(roots = values$genome_volumes, selection = input$genome_fasta_finder)
       print("fasta_location")
       print(fasta_location)
       print(as.character(fasta_location[["datapath"]]))
@@ -195,10 +201,24 @@ server <- function(input, output, session){
   })
 
   observe({
+    print("getting genome index directory")
+    if(!is.null(input$genome_index_finder)){
+      index_location <- parseDirPath(roots = values$genome_volumes, selection = input$genome_index_finder)
+      print("index_location")
+      print(index_location)
+      #print(as.character(index_location))
+      values$genomes[isolate(input$genome_index), "Bowtie.Index"] <- getAbsolutePath(as.character(index_location))
+      print(values$genomes)
+      # updateTextInput(session, "genome_fasta_finder", value = NA)
+    }
+    #print(values$genomes[input$genome_index, "Genome.FASTA"])}
+  })
+
+  observe({
     print("getting gene lists")
     #print(input$genome_index)
     if(!is.null(input$gene_list_finder)){
-      gene_list_location <- parseFilePaths(roots = values$fasta_volumes, selection = input$gene_list_finder)
+      gene_list_location <- parseFilePaths(roots = values$genome_volumes, selection = input$gene_list_finder)
       print("fasta_location")
       print(gene_list_location)
       print(as.character(gene_list_location[["datapath"]]))
@@ -216,6 +236,17 @@ server <- function(input, output, session){
     #print(values$genomes[input$genome_index, "Genome.FASTA"])}
   })
 
+  observeEvent(remove_gene_list_listener(), {
+    print("remove gene list")
+    print(isolate(input$gene_list_status))
+    isolate(genome_row <- values$genomes[input$genome_index, ])
+    isolate(new_list <- paste(strsplit(x = genome_row[["Gene.Sets"]],
+             split = ";",
+             fixed = TRUE)[[1]][-(as.integer(input$gene_list_status))], collapse = ";"))
+    print("updating the new gene list")
+    if(new_list=="") new_list <- "NA"
+    isolate(values$genomes[input$genome_index, "Gene.Sets"] <- new_list)
+  })
 
 
   observeEvent(get_ensembl_genomes_listener(), {
@@ -288,7 +319,7 @@ server <- function(input, output, session){
   get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
   add_genome_listener <- reactive({input$add_genome})
   get_intervals_listener <- reactive({input$get_intervals})
-
+  remove_gene_list_listener <- reactive({input$remove_gene_list})
 
   view_adapters_listener <- reactive({input$view_adapters})
   add_adapter_listener <- reactive({input$add_adapter})

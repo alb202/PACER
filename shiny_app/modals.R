@@ -52,8 +52,8 @@ genomes_modal <- modalDialog(size = "l",
                              title = "Genomes",
                              easyClose = FALSE,
                              fluidRow(column(width = 12, tableOutput(outputId = "genome_table"))),
-                               # renderTable(expr =  values$genomes,
-                               #             rownames = TRUE)),
+                             # renderTable(expr =  values$genomes,
+                             #             rownames = TRUE)),
                              fluidRow(
                                column(width = 4,
                                       style = "margin-top:0px;",
@@ -67,7 +67,7 @@ genomes_modal <- modalDialog(size = "l",
                                column(width = 2, style = "margin-top:23px;",
                                       disabled(actionButton(inputId = "view_genome",
                                                             label = "View Genome Info")))),
-                             div(tags$hr()),
+                             #div(tags$hr()),
                              hidden(
                                div(id = "genome_details", style = "border:5;border-color:grey;",
                                    wellPanel(
@@ -76,7 +76,7 @@ genomes_modal <- modalDialog(size = "l",
                                               actionButton(inputId = "get_intervals", label = "Get Intervals")),
                                        column(width = 2, style = "margin-top:0px; margin:0px;",
                                               "ENSEMBL Intervals"),
-                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                       column(width = 5, style = "margin-top:0px; margin:0px;",
                                               htmlOutput(outputId = "genome_interval_status"))
                                      ),
                                      fluidRow(
@@ -87,8 +87,15 @@ genomes_modal <- modalDialog(size = "l",
                                                                multiple = FALSE)),
                                        column(width = 2, style = "margin-top:0px; margin:0px;",
                                               "Gene lists"),
+                                       column(width = 6, style = "margin-top:0px; margin:0px;",
+                                              selectInput(inputId = "gene_list_status",
+                                                          label = NULL,
+                                                          choices = "",
+                                                          multiple = FALSE,
+                                                          selectize = TRUE,
+                                                          width = "100%")),
                                        column(width = 2, style = "margin-top:0px; margin:0px;",
-                                              htmlOutput(outputId = "gene_list_status"))
+                                              actionButton(inputId = "remove_gene_list", label = "Remove list"))
                                      ),
                                      fluidRow(
                                        column(width = 2, style = "margin-top:25px",
@@ -98,11 +105,24 @@ genomes_modal <- modalDialog(size = "l",
                                                                multiple = FALSE)),
                                        column(width = 2, style = "margin-top:0px; margin:0px;",
                                               "ENSEMBL Genome FASTA"),
-                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                       column(width = 6, style = "margin-top:0px; margin:0px;",
                                               htmlOutput(outputId = "genome_fasta_location"))
+
+                                     ),
+                                     fluidRow(
+                                       column(width = 2, style = "margin-top:25px",
+                                              shinyDirButton(id = "genome_index_finder",
+                                                             title = "Find genome index directory",
+                                                             label = "Find directory ...")),
+                                       column(width = 2, style = "margin-top:0px; margin:0px;",
+                                              "Bowtie Index"),
+                                       column(width = 6, style = "margin-top:0px; margin:0px;",
+                                              htmlOutput(outputId = "genome_index_location"))
+
                                      )
                                    )),
                                div(tags$hr())),
+                             div(tags$hr()),
                              fluidRow(
                                column(width = 6, style = "margin-top:0px",
                                       selectInput(inputId = "ensembl_genome_index", selectize=TRUE, width = "100%",
