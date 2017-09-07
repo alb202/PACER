@@ -53,10 +53,12 @@ update_genome_index <- function(session, genomes){
     toggleState(id = "load_genome", condition = TRUE)
     toggleState(id = "view_genome", condition = TRUE)
   } else {
-    row_choices <- c("")
+    row_choices <- c(NULL)
     toggleState(id = "load_genome", condition = FALSE)
     toggleState(id = "view_genome", condition = FALSE)
   }
+  print("row_choices")
+  print(row_choices)
   updateSelectInput(session = session,
                     inputId = "genome_index",
                     label = NULL,
@@ -79,4 +81,15 @@ update_ensembl_genome_index <- function(session, genomes){
                     label = NULL,
                     choices = row_choices,
                     selected = NULL)
+}
+
+check_for_complete_genome <- function(genome){
+  if(nrow(genome)==0) return(genome)
+  result <- rep("Incomplete", nrow(genome))
+  for(i in 1:nrow(genome)){
+    if(genome[i, 5] != "None" &
+       genome[i, 6] != "None" &
+       genome[i, 7] != "None") result[i] <- "Ready"
+  }
+  return(result)
 }
