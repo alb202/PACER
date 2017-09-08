@@ -16,14 +16,17 @@ server <- function(input, output, session){
   values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
   values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
   values$adapters <- read.delim(file = "../data/adapters/adapters.txt", stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
-#  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
-  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
+  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+#  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
   values$genome_dir <- "../data/genomes/"
-
+  #print("values$genomes")
+  #print(values$genomes)
   observe({
     # Set the initial value of the input directory to the first entry in the volumes list
     values$input_dir <- values$input_volumes[[1]]
     values$output_dir <- values$output_volumes[[1]]
+    print("values$genomes")
+    print(values$genomes)
   })
 
   observe({
@@ -109,13 +112,12 @@ server <- function(input, output, session){
   })
 
   ### Genome dialogue
-  observeEvent(label = "Select genome modal", select_genome_listener(), {
+  observeEvent(label = "Select genome modal", select_genome_listener(),priority = 100, {
     print("Select genome")
     showModal(genomes_modal)
     print("genome dir WBcel999")
     print(getwd())
     print(isolate(nrow(values$genomes)))
-
     #print(values$genome_dir)
     #print(paste(getwd(), values$genome_dir, sep = "/"))
     #print(get_ensembl_intervals(genome = "WBAAA", path = values$genome_dir))
@@ -139,6 +141,7 @@ server <- function(input, output, session){
     # print("print(isolate(input$genome_index))")
     # print(isolate(input$genome_index))
     print("printing B")
+    update_genome_index(session = session, genomes = values$genomes)
   })
 
   # new_table <- data.frame(lapply(X = new_table,
@@ -164,7 +167,7 @@ server <- function(input, output, session){
 
                  print("reload the genome view")
                  if(isolate(nrow(values$genomes)>0)){
-                   update_genome_index(session = session, genomes =  values$genomes)
+                   #update_genome_index(session = session, genomes =  values$genomes)
                    print("genome index")
                    print(isolate(input$genome_index))
                    genome_row <- values$genomes[input$genome_index, ]
@@ -237,7 +240,7 @@ server <- function(input, output, session){
                })
 
   observeEvent(eventExpr = genome_fasta_finder_listener(), {
-    print("getting genome fasta file")
+    print("getting Genome.FASTA file")
     #print(input$genome_index)
     print("input$genome_fasta_finder")
     print(isolate(input$genome_fasta_finder))
@@ -273,7 +276,9 @@ server <- function(input, output, session){
     }
   })
 
-  observeEvent(label = "Checking complete genome", priority = -10, eventExpr = check_complete_genome_listener(), {
+  observeEvent(label = "Checking complete genome",
+               priority = -10,
+               eventExpr = check_complete_genome_listener(), suspended = TRUE, {
     print("Checking if genome is complete")
     if(nrow(values$genomes)>0){
       print("checking for complete genomes")
@@ -334,13 +339,15 @@ server <- function(input, output, session){
     print(input$ensembl_genome_index)
     if(values$ensembl_genome_index[input$ensembl_genome_index, "dataset"] %in% values$genomes$dataset) return(NULL)
     print(isolate(nrow(values$genomes)))
-    if(nrow(values$genomes)==0){
-      print("create new genome list")
-      values$genomes <- data.frame(stringsAsFactors = FALSE, row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval Status"="None", "Genome FASTA"="None", "Bowtie Index"="None", "Gene Sets"="None")
-    } else {
-      print("append genome to list")
-      values$genomes <- rbind(values$genomes, data.frame(stringsAsFactors = FALSE, row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval Status"="None", "Genome FASTA"="None", "Bowtie Index"="None", "Gene Sets"="None"))
-    }
+    values$genomes <- add_genome(genomes = values$genomes, new_genome = values$ensembl_genome_index[input$ensembl_genome_index, ])
+    # update_genome_index(session = session, genomes = values$genomes)
+    # if(nrow(values$genomes)==0){
+    #   print("create new genome list")
+    #   values$genomes <- data.frame(stringsAsFactors = FALSE, row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene.Sets"="None")
+    # } else {
+    #   print("append genome to list")
+    #   values$genomes <- rbind(values$genomes, data.frame(stringsAsFactors = FALSE, row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene.Sets"="None"))
+    # }
     print(values$genomes)
     print("update_genome_index EEE")
     update_genome_index(session = session, genomes = values$genomes)
@@ -353,9 +360,10 @@ server <- function(input, output, session){
     print("removing a genome")
     if(!is.na(input$genome_index)){
       values$genomes <- values$genomes[-as.integer(input$genome_index), ]
-      row.names(values$genomes) <- 1:nrow(values$genomes)
-      update_genome_index(session = session, genomes = values$genomes)
-      }
+      # if(nrow(values$genomes)>0)
+      #   row.names(values$genomes) <- 1:nrow(values$genomes)
+    }
+    update_genome_index(session = session, genomes = values$genomes)
   })
 
 
@@ -379,6 +387,19 @@ server <- function(input, output, session){
       output$genome_changes_saved <- renderText(expr = {return("Saved")})
     }
   })
+
+  observeEvent(load_genome_listener(), {
+    values$selected_genome <- values$genomes[input$genome_index, ]
+    output$selected_genome <- renderText({return(values$selected_genome$Version)})
+  })
+
+  # observeEvent(nrow_genomes_listener(), {
+  #   print("Number of rows has changed")
+  #   if(nrow(values$genomes)>0){
+  #     row.names(values$genomes) <- 1:nrow(values$genomes)
+  #     }
+  #   update_genome_index(session = session, genomes = values$genomes)
+  # })
 
   ### Adapter modal
   observeEvent(view_adapters_listener(), {
@@ -429,7 +450,8 @@ server <- function(input, output, session){
   genome_index_finder_listener <- reactive({ input$genome_index_finder})
   gene_list_finder_listener <- reactive({input$gene_list_finder})
   save_genomes_listener <- reactive({input$save_genomes})
-
+  load_genome_listener <- reactive({input$load_genome})
+  nrow_genomes_listener <- reactive({values$genomes})
   view_adapters_listener <- reactive({input$view_adapters})
   add_adapter_listener <- reactive({input$add_adapter})
   remove_adapter_listener <- reactive({input$remove_adapter})

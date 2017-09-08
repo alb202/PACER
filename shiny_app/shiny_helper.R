@@ -62,25 +62,29 @@ update_adapter_index <- function(session, adapters){
 
 update_genome_index <- function(session, genomes){
   if(nrow(genomes)>0){
+    print("more than 0 genomes")
     row.names(genomes) <- 1:nrow(genomes)
-    row_choices <- make_choices(genomes$description,
+    row_choices <- make_choices(genomes$Description,
                                 numbered = TRUE)
     toggleState(id = "load_genome", condition = TRUE)
     toggleState(id = "remove_genome", condition = TRUE)
     toggleState(id = "view_genome", condition = TRUE)
   } else {
-    row_choices <- c(NULL)
+    print("0 genomes")
+    row_choices <- c(" "=0)
     toggleState(id = "load_genome", condition = FALSE)
     toggleState(id = "remove_genome", condition = FALSE)
     toggleState(id = "view_genome", condition = FALSE)
+    toggleElement(id = "genome_details", condition = FALSE)
   }
   print("row_choices")
   print(row_choices)
+
   updateSelectInput(session = session,
                     inputId = "genome_index",
                     label = NULL,
                     choices = row_choices,
-                    selected = 1)
+                    selected = NULL)
 }
 
 update_ensembl_genome_index <- function(session, genomes){
@@ -109,4 +113,19 @@ check_for_complete_genome <- function(genome){
        genome[i, 7] != "None") result[i] <- "Ready"
   }
   return(result)
+}
+
+add_genome <- function(genomes, new_genome){
+  print(names(genomes))
+  print(names(new_genome))
+  names(new_genome) <- c("Description", "Version","Dataset")
+  if(nrow(genomes)==0){
+    print("create new genome list")
+    genomes <- data.frame(stringsAsFactors = FALSE, row.names = NULL, new_genome, "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene Sets"="None")
+  } else {
+    print("append genome to list")
+    genomes <- rbind(genomes, data.frame(stringsAsFactors = FALSE, row.names = NULL, new_genome, "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene.Sets"="None"))
+  }
+  #update_genome_index(session = session, genomes = genomes)
+  return(genomes)
 }

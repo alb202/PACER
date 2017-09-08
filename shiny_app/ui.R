@@ -30,7 +30,8 @@ ui <- fluidPage(
                                actionButton(inputId = "select_genome",
                                             icon = icon("check", lib = "glyphicon"),
                                             label="Select genome")),
-                             fluidRow(tags$hr()),
+                             fluidRow(h5(textOutput("selected_genome"))),
+                             fluidRow(tags$hr(style = "height:5px")),
                              fluidRow(
                                actionButton(inputId = "view_adapters",
                                                      icon = icon("check", lib = "glyphicon"),
