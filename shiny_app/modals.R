@@ -44,7 +44,7 @@ adapter_modal <- modalDialog(size = "l",
                                modalButton(label = "Exit"),
                                actionButton(inputId = "save_adapters",
                                             label = "Save Changes"),
-                               textOutput(outputId = "changes_saved")
+                               textOutput(outputId = "adapter_changes_saved")
                              )
 )
 
@@ -55,7 +55,7 @@ genomes_modal <- modalDialog(size = "l",
                              # renderTable(expr =  values$genomes,
                              #             rownames = TRUE)),
                              fluidRow(
-                               column(width = 4,
+                               column(width = 6,
                                       style = "margin-top:0px;",
                                       selectInput(inputId = "genome_index",
                                                   label = "Select genome",
@@ -63,10 +63,16 @@ genomes_modal <- modalDialog(size = "l",
                                                   choices = "")),
                                column(width = 2, style = "margin-top:23px;",
                                       disabled(actionButton(inputId = "load_genome",
-                                                            label = "Load Genome"))),
+                                                            label = "Load Genome",
+                                                            width = "100%"))),
                                column(width = 2, style = "margin-top:23px;",
                                       disabled(actionButton(inputId = "view_genome",
-                                                            label = "View Genome Info")))),
+                                                            label = "View Genome Info",
+                                                            width = "100%"))),
+                               column(width = 2, style = "margin-top:23px;",
+                                      disabled(actionButton(inputId = "remove_genome",
+                                                            label = "Remove Genome",
+                                                            width = "100%")))),
                              #div(tags$hr()),
                              hidden(
                                div(id = "genome_details", style = "border:5;border-color:grey;",
@@ -133,7 +139,7 @@ genomes_modal <- modalDialog(size = "l",
                                       disabled(actionButton(inputId = "add_genome", label = "Add genome")))),
                              footer = tagList(
                                modalButton(label = "Exit"),
-                               actionButton(inputId = "save_adapters", label = "Save Changes"),
-                               textOutput(outputId = "changes_saved")
+                               actionButton(inputId = "save_genomes", label = "Save Changes"),
+                               textOutput(outputId = "genome_changes_saved")
                              )
 )

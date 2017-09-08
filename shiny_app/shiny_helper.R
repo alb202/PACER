@@ -6,7 +6,22 @@ load_directory <- function(dir, filetypes, include_dirs=FALSE){
              full.names = FALSE))
 }
 
-save_adapters <- function(x, path){
+# save_adapters <- function(x, path){
+#   # If an adapter file already exists, save a backup file
+#   if(file.exists(path)){
+#     file.copy(from = path,
+#               to = paste(path, ".backup", sep = ""),
+#               overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
+#   }
+#   write_delim(x = x,
+#               path = path,
+#               delim = " #",
+#               col_names = FALSE,
+#               append = FALSE)
+#   return(file.exists(path))
+# }
+
+save_info <- function(x, path, delimeter, col_names){
   # If an adapter file already exists, save a backup file
   if(file.exists(path)){
     file.copy(from = path,
@@ -15,8 +30,8 @@ save_adapters <- function(x, path){
   }
   write_delim(x = x,
               path = path,
-              delim = " #",
-              col_names = FALSE,
+              delim = delimeter,
+              col_names = col_names,
               append = FALSE)
   return(file.exists(path))
 }
@@ -51,10 +66,12 @@ update_genome_index <- function(session, genomes){
     row_choices <- make_choices(genomes$description,
                                 numbered = TRUE)
     toggleState(id = "load_genome", condition = TRUE)
+    toggleState(id = "remove_genome", condition = TRUE)
     toggleState(id = "view_genome", condition = TRUE)
   } else {
     row_choices <- c(NULL)
     toggleState(id = "load_genome", condition = FALSE)
+    toggleState(id = "remove_genome", condition = FALSE)
     toggleState(id = "view_genome", condition = FALSE)
   }
   print("row_choices")
@@ -63,7 +80,7 @@ update_genome_index <- function(session, genomes){
                     inputId = "genome_index",
                     label = NULL,
                     choices = row_choices,
-                    selected = NULL)
+                    selected = 1)
 }
 
 update_ensembl_genome_index <- function(session, genomes){

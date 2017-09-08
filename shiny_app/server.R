@@ -16,7 +16,8 @@ server <- function(input, output, session){
   values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
   values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
   values$adapters <- read.delim(file = "../data/adapters/adapters.txt", stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
-  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
+#  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
+  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval Status", "Genome FASTA", "Bowtie Index", "Gene Sets"))
   values$genome_dir <- "../data/genomes/"
 
   observe({
@@ -108,7 +109,7 @@ server <- function(input, output, session){
   })
 
   ### Genome dialogue
-  observeEvent(select_genome_listener(), {
+  observeEvent(label = "Select genome modal", select_genome_listener(), {
     print("Select genome")
     showModal(genomes_modal)
     print("genome dir WBcel999")
@@ -118,7 +119,7 @@ server <- function(input, output, session){
     #print(values$genome_dir)
     #print(paste(getwd(), values$genome_dir, sep = "/"))
     #print(get_ensembl_intervals(genome = "WBAAA", path = values$genome_dir))
-    output$genome_table <- renderTable(expr =  {
+    output$genome_table <- renderTable(width = "100%" , expr =  {
       #print(class(values$genomes))
       print("printing the genome A")
       print(isolate(nrow(values$genomes)))
@@ -159,10 +160,11 @@ server <- function(input, output, session){
 
   observeEvent(eventExpr = c(values$genomes[input$genome_index, 5:8],
                              view_genome_listener()),
-               label = "update view genome", priority = 5, {
+               label = "update view genome", priority = -5, {
 
                  print("reload the genome view")
                  if(isolate(nrow(values$genomes)>0)){
+                   update_genome_index(session = session, genomes =  values$genomes)
                    print("genome index")
                    print(isolate(input$genome_index))
                    genome_row <- values$genomes[input$genome_index, ]
@@ -179,7 +181,7 @@ server <- function(input, output, session){
                             genome_row[7] == "None"))
 
                    print("get genome row again")
-                   genome_row <- values$genomes[input$genome_index, ]
+                   #genome_row <- values$genomes[input$genome_index, ]
                    print(genome_row)
                    output$genome_interval_status <- renderUI({
                      if(as.character(genome_row[5])=="None"){
@@ -271,7 +273,7 @@ server <- function(input, output, session){
     }
   })
 
-  observeEvent(label = "Checking complete genome", eventExpr = check_complete_genome_listener(), {
+  observeEvent(label = "Checking complete genome", priority = -10, eventExpr = check_complete_genome_listener(), {
     print("Checking if genome is complete")
     if(nrow(values$genomes)>0){
       print("checking for complete genomes")
@@ -347,6 +349,16 @@ server <- function(input, output, session){
     print(isolate(nrow(values$genomes)))
   })
 
+  observeEvent(remove_genome_listener(), {
+    print("removing a genome")
+    if(!is.na(input$genome_index)){
+      values$genomes <- values$genomes[-as.integer(input$genome_index), ]
+      row.names(values$genomes) <- 1:nrow(values$genomes)
+      update_genome_index(session = session, genomes = values$genomes)
+      }
+  })
+
+
   observeEvent(eventExpr = get_intervals_listener(), {
     print("Get gene intervals")
     genome <- values$genomes[isolate(input$genome_index), 3]
@@ -358,6 +370,14 @@ server <- function(input, output, session){
     print("update status of ")
     values$genomes[isolate(input$genome_index), 5] <- "OK"
     print(isolate(nrow(values$genomes)))
+  })
+
+  observeEvent(save_genomes_listener(), {
+    success <- save_info(x = values$genomes, path = "../data/genomes/genomes.txt", delimeter = "\t", col_names = TRUE)
+    print(success)
+    if(isTRUE(success)){
+      output$genome_changes_saved <- renderText(expr = {return("Saved")})
+    }
   })
 
   ### Adapter modal
@@ -382,10 +402,10 @@ server <- function(input, output, session){
   })
 
   observeEvent(save_adapters_listener(), {
-    success <- save_adapters(x = values$adapters, path = "../data/adapters/adapters_new.txt")
+    success <- save_info(x = values$adapters, path = "../data/adapters/adapters_new.txt", delimeter = " #", col_names = FALSE)
     print(success)
     if(isTRUE(success)){
-      output$changes_saved <- renderText(expr = {return("Saved")})
+      output$adapter_changes_saved <- renderText(expr = {return("Saved")})
     }
   })
 
@@ -400,6 +420,7 @@ server <- function(input, output, session){
   #update_view_genome_listener <- reactive({values$update_genome_viewer})
   get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
   add_genome_listener <- reactive({input$add_genome})
+  remove_genome_listener <- reactive({input$remove_genome})
   get_intervals_listener <- reactive({input$get_intervals})
   check_complete_genome_listener <- reactive({values$genomes})
   remove_gene_list_listener <- reactive({input$remove_gene_list})
@@ -407,6 +428,7 @@ server <- function(input, output, session){
   genome_fasta_finder_listener <- reactive({ input$genome_fasta_finder})
   genome_index_finder_listener <- reactive({ input$genome_index_finder})
   gene_list_finder_listener <- reactive({input$gene_list_finder})
+  save_genomes_listener <- reactive({input$save_genomes})
 
   view_adapters_listener <- reactive({input$view_adapters})
   add_adapter_listener <- reactive({input$add_adapter})
