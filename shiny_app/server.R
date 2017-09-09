@@ -178,10 +178,10 @@ server <- function(input, output, session){
                    print("genome row 5:7")
                    print(genome_row[5:7])
                    print("genome row NA")
-                   print(sum(genome_row[5:7] == "None"))
-                   print((genome_row[5] == "None" &
-                            genome_row[6] == "None" &
-                            genome_row[7] == "None"))
+                   # print(sum(genome_row[5:7] == "None"))
+                   # print((genome_row[5] == "None" &
+                   #          genome_row[6] == "None" &
+                   #          genome_row[7] == "None"))
 
                    print("get genome row again")
                    #genome_row <- values$genomes[input$genome_index, ]
@@ -194,12 +194,28 @@ server <- function(input, output, session){
                      }
                    })
                    print("update gene list status")
+                   print(genome_row)
+                   # print(strsplit(x = genome_row[["Gene.Sets"]],
+                   #                split = ";",
+                   #                fixed = TRUE)[1])
+                   # print(length(strsplit(x = genome_row[["Gene.Sets"]],
+                   #                       split = ";",
+                   #                       fixed = TRUE)[1]))
+                   # print(length(strsplit(x = genome_row[["Gene.Sets"]],
+                   #                       split = ";",
+                   #                       fixed = TRUE)[[1]]))
+                   if(nrow(genome_row)>0){
+                     gene_list_choices <- make_choices(choices = strsplit(x = genome_row[["Gene.Sets"]],
+                                                                          split = ";",
+                                                                          fixed = TRUE)[[1]],
+                                                       numbered = FALSE)
+                   }
+                   else{
+                     gene_list_choices <- c(" "= 0)}
                    updateSelectInput(session = session,
                                      inputId = "gene_list_status",
-                                     choices = make_choices(choices = strsplit(x = genome_row[["Gene.Sets"]],
-                                                                               split = ";",
-                                                                               fixed = TRUE)[[1]],
-                                                            numbered = FALSE))
+                                     choices = gene_list_choices)
+
                    print("output$genome_fasta_location ")
                    output$genome_fasta_location <- renderUI({
                      if(as.character(genome_row[["Genome.FASTA"]])=="None"){
@@ -224,10 +240,12 @@ server <- function(input, output, session){
                                    id = "genome_fasta_finder",
                                    roots = isolate(values$genome_volumes),
                                    filetypes = c("fasta", "fa"))
+                   print("genome_index_finder dir choose")
                    shinyDirChoose(input = input,
                                   session = session,
                                   id = "genome_index_finder",
                                   roots = isolate(values$genome_volumes))
+                   print("gene_list_finder dir choose")
                    shinyFileChoose(input = input,
                                    session = session,
                                    id = "gene_list_finder",
@@ -278,11 +296,13 @@ server <- function(input, output, session){
 
   observeEvent(label = "Checking complete genome",
                priority = -10,
-               eventExpr = check_complete_genome_listener(), suspended = TRUE, {
+               eventExpr = check_complete_genome_listener()
+               # , suspended = TRUE
+               , {
     print("Checking if genome is complete")
     if(nrow(values$genomes)>0){
       print("checking for complete genomes")
-      values$genomes[,4] <- check_for_complete_genome(genome = values$genomes)
+      values$genomes[,"Status"] <- check_for_complete_genome(genome = values$genomes)
     }
   })
 
@@ -389,8 +409,20 @@ server <- function(input, output, session){
   })
 
   observeEvent(load_genome_listener(), {
-    values$selected_genome <- values$genomes[input$genome_index, ]
-    output$selected_genome <- renderText({return(values$selected_genome$Version)})
+    print("loading selected genome")
+    selected_genome <- values$genomes[input$genome_index, ]
+  if(selected_genome["Status"] == "Ready"){
+    print("ready - A")
+    values$selected_genome <- selected_genome
+    print("ready - B")
+    output$selected_genome <- renderText({return(selected_genome[["Version"]])})
+  } else {
+    print("Incomplete - A")
+    values$selected_genome <- NULL
+    print("Incomplete - B")
+    output$selected_genome <- renderText({"Select a complete genome"})
+  }
+
   })
 
   # observeEvent(nrow_genomes_listener(), {

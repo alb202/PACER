@@ -112,6 +112,9 @@ check_for_complete_genome <- function(genome){
        genome[i, 6] != "None" &
        genome[i, 7] != "None") result[i] <- "Ready"
   }
+  print("result of checking genome")
+  print(result)
+  print(class(result))
   return(result)
 }
 
