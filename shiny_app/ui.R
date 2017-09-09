@@ -9,12 +9,13 @@ ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "lumen.css"),
     tags$style(HTML(".modal-lg {width:1050px;padding:0;}"))),
+    #tags$style(HTML(".modal-adapter {width:800px;padding:0;}"))),
   titlePanel("PACER"),
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(id="sidebar", type = "tabs",
                   tabPanel(title = "Align", value = "align", icon = icon("folder-open", lib="glyphicon"),
-                           wellPanel(
+                           wellPanel(tags$hr(style = "margin:0;padding:0;"),
                              #column(10,
                              fluidRow(shinyFiles::shinyDirButton(id = "find_input_dir",
                                                                  label = "Select folder ...",
@@ -26,17 +27,18 @@ ui <- fluidPage(
                                disabled(actionButton(inputId = "align_dataset",
                                                      icon = icon("check", lib = "glyphicon"),
                                                      label="Align dataset"))),
-                             fluidRow(tags$hr()),
+                             fluidRow(tags$hr(style = "margin:1;padding:0;")),
                              fluidRow(
                                actionButton(inputId = "select_genome",
                                             icon = icon("check", lib = "glyphicon"),
                                             label="Select genome")),
-                             fluidRow(h5(textOutput("selected_genome"))),
-                             fluidRow(tags$hr(style = "height:5px")),
+                             fluidRow(h5(textOutput("selected_genome"), style = "margin:1;padding:0;")),
+                             fluidRow(tags$hr(style = "margin:1;padding:0;")),
                              fluidRow(
                                actionButton(inputId = "view_adapters",
-                                                     icon = icon("check", lib = "glyphicon"),
-                                                     label="View Adapters"))
+                                            icon = icon("check",
+                                                        lib = "glyphicon"),
+                                            label="View Adapters"))
                            )
                   ),
                   tabPanel(title = "View", value = "view_results", icon = icon("folder-open", lib="glyphicon"),

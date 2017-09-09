@@ -151,7 +151,8 @@ server <- function(input, output, session){
   #                                  return(x)
   #                                }))
 
-  observeEvent(eventExpr = view_genome_listener(), priority = 0,{
+  observeEvent(eventExpr = view_genome_listener(),
+               priority = 0,{
     print("view the genome details")
     print(isolate(nrow(values$genomes)))
     #toggleElement(id = "genome_details", condition = TRUE)
@@ -399,7 +400,9 @@ server <- function(input, output, session){
     print(genome)
     if(!check_for_intervals(path = "../data/genomes", genome = genome)){
       print("getting ensembl intervals")
-      get_ensembl_intervals(path = "../data/genomes", genome = genome)
+      withProgress(message = "Checking genome files", value = .5, session = session, {
+        get_ensembl_intervals(path = "../data/genomes", genome = genome)
+      })
     }
     print("update status of ")
     values$genomes[isolate(input$genome_index), 5] <- "OK"
@@ -442,10 +445,11 @@ server <- function(input, output, session){
   ### Adapter modal
   observeEvent(view_adapters_listener(), {
     print("Viewing adapters modal")
+    # output$adapter_changes_saved <- renderText({" "})
     showModal(adapter_modal)
     output$adapter_table <- renderTable(expr =  values$adapters, rownames = TRUE)
     update_adapter_index(session = session, adapters = values$adapters)
-    output$changes_saved <- renderText(expr = {return("")})
+    # output$changes_saved <- renderText(expr = {return("")})
   })
 
   observeEvent(add_adapter_listener(), {
@@ -495,7 +499,11 @@ server <- function(input, output, session){
   remove_adapter_listener <- reactive({input$remove_adapter})
   save_adapters_listener <- reactive({input$save_adapters})
 
-
+observeEvent(input$close_modal, {
+  output$adapter_changes_saved <- renderText({" "})
+  output$genome_changes_saved <- renderText({" "})
+  removeModal()
+})
 
 
   # output$input_dir <- renderText({

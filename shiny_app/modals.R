@@ -15,38 +15,51 @@ align_modal <- modalDialog(
 adapter_modal <- modalDialog(size = "l",
                              title = "Adapters",
                              easyClose = FALSE,
+                             #tags$div(class = "modal-adapter",
                              fluidRow(column(width = 12, tableOutput("adapter_table"))),
-                             # renderTable(expr =  values$adapters,
-                             #             rownames = TRUE),
-                             div(tags$hr()),
+                             div(tags$hr(style = "margin-top:0px;")),
                              fluidRow(
                                column(width = 4, style = "margin-top:0px; margin:0px;",
                                       textInput(inputId = "add_adapter_sequence_input",
-                                                label = "Adapter")),
+                                                label = "Adapter",
+                                                width = "100%")),
                                column(width = 4, style = "margin-top:0px; margin:0px;",
                                       textInput(inputId = "add_adapter_description_input",
-                                                label = "Description")),
-                               column(width = 4, style = "margin-top:25px",
+                                                label = "Description",
+                                                width = "100%")),
+                               column(width = 2, style = "margin-top:25px",
                                       actionButton(inputId = "add_adapter",
-                                                   label = "Add Adapter"))),
-                             div(tags$hr()),
+                                                   label = "Add Adapter",
+                                                   width = "100%"))),
+                             div(tags$hr(style = "margin-top:0px;")),
                              fluidRow(
                                column(width = 6, style = "margin-top:0px",
                                       selectInput(inputId = "adapter_index",
                                                   label = "Select adapter to remove",
                                                   multiple = FALSE,
-                                                  choices = NULL)),
+                                                  choices = NULL,
+                                                  width = "100%"
+                                                  )),
                                column(width = 2, style = "margin-top:24px",
                                       actionButton(inputId = "remove_adapter",
-                                                   label = "Remove Adapter"))
+                                                   label = "Remove Adapter",
+                                                   width = "100%"))
                              ),
-                             footer = tagList(
-                               modalButton(label = "Exit"),
-                               actionButton(inputId = "save_adapters",
-                                            label = "Save Changes"),
-                               textOutput(outputId = "adapter_changes_saved")
-                             )
-)
+                             div(tags$hr()),
+                             fluidRow(
+                               column(width = 2, style = "margin-top:0px;margin-left:0px;",
+                                      actionButton(inputId = "save_adapters",
+                                                   label = "Save Changes",
+                                                   width = "100%")),
+                               column(width = 1,
+                                      style = "margin-top:8px;text-align:left;",
+                                      textOutput(outputId = "adapter_changes_saved")),
+                               #column(width = 7, style = "margin-top:0px"),
+                               column(width = 2, offset = 7, style = "margin-top:0px;",
+                                      actionButton(inputId = "close_modal",
+                                                   label = "Exit",
+                                                   width = "100%"))),
+                             footer = NULL)
 
 genomes_modal <- modalDialog(size = "l",
                              title = "Genomes",
@@ -79,7 +92,8 @@ genomes_modal <- modalDialog(size = "l",
                                    wellPanel(
                                      fluidRow(
                                        column(width = 2, style = "margin-bottom:6px",
-                                              actionButton(inputId = "get_intervals", label = "Get Intervals")),
+                                              actionButton(inputId = "get_intervals",
+                                                           label = "Get Intervals")),
                                        column(width = 2, style = "margin-bottom:6px",
                                               "ENSEMBL Intervals"),
                                        column(width = 6, style = "margin-bottom:6px",
@@ -145,9 +159,18 @@ genomes_modal <- modalDialog(size = "l",
                                         actionButton(inputId = "add_genome",
                                                      label = "Add genome",
                                                      width = "100%")))),
-                             footer = tagList(
-                               modalButton(label = "Exit"),
-                               actionButton(inputId = "save_genomes", label = "Save Changes"),
-                               textOutput(outputId = "genome_changes_saved")
-                             )
-)
+                             div(tags$hr()),
+                             fluidRow(
+                               column(width = 2, style = "margin-top:0px;margin-left:0px;",
+                                      actionButton(inputId = "save_genomes",
+                                                   label = "Save Changes",
+                                                   width = "100%")),
+                               column(width = 1,
+                                      style = "margin-top:8px;text-align:left;",
+                                      textOutput(outputId = "genome_changes_saved")),
+                               #column(width = 7, style = "margin-top:0px"),
+                               column(width = 2, offset = 7, style = "margin-top:0px;",
+                                      actionButton(inputId = "close_modal",
+                                                   label = "Exit",
+                                                   width = "100%"))),
+                             footer = NULL)
