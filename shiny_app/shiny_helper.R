@@ -64,7 +64,7 @@ update_genome_index <- function(session, genomes){
   if(nrow(genomes)>0){
     print("more than 0 genomes")
     row.names(genomes) <- 1:nrow(genomes)
-    row_choices <- make_choices(genomes$Description,
+    row_choices <- make_choices(genomes[,2],
                                 numbered = TRUE)
     toggleState(id = "load_genome", condition = TRUE)
     toggleState(id = "remove_genome", condition = TRUE)
@@ -90,7 +90,7 @@ update_genome_index <- function(session, genomes){
 update_ensembl_genome_index <- function(session, genomes){
   if(nrow(genomes)>0){
     row.names(genomes) <- 1:nrow(genomes)
-    row_choices <- make_choices(genomes$description,
+    row_choices <- make_choices(genomes[,2],
                                 numbered = FALSE)
     toggleState(id = "add_genome", condition = TRUE)
   } else {
@@ -121,7 +121,7 @@ check_for_complete_genome <- function(genome){
 add_genome <- function(genomes, new_genome){
   print(names(genomes))
   print(names(new_genome))
-  names(new_genome) <- c("Description", "Version","Dataset")
+  names(new_genome) <- c("Dataset", "Description", "Version")
   if(nrow(genomes)==0){
     print("create new genome list")
     genomes <- data.frame(stringsAsFactors = FALSE, row.names = NULL, new_genome, "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene Sets"="None")

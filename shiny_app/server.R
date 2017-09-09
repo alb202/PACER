@@ -16,8 +16,8 @@ server <- function(input, output, session){
   values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
   values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
   values$adapters <- read.delim(file = "../data/adapters/adapters.txt", stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
-  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
-#  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+  #  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
   values$genome_dir <- "../data/genomes/"
   #print("values$genomes")
   #print(values$genomes)
@@ -299,12 +299,12 @@ server <- function(input, output, session){
                eventExpr = check_complete_genome_listener()
                # , suspended = TRUE
                , {
-    print("Checking if genome is complete")
-    if(nrow(values$genomes)>0){
-      print("checking for complete genomes")
-      values$genomes[,"Status"] <- check_for_complete_genome(genome = values$genomes)
-    }
-  })
+                 print("Checking if genome is complete")
+                 if(nrow(values$genomes)>0){
+                   print("checking for complete genomes")
+                   values$genomes[,"Status"] <- check_for_complete_genome(genome = values$genomes)
+                 }
+               })
 
   observeEvent(eventExpr = gene_list_finder_listener(), {
     print("getting gene lists")
@@ -356,10 +356,16 @@ server <- function(input, output, session){
 
   observeEvent(add_genome_listener(), {
     print("Adding a new genome")
+    print(names(values$ensembl_genome_index))
     print(input$ensembl_genome_index)
-    if(values$ensembl_genome_index[input$ensembl_genome_index, "dataset"] %in% values$genomes$dataset) return(NULL)
+    print("A")
+    print(values$ensembl_genome_index[as.integer(input$ensembl_genome_index), ])
+    print("B")
+    print(values$genomes[, "Dataset"])
+    if(values$ensembl_genome_index[as.integer(input$ensembl_genome_index), "dataset"] %in% values$genomes[, "Dataset"])
+      return(NULL)
     print(isolate(nrow(values$genomes)))
-    values$genomes <- add_genome(genomes = values$genomes, new_genome = values$ensembl_genome_index[input$ensembl_genome_index, ])
+    values$genomes <- add_genome(genomes = values$genomes, new_genome = values$ensembl_genome_index[as.integer(input$ensembl_genome_index), ])
     # update_genome_index(session = session, genomes = values$genomes)
     # if(nrow(values$genomes)==0){
     #   print("create new genome list")
@@ -380,8 +386,8 @@ server <- function(input, output, session){
     print("removing a genome")
     if(!is.na(input$genome_index)){
       values$genomes <- values$genomes[-as.integer(input$genome_index), ]
-      # if(nrow(values$genomes)>0)
-      #   row.names(values$genomes) <- 1:nrow(values$genomes)
+      if(nrow(values$genomes)>0)
+        row.names(values$genomes) <- 1:nrow(values$genomes)
     }
     update_genome_index(session = session, genomes = values$genomes)
   })
@@ -411,17 +417,17 @@ server <- function(input, output, session){
   observeEvent(load_genome_listener(), {
     print("loading selected genome")
     selected_genome <- values$genomes[input$genome_index, ]
-  if(selected_genome["Status"] == "Ready"){
-    print("ready - A")
-    values$selected_genome <- selected_genome
-    print("ready - B")
-    output$selected_genome <- renderText({return(selected_genome[["Version"]])})
-  } else {
-    print("Incomplete - A")
-    values$selected_genome <- NULL
-    print("Incomplete - B")
-    output$selected_genome <- renderText({"Select a complete genome"})
-  }
+    if(selected_genome["Status"] == "Ready"){
+      print("ready - A")
+      values$selected_genome <- selected_genome
+      print("ready - B")
+      output$selected_genome <- renderText({return(selected_genome[["Description"]])})
+    } else {
+      print("Incomplete - A")
+      values$selected_genome <- NULL
+      print("Incomplete - B")
+      output$selected_genome <- renderText({"Select a complete genome"})
+    }
 
   })
 
