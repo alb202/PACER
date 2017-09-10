@@ -13,32 +13,30 @@ server <- function(input, output, session){
 
   values <- reactiveValues()
   observeEvent(eventExpr = values, once = TRUE, {
-      # Set the initial value of the input directory to the first entry in the volumes list
-      values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
-      values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
-      values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
+    # Set the initial value of the input directory to the first entry in the volumes list
+    values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
+    values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
+    values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
 
-      #  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
-      values$genomes_dir <- "../data/genomes/"
-      values$adapters_dir <- "../data/adapters/"
-      values$genomes_file <- "genomes.txt"
-      values$adapters_file <- "adapters.txt"
-      values$adapters <- read.delim(file = paste(values$adapters_dir, values$adapters_file, sep = ""), stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
-      values$genomes <- read.delim(file = paste(values$genomes_dir, values$genomes_file, sep = ""), stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+    #  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+    values$genomes_dir <- "../data/genomes/"
+    values$adapters_dir <- "../data/adapters/"
+    values$genomes_file <- "genomes.txt"
+    values$adapters_file <- "adapters.txt"
+    values$adapters <- read.delim(file = paste(values$adapters_dir, values$adapters_file, sep = ""), stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
+    values$genomes <- read.delim(file = paste(values$genomes_dir, values$genomes_file, sep = ""), stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
 
-      #print("values$genomes")
-      #print(values$genomes)
-      values$input_dir <- values$input_volumes[[1]]
-      values$output_dir <- values$output_volumes[[1]]
+    values$input_dir <- values$input_volumes[[1]]
+    values$output_dir <- values$output_volumes[[1]]
   })
 
   observe({
     # Only show the "Align dataset" button if a dataset has been selected
-    toggleState(id = "align_dataset", condition = (!is.null(input$input_file) & !is.null(values$selected_genome)))
+    toggleState(id = "use_dataset", condition = (!is.null(input$input_file) & !is.null(values$selected_genome)))
   })
 
   observe({
-    # Only show the "Align dataset" button if a dataset has been selected
+    # Only show the "View dataset" button if a dataset has been selected
     toggleState(id = "view_dataset", condition = !is.null(input$processed_file))
   })
 
@@ -49,7 +47,7 @@ server <- function(input, output, session){
   })
 
   output$output_dir <- renderText({
-    # Print the dataset directory
+    # Print the Output directory
     print("render output directory name")
     return(values$output_dir)
   })
@@ -88,111 +86,73 @@ server <- function(input, output, session){
 
   observeEvent(values$input_dir, {
     # Update the file select box with the list of fastq files from the directory
-    print("update input box")
+    print("Update the file input box")
     updateSelectInput(session = session,
                       inputId = "input_file",
                       label = NULL,
-                      choices = load_directory(dir = values$input_dir, filetypes = c("fastq", "fq")),
+                      choices = load_directory(dir = values$input_dir,
+                                               filetypes = c("fastq", "fq")),
                       selected = NULL)
   })
 
   observeEvent(values$output_dir, {
-    # Update the file select box with the list of fastq files from the directory
-    print("update output box")
+    # Update the file select box with the list of processed datasets
+    print("Update the output box")
     updateSelectInput(session = session,
                       inputId = "processed_file",
                       label = NULL,
-                      choices = load_directory(dir = values$output_dir, filetypes = "", include_dirs = TRUE),
+                      choices = load_directory(dir = values$output_dir,
+                                               filetypes = "",
+                                               include_dirs = TRUE),
                       selected = NULL)
   })
 
-  observeEvent(input$align_dataset, {
-    print("button pressed")
+  observeEvent(input$use_dataset, {
+    print("Open the start modal")
     input_file <- input$input_file
-    print(input_file)
-    showModal(align_modal)
-    output$align_modal_title <- renderText({paste("File: ", input$input_file, sep = "")})
+    showModal(start_modal)
+    output$start_modal_title <- renderText({paste("File: ", input$input_file, sep = "")})
   })
 
-  ### Genome dialogue
+  ### Genome selector modal observers
   observeEvent(label = "Select genome modal",
                eventExpr = input$select_genome,
                priority = 100, {
-    print("Select genome")
-    showModal(genomes_modal)
-    print("genome dir WBcel999")
-    print(getwd())
-    print(isolate(nrow(values$genomes)))
-    #print(values$genomes_dir)
-    #print(paste(getwd(), values$genomes_dir, sep = "/"))
-    #print(get_ensembl_intervals(genome = "WBAAA", path = values$genomes_dir))
-    output$genome_table <- renderTable(width = "100%" , expr =  {
-      #print(class(values$genomes))
-      print("printing the genome A")
-      print(isolate(nrow(values$genomes)))
-      print(values$genomes)
-      new_table <- values$genomes
-      print(nrow(new_table))
-      if(nrow(new_table)>0){
-        print("Changing values of new_table to OK")
-        new_table[,5:8][new_table[,5:8]!="None"] <- "OK"
-        print(new_table)
-        print("new_table")
-        print(new_table)
-      }
-      return(new_table)
-    }, rownames = TRUE, spacing = "s")
-    # update_genome_index(session = session, genomes = values$genomes)
-    # print("print(isolate(input$genome_index))")
-    # print(isolate(input$genome_index))
-    print("printing B")
-    update_genome_index(session = session, genomes = values$genomes)
-  })
-
-  # new_table <- data.frame(lapply(X = new_table,
-  #                                FUN = function(x){
-  #                                  if(x[5] == "OK")
-  #                                    x[4] <- "Ready"
-  #                                  return(x)
-  #                                }))
+                 print("Select genome")
+                 showModal(genomes_modal)
+                 output$genome_table <- renderTable(width = "100%" ,
+                                                    rownames = TRUE,
+                                                    spacing = "s",
+                                                    expr =  {
+                                                      new_table <- values$genomes
+                                                      if(nrow(new_table)>0){
+                                                        print("Changing values of new_table to OK")
+                                                        new_table[,5:8][new_table[,5:8]!="None"] <- "OK"
+                                                      }
+                                                      return(new_table)
+                                                    })
+                 print("Update the genome index")
+                 update_genome_index(session = session,
+                                     genomes = values$genomes)
+               })
 
   observeEvent(eventExpr = input$view_genome,
                label = "View genome details",
-               priority = 0,{
-    print("view the genome details")
-    print(isolate(nrow(values$genomes)))
-    #toggleElement(id = "genome_details", condition = TRUE)
-    toggleElement(id = "genome_details")
-    # update_genome_index(session = session, genomes = values$genomes)
-    print("print(isolate(input$genome_index))")
-    print(isolate(input$genome_index))
-  })
+               priority = 0, {
+                 print("View the genome details")
+                 toggleElement(id = "genome_details")
+               })
 
   observeEvent(eventExpr = c(values$genomes[input$genome_index, 5:8],
                              input$view_genome),
-               label = "Update genome details",
+               label = "Update genome details view",
                priority = -5, {
-                 print("reload the genome view")
-                 if(isolate(nrow(values$genomes)>0)){
-                   #update_genome_index(session = session, genomes =  values$genomes)
-                   print("genome index")
-                   print(isolate(input$genome_index))
+                 print("Update the genome view")
+                 if(isolate(nrow(values$genomes) > 0)){
+                   # Get the genome row
                    genome_row <- values$genomes[input$genome_index, ]
-                   print("genomes B")
-                   print(isolate(nrow(values$genomes)))
-                   print("genome row")
-                   print(genome_row)
-                   print("genome row 5:7")
-                   print(genome_row[5:7])
-                   print("genome row NA")
-                   # print(sum(genome_row[5:7] == "None"))
-                   # print((genome_row[5] == "None" &
-                   #          genome_row[6] == "None" &
-                   #          genome_row[7] == "None"))
 
-                   print("get genome row again")
-                   #genome_row <- values$genomes[input$genome_index, ]
-                   print(genome_row)
+                   # Indicate if the genome intervals are ready
                    output$genome_interval_status <- renderUI({
                      if(as.character(genome_row[5])=="None"){
                        return(HTML("<font color='red'>Incomplete</font>"))
@@ -200,17 +160,8 @@ server <- function(input, output, session){
                        return(HTML("<font color='green'>Ready</font>"))
                      }
                    })
-                   print("update gene list status")
-                   print(genome_row)
-                   # print(strsplit(x = genome_row[["Gene.Sets"]],
-                   #                split = ";",
-                   #                fixed = TRUE)[1])
-                   # print(length(strsplit(x = genome_row[["Gene.Sets"]],
-                   #                       split = ";",
-                   #                       fixed = TRUE)[1]))
-                   # print(length(strsplit(x = genome_row[["Gene.Sets"]],
-                   #                       split = ";",
-                   #                       fixed = TRUE)[[1]]))
+
+                   # Check if gene sets are loaded
                    if(nrow(genome_row)>0){
                      gene_list_choices <- make_choices(choices = strsplit(x = genome_row[["Gene.Sets"]],
                                                                           split = ";",
@@ -223,7 +174,7 @@ server <- function(input, output, session){
                                      inputId = "gene_list_status",
                                      choices = gene_list_choices)
 
-                   print("output$genome_fasta_location ")
+                   # Check if the genome fasta location is set
                    output$genome_fasta_location <- renderUI({
                      if(as.character(genome_row[["Genome.FASTA"]])=="None"){
                        return(HTML("<font color='red'>Incomplete</font>"))
@@ -232,6 +183,7 @@ server <- function(input, output, session){
                      }
                    })
 
+                   # Check if the genome index location is set
                    print(" output$genome_index_location")
                    output$genome_index_location <- renderUI({
                      if(as.character(genome_row[["Bowtie.Index"]])=="None"){
@@ -241,339 +193,276 @@ server <- function(input, output, session){
                      }
                    })
 
-                   print("shiny file choosers")
+                   # Find the genome fasta
                    shinyFileChoose(input = input,
                                    session = session,
                                    id = "genome_fasta_finder",
                                    roots = isolate(values$genome_volumes),
                                    filetypes = c("fasta", "fa"))
-                   print("genome_index_finder dir choose")
+
+                   # Find the genome index
                    shinyDirChoose(input = input,
                                   session = session,
                                   id = "genome_index_finder",
                                   roots = isolate(values$genome_volumes))
-                   print("gene_list_finder dir choose")
+
+                   # Find gene lists
                    shinyFileChoose(input = input,
                                    session = session,
                                    id = "gene_list_finder",
                                    roots = isolate(values$genome_volumes),
                                    filetypes = c("txt", "tsv"))
                  }
-                 # update_genome_index(session = session, genomes = values$genomes)
-                 # print("print(isolate(input$genome_index))")
-                 print(isolate(input$genome_index))
                })
 
   observeEvent(eventExpr =  input$genome_fasta_finder,
                label = "Fasta finder", {
-    print("getting Genome.FASTA file")
-    #print(input$genome_index)
-    print("input$genome_fasta_finder")
-    print(isolate(input$genome_fasta_finder))
-    if(!is.null(input$genome_fasta_finder)){
-      fasta_location <- parseFilePaths(roots = values$genome_volumes, selection = input$genome_fasta_finder)
-      print("fasta_location")
-      print(fasta_location)
-      print(as.character(fasta_location[["datapath"]]))
-      print("update values$genomes")
-      values$genomes[isolate(input$genome_index), "Genome.FASTA"] <- getAbsolutePath(as.character(fasta_location[["datapath"]]))
-      print(values$genomes)
-      print(isolate(nrow(values$genomes)))
-      # updateTextInput(session, "genome_fasta_finder", value = NA)
-    }
-  })
+                 print("Get the genome fasta file location")
+                 if(!is.null(input$genome_fasta_finder)){
+                   fasta_location <- parseFilePaths(roots = values$genome_volumes, selection = input$genome_fasta_finder)
+                   values$genomes[isolate(input$genome_index), "Genome.FASTA"] <- getAbsolutePath(as.character(fasta_location[["datapath"]]))
+                 }
+               })
 
   observeEvent(eventExpr = input$genome_index_finder,
                label = "Index finder", {
-    print("getting genome index directory")
-    print(isolate(input$genome_index_finder))
-    print(isolate(nrow(values$genomes)))
-    if(!is.null(input$genome_index_finder)){
-      index_location <- parseDirPath(roots = values$genome_volumes, selection = input$genome_index_finder)
-      updateTextInput(session = session, inputId = "genome_index_finder", value = NULL)
-      print(isolate(input$genome_index_finder))
-      print("index_location")
-      print(index_location)
-      #print(as.character(index_location))
-      values$genomes[isolate(input$genome_index), "Bowtie.Index"] <- getAbsolutePath(as.character(index_location))
-      print("genomes D")
-      print(values$genomes)
-      # updateTextInput(session, "genome_fasta_finder", value = NA)
-      print(isolate(nrow(values$genomes)))
-    }
-  })
+                 print("Get the genome index file location")
+                 if(!is.null(input$genome_index_finder)){
+                   index_location <- parseDirPath(roots = values$genome_volumes, selection = input$genome_index_finder)
+                   #updateTextInput(session = session, inputId = "genome_index_finder", value = NULL)
+                   values$genomes[isolate(input$genome_index), "Bowtie.Index"] <- getAbsolutePath(as.character(index_location))
+                 }
+               })
 
   observeEvent(eventExpr = values$genomes,
                label = "Checking complete genome",
                priority = -10, {
-                 print("Checking if genome is complete")
+                 print("Check if genome is complete")
                  if(nrow(values$genomes)>0){
-                   print("checking for complete genomes")
                    values$genomes[,"Status"] <- check_for_complete_genome(genome = values$genomes)
                  }
                })
 
   observeEvent(eventExpr = input$gene_list_finder,
                label = "Gene list finder", {
-    print("getting gene lists")
-    #print(input$genome_index)
-    print(isolate(nrow(values$genomes)))
-    if(!is.null(input$gene_list_finder)){
-      gene_list_location <- parseFilePaths(roots = values$genome_volumes, selection = input$gene_list_finder)
-      print("fasta_location")
-      print(gene_list_location)
-      print(as.character(gene_list_location[["datapath"]]))
-      isolate(
-        if(values$genomes[input$genome_index, "Gene.Sets"]=="None"){
-          values$genomes[[input$genome_index, "Gene.Sets"]] <- getAbsolutePath(gene_list_location[["datapath"]])
-        } else {
-          if(getAbsolutePath(gene_list_location[["datapath"]]) %in% strsplit(x = values$genomes[input$genome_index, "Gene.Sets"],
-                                                                             split = ";",
-                                                                             fixed = TRUE)[[1]]) return(NULL)
-          values$genomes[[input$genome_index, "Gene.Sets"]] <- paste(values$genomes[input$genome_index, "Gene.Sets"],
-                                                                     getAbsolutePath(gene_list_location[["datapath"]]),
-                                                                     sep = ";")
-        }
-      )
-    }
-  })
+                 print("Get list of genes")
+                 if(!is.null(input$gene_list_finder)){
+                   gene_list_location <- parseFilePaths(roots = values$genome_volumes, selection = input$gene_list_finder)
+                   isolate(
+                     if(values$genomes[input$genome_index, "Gene.Sets"]=="None"){
+                       values$genomes[[input$genome_index, "Gene.Sets"]] <- getAbsolutePath(gene_list_location[["datapath"]])
+                     } else {
+                       if(getAbsolutePath(gene_list_location[["datapath"]]) %in% strsplit(x = values$genomes[input$genome_index, "Gene.Sets"],
+                                                                                          split = ";",
+                                                                                          fixed = TRUE)[[1]]) return(NULL)
+                       values$genomes[[input$genome_index, "Gene.Sets"]] <- paste(values$genomes[input$genome_index, "Gene.Sets"],
+                                                                                  getAbsolutePath(gene_list_location[["datapath"]]),
+                                                                                  sep = ";")
+                     }
+                   )
+                 }
+               })
 
   observeEvent(eventExpr = input$remove_gene_list,
                label = "Remove gene list", {
-    print("remove gene list")
-    print(isolate(nrow(values$genomes)))
-    print(isolate(input$gene_list_status))
-    isolate(genome_row <- values$genomes[input$genome_index, ])
-    isolate(new_list <- paste(strsplit(x = genome_row[["Gene.Sets"]],
-                                       split = ";",
-                                       fixed = TRUE)[[1]][-(as.integer(input$gene_list_status))], collapse = ";"))
-    print("updating the new gene list")
-    if(new_list=="") new_list <- "None"
-    isolate(values$genomes[input$genome_index, "Gene.Sets"] <- new_list)
-  })
+                 print("Remove a gene list")
+                 isolate(genome_row <- values$genomes[input$genome_index, ])
+                 isolate(new_list <- paste(strsplit(x = genome_row[["Gene.Sets"]],
+                                                    split = ";",
+                                                    fixed = TRUE)[[1]][-(as.integer(input$gene_list_status))], collapse = ";"))
+                 if(new_list=="") new_list <- "None"
+                 isolate(values$genomes[input$genome_index, "Gene.Sets"] <- new_list)
+               })
 
 
   observeEvent(eventExpr = input$get_ensembl_genomes,
                label = "Get ensembl genomes", {
-    print("get_ensembl_genomes_listener")
-    # withProgress(message = "Getting genomes from ENSEMBL", {
-    #   values$mart_info <- listMarts()[1,]
-    #   incProgress(amount = .4)
-    #   values$biomart <- useMart(biomart = values$mart_info[[1,1]])
-    #   incProgress(amount = .8)
-    #   values$ensembl_genome_index <- listDatasets(mart = values$biomart)
-    # })
-    # Create a Progress object
-    values$progress <- shiny::Progress$new()
-    print(values$progress)
-    values$progress$set(message = "Getting datasets: ", value = 0)
-    # Close the progress when this reactive exits (even if there's an error)
-    on.exit(values$progress$close())
-    values$ensembl_genome_index <- get_datasets_from_biomart(updateProgress = updateProgress)
-    print("update_ensembl_genome_index(session = session, genomes = values$ensembl_genome_index)")
-    update_ensembl_genome_index(session = session, genomes = values$ensembl_genome_index)
-  })
+                 print("Get the list of ensembl datasets")
+
+                 # Create a Progress object
+                 values$progress <- shiny::Progress$new()
+                 values$progress$set(message = "Getting datasets: ", value = 0)
+                 on.exit(values$progress$close())
+
+                 # Get the list of ensembl datasets
+                 values$ensembl_genome_index <- get_datasets_from_biomart(updateProgress = updateProgress)
+                 update_ensembl_genome_index(session = session, genomes = values$ensembl_genome_index)
+               })
 
   observeEvent(eventExpr = input$add_genome,
                label = "Add genome", {
-    print("Adding a new genome")
-    print(names(values$ensembl_genome_index))
-    print(input$ensembl_genome_index)
-    print("A")
-    print(values$ensembl_genome_index[as.integer(input$ensembl_genome_index), ])
-    print("B")
-    print(values$genomes[, "Dataset"])
-    if(values$ensembl_genome_index[as.integer(input$ensembl_genome_index), "dataset"] %in% values$genomes[, "Dataset"])
-      return(NULL)
-    print(isolate(nrow(values$genomes)))
-    values$genomes <- add_genome(genomes = values$genomes, new_genome = values$ensembl_genome_index[as.integer(input$ensembl_genome_index), ])
-    # update_genome_index(session = session, genomes = values$genomes)
-    # if(nrow(values$genomes)==0){
-    #   print("create new genome list")
-    #   values$genomes <- data.frame(stringsAsFactors = FALSE, row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene.Sets"="None")
-    # } else {
-    #   print("append genome to list")
-    #   values$genomes <- rbind(values$genomes, data.frame(stringsAsFactors = FALSE, row.names = NULL, values$ensembl_genome_index[input$ensembl_genome_index, ], "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene.Sets"="None"))
-    # }
-    print(values$genomes)
-    print("update_genome_index EEE")
-    update_genome_index(session = session, genomes = values$genomes)
-    print(isolate(input$genome_index))
-    #print()
-    print(isolate(nrow(values$genomes)))
-  })
+                 if(values$ensembl_genome_index[as.integer(input$ensembl_genome_index), "dataset"] %in% values$genomes[, "Dataset"])
+                   return(NULL)
+                 values$genomes <- add_genome(genomes = values$genomes, new_genome = values$ensembl_genome_index[as.integer(input$ensembl_genome_index), ])
+                 update_genome_index(session = session, genomes = values$genomes)
+               })
 
   observeEvent(eventExpr = input$remove_genome,
                label = "Remove genome", {
-    print("removing a genome")
-    if(!is.na(input$genome_index)){
-      values$genomes <- values$genomes[-as.integer(input$genome_index), ]
-      if(nrow(values$genomes)>0)
-        row.names(values$genomes) <- 1:nrow(values$genomes)
-    }
-    update_genome_index(session = session, genomes = values$genomes)
-  })
-
-
-  # Create a callback function to update progress.
-  # Each time this is called:
-  # - If `value` is NULL, it will move the progress bar 1/5 of the remaining
-  #   distance. If non-NULL, it will set the progress to that value.
-  # - It also accepts optional detail text.
-  updateProgress <- function(value = NULL, detail = NULL) {
-    # if (is.null(value)) {
-    #   value <- progress$getValue()
-    #   value <- value + (progress$getMax() - value) / 5
-    # }
-    values$progress$set(value = value, detail = detail)
-  }
-
+                 print("Remove a genome")
+                 if(!is.na(input$genome_index)){
+                   values$genomes <- values$genomes[-as.integer(input$genome_index), ]
+                   if(nrow(values$genomes)>0)
+                     row.names(values$genomes) <- 1:nrow(values$genomes)
+                 }
+                 update_genome_index(session = session, genomes = values$genomes)
+               })
 
   observeEvent(eventExpr = input$get_intervals,
                label = "Get intervals", {
-    print("Get gene intervals")
-    genome <- values$genomes[isolate(input$genome_index), 3]
-    print(genome)
-    if(!check_for_intervals(path = values$genomes_dir, genome = genome)){
-      # Create a Progress object
-      values$progress <- shiny::Progress$new()
-      #print(values$progress)
-      values$progress$set(message = "Getting Genome: ", value = 0)
-      # Close the progress when this reactive exits (even if there's an error)
-      on.exit(values$progress$close())
-      print("getting ensembl intervals")
-      get_ensembl_intervals(path = values$genomes_dir, genome = genome, updateProgress = updateProgress)
-    }
-    print("update status of ")
-    values$genomes[isolate(input$genome_index), 5] <- "OK"
-    print(isolate(nrow(values$genomes)))
-  })
+                 print("Get gene intervals from ensembl")
+                 genome <- values$genomes[isolate(input$genome_index), 3]
+                 if(!check_for_intervals(path = values$genomes_dir, genome = genome)){
+                   # Create a Progress object
+                   values$progress <- shiny::Progress$new()
+                   values$progress$set(message = "Getting Genome: ", value = 0)
+                   on.exit(values$progress$close())
+
+                   # Getting ensembl intervals
+                   get_ensembl_intervals(path = values$genomes_dir, genome = genome, updateProgress = updateProgress)
+                 }
+                 values$genomes[isolate(input$genome_index), 5] <- "OK"
+               })
 
   observeEvent(eventExpr = input$save_genomes,
                label = "Save genomes", {
-    success <- save_info(x = values$genomes,
-                         path = paste(values$genomes_dir,
-                                      values$genomes_file,
-                                      sep = ""),
-                         delimeter = "\t",
-                         col_names = TRUE)
-    print(success)
-    if(isTRUE(success)){
-      output$genome_changes_saved <- renderText(expr = {return("Saved")})
-    }
-  })
+                 print("Save the genomes list")
+                 success <- save_info(x = values$genomes,
+                                      path = paste(values$genomes_dir,
+                                                   values$genomes_file,
+                                                   sep = ""),
+                                      delimeter = "\t",
+                                      col_names = TRUE)
+                 if(isTRUE(success)){
+                   output$genome_changes_saved <- renderText(expr = {return("Saved")})
+                 }
+               })
+
+  # Clear the indicator after saving
+  observeEvent(values$genomes, {output$genome_changes_saved <- renderText({" "})})
 
   observeEvent(eventExpr = input$load_genome,
                label = "Load genome", {
-    print("loading selected genome")
-    selected_genome <- values$genomes[input$genome_index, ]
-    if(selected_genome["Status"] == "Ready"){
-      print("ready - A")
-      values$selected_genome <- selected_genome
-      print("ready - B")
-      output$selected_genome <- renderText({return(selected_genome[["Description"]])})
-    } else {
-      print("Incomplete - A")
-      values$selected_genome <- NULL
-      print("Incomplete - B")
-      output$selected_genome <- renderText({"Select a complete genome!"})
-    }
+                 print("Load the selected genome")
+                 selected_genome <- values$genomes[input$genome_index, ]
+                 if(selected_genome["Status"] == "Ready"){
+                   # If the genome is ready
+                   values$selected_genome <- selected_genome
+                   output$selected_genome <- renderText({return(selected_genome[["Description"]])})
+                 } else {
+                   # If the genome isn't ready
+                   values$selected_genome <- NULL
+                   output$selected_genome <- renderText({"Select a complete genome!"})
+                 }
+               })
 
-  })
 
-  # observeEvent(nrow_genomes_listener(), {
-  #   print("Number of rows has changed")
-  #   if(nrow(values$genomes)>0){
-  #     row.names(values$genomes) <- 1:nrow(values$genomes)
-  #     }
-  #   update_genome_index(session = session, genomes = values$genomes)
-  # })
-
-  ### Adapter modal
+  ### Adapter selector modal observers
   observeEvent(eventExpr = input$view_adapters,
                label = "View adapters", {
-    print("Viewing adapters modal")
-    # output$adapter_changes_saved <- renderText({" "})
-    showModal(adapter_modal)
-    output$adapter_table <- renderTable(expr =  values$adapters, rownames = TRUE)
-    update_adapter_index(session = session, adapters = values$adapters)
-    # output$changes_saved <- renderText(expr = {return("")})
-  })
+                 print("Viewing adapters modal")
+                 showModal(adapter_modal)
+                 output$adapter_table <- renderTable(expr =  values$adapters,
+                                                     rownames = TRUE)
+                 update_adapter_index(session = session,
+                                      adapters = values$adapters)
+               })
 
-  observeEvent(eventExpr = input$add_adapter, label = "Add adapter", {
-    print("Adding an adapter")
-    values$adapters <- rbind(values$adapters, data.frame("Adapter"=input$add_adapter_sequence_input, "Description"=input$add_adapter_description_input))
-    update_adapter_index(session = session, adapters = values$adapters)
-  })
+  observeEvent(eventExpr = input$add_adapter,
+               label = "Add adapter", {
+                 print("Add an adapter")
+                 values$adapters <- rbind(values$adapters, data.frame("Adapter"=input$add_adapter_sequence_input, "Description"=input$add_adapter_description_input))
+                 update_adapter_index(session = session, adapters = values$adapters)
+               })
 
   observeEvent(eventExpr = input$remove_adapter,
                label = "Remove adapter", {
-    values$adapters <- values$adapters[-c(as.numeric(input$adapter_index)), ]
-    if(nrow(values$adapters)>0)
-      row.names(values$adapters) <- 1:nrow(values$adapters)
-    update_adapter_index(session = session, adapters = values$adapters)
-    print("Removing an adapter")
-  })
+                 print("Remove an adapter")
+                 values$adapters <- values$adapters[-c(as.numeric(input$adapter_index)), ]
+                 if(nrow(values$adapters)>0)
+                   row.names(values$adapters) <- 1:nrow(values$adapters)
+                 update_adapter_index(session = session, adapters = values$adapters)
+               })
 
   observeEvent(eventExpr = input$save_adapters,
                label = "Save adapters", {
-    success <- save_info(x = values$adapters,
-                         path = paste(values$adapters_dir,
-                                      values$adapters_file,
-                                      sep = ""),
-                         delimeter = "#",
-                         col_names = FALSE)
-    print(success)
-    if(isTRUE(success)){
-      output$adapter_changes_saved <- renderText(expr = {return("Saved")})
+                 success <- save_info(x = values$adapters,
+                                      path = paste(values$adapters_dir,
+                                                   values$adapters_file,
+                                                   sep = ""),
+                                      delimeter = "#",
+                                      col_names = FALSE)
+                 if(isTRUE(success)){
+                   output$adapter_changes_saved <- renderText(expr = {return("Saved")})
+                 }
+               })
+
+  observeEvent(values$adapters, {output$adapter_changes_saved <- renderText({" "})})
+
+  ### Common functions
+
+  # Close the modal
+  observeEvent(input$close_modal, {removeModal()})
+
+  # Update progress
+  updateProgress <- function(value = NULL, detail = NULL) {
+    if (is.null(value)) {
+      value <- values$progress$getValue()
+      value <- value + (values$progress$getMax() - value) / 5
     }
-  })
+    values$progress$set(value = value, detail = detail)
+  }
+}
 
-  ### Listeners
-  #align_dataset_listener <- reactive({input$align_dataset})
-  view_results_listener <- reactive({input$view_results})
-  begin_processing_listener <- reactive({input$begin_processing})
 
-  #select_genome_listener <- reactive({input$select_genome})
-  #load_genome_listener <- reactive({input$load_genome})
-  #view_genome_listener <- reactive({input$view_genome})
-  #get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
-  #add_genome_listener <- reactive({input$add_genome})
-  #remove_genome_listener <- reactive({input$remove_genome})
-  #get_intervals_listener <- reactive({input$get_intervals})
-  #check_complete_genome_listener <- reactive({values$genomes})
-  #remove_gene_list_listener <- reactive({input$remove_gene_list})
-  #update_genome_view_listener <- reactive({values$update_genome_view})
-  #genome_fasta_finder_listener <- reactive({ input$genome_fasta_finder})
-  #genome_index_finder_listener <- reactive({ input$genome_index_finder})
-  #gene_list_finder_listener <- reactive({input$gene_list_finder})
-  #save_genomes_listener <- reactive({input$save_genomes})
-  #load_genome_listener <- reactive({input$load_genome})
-  #nrow_genomes_listener <- reactive({values$genomes})
-  #view_adapters_listener <- reactive({input$view_adapters})
-  #add_adapter_listener <- reactive({input$add_adapter})
-  #remove_adapter_listener <- reactive({input$remove_adapter})
-  #save_adapters_listener <- reactive({input$save_adapters})
 
-observeEvent(input$close_modal, {removeModal()})
-observeEvent(values$genomes, {output$genome_changes_saved <- renderText({" "})})
-observeEvent(values$adapters, {output$adapter_changes_saved <- renderText({" "})})
+
+
+### Listeners
+#align_dataset_listener <- reactive({input$align_dataset})
+#view_results_listener <- reactive({input$view_results})
+#begin_processing_listener <- reactive({input$begin_processing})
+
+
+#select_genome_listener <- reactive({input$select_genome})
+#load_genome_listener <- reactive({input$load_genome})
+#view_genome_listener <- reactive({input$view_genome})
+#get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
+#add_genome_listener <- reactive({input$add_genome})
+#remove_genome_listener <- reactive({input$remove_genome})
+#get_intervals_listener <- reactive({input$get_intervals})
+#check_complete_genome_listener <- reactive({values$genomes})
+#remove_gene_list_listener <- reactive({input$remove_gene_list})
+#update_genome_view_listener <- reactive({values$update_genome_view})
+#genome_fasta_finder_listener <- reactive({ input$genome_fasta_finder})
+#genome_index_finder_listener <- reactive({ input$genome_index_finder})
+#gene_list_finder_listener <- reactive({input$gene_list_finder})
+#save_genomes_listener <- reactive({input$save_genomes})
+#load_genome_listener <- reactive({input$load_genome})
+#nrow_genomes_listener <- reactive({values$genomes})
+#view_adapters_listener <- reactive({input$view_adapters})
+#add_adapter_listener <- reactive({input$add_adapter})
+#remove_adapter_listener <- reactive({input$remove_adapter})
+#save_adapters_listener <- reactive({input$save_adapters})
+
+
+
 
 #output$adapter_changes_saved <- renderText({" "})
 
 
-  # output$input_dir <- renderText({
-  #   # If a save directory is selected, display the name of the save directory
-  #   return(values$input_dir)
-  # })
+# output$input_dir <- renderText({
+#   # If a save directory is selected, display the name of the save directory
+#   return(values$input_dir)
+# })
 
 
 
-  # # Get the current time
-  # timestamp <- strsplit(x = as.character(Sys.time()), split = " ")
-  #
-  # # Make the full output directory with timestamp
-  # values$output_dir <- paste(values$save_dir, "/", timestamp[[1]][1], "_", timestamp[[1]][2], sep = "")
-  #
+# # Get the current time
+# timestamp <- strsplit(x = as.character(Sys.time()), split = " ")
+#
+# # Make the full output directory with timestamp
+# values$output_dir <- paste(values$save_dir, "/", timestamp[[1]][1], "_", timestamp[[1]][2], sep = "")
+#
 
-}
+

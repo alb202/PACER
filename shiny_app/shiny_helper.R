@@ -1,3 +1,4 @@
+# Get the list of files in a directory
 load_directory <- function(dir, filetypes, include_dirs=FALSE){
   return(dir(path = dir,
              recursive = FALSE,
@@ -6,23 +7,9 @@ load_directory <- function(dir, filetypes, include_dirs=FALSE){
              full.names = FALSE))
 }
 
-# save_adapters <- function(x, path){
-#   # If an adapter file already exists, save a backup file
-#   if(file.exists(path)){
-#     file.copy(from = path,
-#               to = paste(path, ".backup", sep = ""),
-#               overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
-#   }
-#   write_delim(x = x,
-#               path = path,
-#               delim = " #",
-#               col_names = FALSE,
-#               append = FALSE)
-#   return(file.exists(path))
-# }
-
+# Save the adapters or the genome list
 save_info <- function(x, path, delimeter, col_names){
-  # If an adapter file already exists, save a backup file
+  # If a file already exists, save a backup file
   if(file.exists(path)){
     file.copy(from = path,
               to = paste(path, ".backup", sep = ""),
@@ -36,6 +23,7 @@ save_info <- function(x, path, delimeter, col_names){
   return(file.exists(path))
 }
 
+# Combine the numbering and the text to create a list of options for a dropdown
 make_choices <- function(choices, numbered=TRUE){
   if(isTRUE(numbered)){
     return(mapply(paste(1:length(choices), choices, sep = " - "), 1:length(choices), FUN = function(x, y){x=y}))
@@ -44,6 +32,7 @@ make_choices <- function(choices, numbered=TRUE){
   }
 }
 
+# Update the index for the adapter modal
 update_adapter_index <- function(session, adapters){
   if(nrow(adapters)>0){
     row.names(adapters) <- 1:nrow(adapters)
@@ -60,7 +49,9 @@ update_adapter_index <- function(session, adapters){
                     selected = NULL)
 }
 
+# Update the index for the genome list on the genome modal
 update_genome_index <- function(session, genomes){
+  # Toggle buttons based on the number of items in the list
   if(nrow(genomes)>0){
     print("more than 0 genomes")
     row.names(genomes) <- 1:nrow(genomes)
@@ -77,17 +68,16 @@ update_genome_index <- function(session, genomes){
     toggleState(id = "view_genome", condition = FALSE)
     toggleElement(id = "genome_details", condition = FALSE)
   }
-  print("row_choices")
-  print(row_choices)
-
+  # Update the selector
   updateSelectInput(session = session,
                     inputId = "genome_index",
                     label = NULL,
                     choices = row_choices,
                     selected = NULL)
 }
-
+# Update the ensembl genome list selector
 update_ensembl_genome_index <- function(session, genomes){
+  # Toggle buttons based on the number of options
   if(nrow(genomes)>0){
     row.names(genomes) <- 1:nrow(genomes)
     row_choices <- make_choices(genomes[,2],
@@ -97,6 +87,7 @@ update_ensembl_genome_index <- function(session, genomes){
     row_choices <- c("")
     toggleState(id = "add_genome", condition = FALSE)
   }
+  # Update the dropdown list of ensembl genomes
   updateSelectInput(session = session,
                     inputId = "ensembl_genome_index",
                     label = NULL,
@@ -104,6 +95,7 @@ update_ensembl_genome_index <- function(session, genomes){
                     selected = NULL)
 }
 
+# Check if a genome entry is complete
 check_for_complete_genome <- function(genome){
   if(nrow(genome)==0) return(genome)
   result <- rep("Incomplete", nrow(genome))
@@ -112,12 +104,10 @@ check_for_complete_genome <- function(genome){
        genome[i, 6] != "None" &
        genome[i, 7] != "None") result[i] <- "Ready"
   }
-  print("result of checking genome")
-  print(result)
-  print(class(result))
   return(result)
 }
 
+# Add a genome from the ensembl list to the genome list
 add_genome <- function(genomes, new_genome){
   print(names(genomes))
   print(names(new_genome))
@@ -129,6 +119,5 @@ add_genome <- function(genomes, new_genome){
     print("append genome to list")
     genomes <- rbind(genomes, data.frame(stringsAsFactors = FALSE, row.names = NULL, new_genome, "Status"="Incomplete", "Interval.Status"="None", "Genome.FASTA"="None", "Bowtie.Index"="None", "Gene.Sets"="None"))
   }
-  #update_genome_index(session = session, genomes = genomes)
   return(genomes)
 }
