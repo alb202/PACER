@@ -12,21 +12,24 @@ source("../R/load.R")
 server <- function(input, output, session){
 
   values <- reactiveValues()
-  values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
-  values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
-  values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
-  values$adapters <- read.delim(file = "../data/adapters/adapters.txt", stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
-  values$genomes <- read.delim(file = "../data/genomes/genomes.txt", stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
-  #  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
-  values$genome_dir <- "../data/genomes/"
-  #print("values$genomes")
-  #print(values$genomes)
-  observe({
-    # Set the initial value of the input directory to the first entry in the volumes list
-    values$input_dir <- values$input_volumes[[1]]
-    values$output_dir <- values$output_volumes[[1]]
-    print("values$genomes")
-    print(values$genomes)
+  observeEvent(eventExpr = values, once = TRUE, {
+      # Set the initial value of the input directory to the first entry in the volumes list
+      values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
+      values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
+      values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
+
+      #  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+      values$genome_dir <- "../data/genomes/"
+      values$adapter_dir <- "../data/adapters/"
+      values$genome_file <- "genomes.txt"
+      values$adapter_file <- "adapters.txt"
+      values$adapters <- read.delim(file = paste(values$adapter_dir, values$adapter_file, sep = ""), stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
+      values$genomes <- read.delim(file = paste(values$genome_dir, values$genome_file, sep = ""), stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+
+      #print("values$genomes")
+      #print(values$genomes)
+      values$input_dir <- values$input_volumes[[1]]
+      values$output_dir <- values$output_volumes[[1]]
   })
 
   observe({
@@ -42,7 +45,7 @@ server <- function(input, output, session){
   output$input_dir <- renderText({
     # Print the dataset directory
     print("render directory name")
-    return(values$input_dir)
+    return(getAbsolutePath(values$input_dir))
   })
 
   output$output_dir <- renderText({
@@ -269,7 +272,7 @@ server <- function(input, output, session){
       print(fasta_location)
       print(as.character(fasta_location[["datapath"]]))
       print("update values$genomes")
-      values$genomes[isolate(input$genome_index), "Genome.FASTA"] <- as.character(fasta_location[["datapath"]])
+      values$genomes[isolate(input$genome_index), "Genome.FASTA"] <- getAbsolutePath(as.character(fasta_location[["datapath"]]))
       print(values$genomes)
       print(isolate(nrow(values$genomes)))
       # updateTextInput(session, "genome_fasta_finder", value = NA)
@@ -320,6 +323,9 @@ server <- function(input, output, session){
         if(values$genomes[input$genome_index, "Gene.Sets"]=="None"){
           values$genomes[[input$genome_index, "Gene.Sets"]] <- getAbsolutePath(gene_list_location[["datapath"]])
         } else {
+          if(getAbsolutePath(gene_list_location[["datapath"]]) %in% strsplit(x = values$genomes[input$genome_index, "Gene.Sets"],
+                                                                             split = ";",
+                                                                             fixed = TRUE)[[1]]) return(NULL)
           values$genomes[[input$genome_index, "Gene.Sets"]] <- paste(values$genomes[input$genome_index, "Gene.Sets"],
                                                                      getAbsolutePath(gene_list_location[["datapath"]]),
                                                                      sep = ";")
@@ -344,13 +350,20 @@ server <- function(input, output, session){
 
   observeEvent(get_ensembl_genomes_listener(), {
     print("get_ensembl_genomes_listener")
-    withProgress(message = "Getting genomes from ENSEMBL", {
-      values$mart_info <- listMarts()[1,]
-      incProgress(amount = .4)
-      values$biomart <- useMart(biomart = values$mart_info[[1,1]])
-      incProgress(amount = .8)
-      values$ensembl_genome_index <- listDatasets(mart = values$biomart)
-    })
+    # withProgress(message = "Getting genomes from ENSEMBL", {
+    #   values$mart_info <- listMarts()[1,]
+    #   incProgress(amount = .4)
+    #   values$biomart <- useMart(biomart = values$mart_info[[1,1]])
+    #   incProgress(amount = .8)
+    #   values$ensembl_genome_index <- listDatasets(mart = values$biomart)
+    # })
+    # Create a Progress object
+    values$progress <- shiny::Progress$new()
+    print(values$progress)
+    values$progress$set(message = "Getting datasets: ", value = 0)
+    # Close the progress when this reactive exits (even if there's an error)
+    on.exit(values$progress$close())
+    values$ensembl_genome_index <- get_datasets_from_biomart(updateProgress = updateProgress)
     print("update_ensembl_genome_index(session = session, genomes = values$ensembl_genome_index)")
     update_ensembl_genome_index(session = session, genomes = values$ensembl_genome_index)
   })
@@ -394,15 +407,33 @@ server <- function(input, output, session){
   })
 
 
+  # Create a callback function to update progress.
+  # Each time this is called:
+  # - If `value` is NULL, it will move the progress bar 1/5 of the remaining
+  #   distance. If non-NULL, it will set the progress to that value.
+  # - It also accepts optional detail text.
+  updateProgress <- function(value = NULL, detail = NULL) {
+    # if (is.null(value)) {
+    #   value <- progress$getValue()
+    #   value <- value + (progress$getMax() - value) / 5
+    # }
+    values$progress$set(value = value, detail = detail)
+  }
+
+
   observeEvent(eventExpr = get_intervals_listener(), {
     print("Get gene intervals")
     genome <- values$genomes[isolate(input$genome_index), 3]
     print(genome)
-    if(!check_for_intervals(path = "../data/genomes", genome = genome)){
+    if(!check_for_intervals(path = values$genome_dir, genome = genome)){
+      # Create a Progress object
+      values$progress <- shiny::Progress$new()
+      print(values$progress)
+      values$progress$set(message = "Getting Genome: ", value = 0)
+      # Close the progress when this reactive exits (even if there's an error)
+      on.exit(values$progress$close())
       print("getting ensembl intervals")
-      withProgress(message = "Checking genome files", value = .5, session = session, {
-        get_ensembl_intervals(path = "../data/genomes", genome = genome)
-      })
+      get_ensembl_intervals(path = "../data/genomes", genome = genome, updateProgress = updateProgress)
     }
     print("update status of ")
     values$genomes[isolate(input$genome_index), 5] <- "OK"
@@ -499,11 +530,11 @@ server <- function(input, output, session){
   remove_adapter_listener <- reactive({input$remove_adapter})
   save_adapters_listener <- reactive({input$save_adapters})
 
-observeEvent(input$close_modal, {
-  output$adapter_changes_saved <- renderText({" "})
-  output$genome_changes_saved <- renderText({" "})
-  removeModal()
-})
+observeEvent(input$close_modal, {removeModal()})
+observeEvent(values$genomes, {output$genome_changes_saved <- renderText({" "})})
+observeEvent(values$adapters, {output$adapter_changes_saved <- renderText({" "})})
+
+#output$adapter_changes_saved <- renderText({" "})
 
 
   # output$input_dir <- renderText({

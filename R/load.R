@@ -36,33 +36,40 @@ check_for_intervals <- function(path, genome){
   return(FALSE)
 }
 
-get_ensembl_intervals <- function(path, genome){
+get_ensembl_intervals <- function(path, genome, updateProgress = NULL){
   genome_path <- getAbsolutePath(paste(path, genome, sep = '/'))
   # If the directory doesn't exist, make it
   if(!dir.exists(genome_path))
     dir.create(genome_path)
 
   # Create the Mart and get dataset ID
+  if (is.function(updateProgress)) {updateProgress(detail = "Creating BioMart", value = .0)}
   mart_name <- listMarts()[[1,1]]
   mart <- useMart(biomart = mart_name)
   datasets_list <- listDatasets(mart = mart)
   dataset <- datasets_list[datasets_list["version"]==genome][1]
   mart <- useDataset(dataset = dataset, mart = mart)
 
+
   # Get chromosome sizes
+  if (is.function(updateProgress)) {updateProgress(detail = "Getting chromosome lengths", value = .2)}
   chromosome_sizes <- getChromInfoFromBiomart(biomart = mart_name, dataset = dataset)
   # Get gene intervals and filter non-siRNA
+  if (is.function(updateProgress)) {updateProgress(detail = "Getting gene info", value = .4)}
   gene_intervals <- get_genes_from_biomart(mart = mart)
   gene_intervals <- filter_RNA_from_intervals(gene_intervals)
   # Get exon intervals and filter intervals
+  if (is.function(updateProgress)) {updateProgress(detail = "Getting exon info", value = .6)}
   exon_intervals <- get_exons_from_biomart(mart = mart)
   exon_intervals <- filter_by_metadata(target = exon_intervals, source = gene_intervals, column = "ensembl_gene_id")
   # Calculate size of intervals
+  if (is.function(updateProgress)) {updateProgress(detail = "Processing intervals", value = .8)}
   gene_intervals <- calculate_exonic_bp_of_gene(exons = exon_intervals, genes = gene_intervals)
   mcols(exon_intervals) <- data.frame(mcols(exon_intervals),
                                       exon_bp=as.integer(end(exon_intervals)-start(exon_intervals)+1),
                                       stringsAsFactors = FALSE)
   # Write genome lengths to file
+  if (is.function(updateProgress)) {updateProgress(detail = "Saving files", value = .9)}
   write_data_to_TSV(data = chromosome_sizes,
                     path = genome_path,
                     filename = paste(genome, "_chr.tsv", sep = ""))
@@ -74,6 +81,17 @@ get_ensembl_intervals <- function(path, genome){
   write_data_to_TSV(data = data.frame(exon_intervals),
                     path = genome_path,
                     filename = paste(genome, "_exons.tsv", sep = ""))
+  #if (is.function(updateProgress)) {updateProgress(detail = "Done", value = 1)}
+}
+
+get_datasets_from_biomart <- function(updateProgress = NULL){
+  if (is.function(updateProgress)) {updateProgress(detail = "Getting biomarts", value = .25)}
+  mart_info <- listMarts()[1,]
+  if (is.function(updateProgress)) {updateProgress(detail = "Selecting biomart", value = .5)}
+  biomart <- useMart(biomart = mart_info[[1,1]])
+  if (is.function(updateProgress)) {updateProgress(detail = "Getting datasets", value = .75)}
+  ensembl_genome_index <- listDatasets(mart = biomart)
+  return(ensembl_genome_index)
 }
 
 get_exons_from_biomart <- function(mart){

@@ -6,11 +6,17 @@ align_modal <- modalDialog(
                   textInput("dataset_name", "Choose a name for this dataset (optional)",
                             placeholder = ""
                   ))),
-  footer = tagList(
-    modalButton(label = "Cancel"),
-    actionButton(inputId = "begin_processing", label = "Begin...")
-  )
-)
+  div(tags$hr()),
+  fluidRow(
+    column(width = 4, style = "margin-top:0px;margin-left:0px;",
+           actionButton(inputId = "begin_processing",
+                        label = "Begin PACER ...",
+                        width = "100%")),
+    column(width = 4, offset = 4, style = "margin-top:0px;",
+           actionButton(inputId = "close_modal",
+                        label = "Cancel",
+                        width = "100%"))),
+  footer = NULL)
 
 adapter_modal <- modalDialog(size = "l",
                              title = "Adapters",
@@ -94,9 +100,9 @@ genomes_modal <- modalDialog(size = "l",
                                        column(width = 2, style = "margin-bottom:6px",
                                               actionButton(inputId = "get_intervals",
                                                            label = "Get Intervals")),
-                                       column(width = 2, style = "margin-bottom:6px",
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
                                               "ENSEMBL Intervals"),
-                                       column(width = 6, style = "margin-bottom:6px",
+                                       column(width = 6, style = "margin-bottom:6px;margin-top:9px;",
                                               htmlOutput(outputId = "genome_interval_status"))
                                      ),
                                      fluidRow(
@@ -105,9 +111,9 @@ genomes_modal <- modalDialog(size = "l",
                                                                title = "Find genome FASTA",
                                                                label = "Find file ...",
                                                                multiple = FALSE)),
-                                       column(width = 2, style = "margin-bottom:6px",
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
                                               "Genome FASTA"),
-                                       column(width = 6, style = "margin-bottom:6px",
+                                       column(width = 6, style = "margin-bottom:6px;margin-top:9px;",
                                               htmlOutput(outputId = "genome_fasta_location"))
 
                                      ),
@@ -116,9 +122,9 @@ genomes_modal <- modalDialog(size = "l",
                                               shinyDirButton(id = "genome_index_finder",
                                                              title = "Find genome index directory",
                                                              label = "Find directory ...")),
-                                       column(width = 2, style = "margin-bottom:6px",
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
                                               "Bowtie Index"),
-                                       column(width = 6, style = "margin-bottom:6px",
+                                       column(width = 6, style = "margin-bottom:6px;margin-top:9px;",
                                               htmlOutput(outputId = "genome_index_location"))
 
                                      ),
@@ -128,16 +134,16 @@ genomes_modal <- modalDialog(size = "l",
                                                                title = "Find gene lists",
                                                                label = "Find gene list(s) ...",
                                                                multiple = FALSE)),
-                                       column(width = 2, style = "margin-bottom:6px",
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
                                               "Gene lists"),
-                                       column(width = 6, style = "margin-bottom:6px",
+                                       column(width = 6, style = "margin-bottom:6px;margin-top:2px;",
                                               selectInput(inputId = "gene_list_status",
                                                           label = NULL,
                                                           choices = "",
                                                           multiple = FALSE,
                                                           selectize = TRUE,
                                                           width = "100%")),
-                                       column(width = 2, style = "margin-bottom:6px",
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:0px;",
                                               actionButton(inputId = "remove_gene_list", label = "Remove list"))
                                      )
                                    )),
