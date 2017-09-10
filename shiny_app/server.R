@@ -19,12 +19,12 @@ server <- function(input, output, session){
       values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
 
       #  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
-      values$genome_dir <- "../data/genomes/"
-      values$adapter_dir <- "../data/adapters/"
-      values$genome_file <- "genomes.txt"
-      values$adapter_file <- "adapters.txt"
-      values$adapters <- read.delim(file = paste(values$adapter_dir, values$adapter_file, sep = ""), stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
-      values$genomes <- read.delim(file = paste(values$genome_dir, values$genome_file, sep = ""), stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
+      values$genomes_dir <- "../data/genomes/"
+      values$adapters_dir <- "../data/adapters/"
+      values$genomes_file <- "genomes.txt"
+      values$adapters_file <- "adapters.txt"
+      values$adapters <- read.delim(file = paste(values$adapters_dir, values$adapters_file, sep = ""), stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
+      values$genomes <- read.delim(file = paste(values$genomes_dir, values$genomes_file, sep = ""), stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
 
       #print("values$genomes")
       #print(values$genomes)
@@ -34,7 +34,7 @@ server <- function(input, output, session){
 
   observe({
     # Only show the "Align dataset" button if a dataset has been selected
-    toggleState(id = "align_dataset", condition = !is.null(input$input_file))
+    toggleState(id = "align_dataset", condition = (!is.null(input$input_file) & !is.null(values$selected_genome)))
   })
 
   observe({
@@ -121,9 +121,9 @@ server <- function(input, output, session){
     print("genome dir WBcel999")
     print(getwd())
     print(isolate(nrow(values$genomes)))
-    #print(values$genome_dir)
-    #print(paste(getwd(), values$genome_dir, sep = "/"))
-    #print(get_ensembl_intervals(genome = "WBAAA", path = values$genome_dir))
+    #print(values$genomes_dir)
+    #print(paste(getwd(), values$genomes_dir, sep = "/"))
+    #print(get_ensembl_intervals(genome = "WBAAA", path = values$genomes_dir))
     output$genome_table <- renderTable(width = "100%" , expr =  {
       #print(class(values$genomes))
       print("printing the genome A")
@@ -425,15 +425,15 @@ server <- function(input, output, session){
     print("Get gene intervals")
     genome <- values$genomes[isolate(input$genome_index), 3]
     print(genome)
-    if(!check_for_intervals(path = values$genome_dir, genome = genome)){
+    if(!check_for_intervals(path = values$genomes_dir, genome = genome)){
       # Create a Progress object
       values$progress <- shiny::Progress$new()
-      print(values$progress)
+      #print(values$progress)
       values$progress$set(message = "Getting Genome: ", value = 0)
       # Close the progress when this reactive exits (even if there's an error)
       on.exit(values$progress$close())
       print("getting ensembl intervals")
-      get_ensembl_intervals(path = "../data/genomes", genome = genome, updateProgress = updateProgress)
+      get_ensembl_intervals(path = values$genomes_dir, genome = genome, updateProgress = updateProgress)
     }
     print("update status of ")
     values$genomes[isolate(input$genome_index), 5] <- "OK"
@@ -441,7 +441,12 @@ server <- function(input, output, session){
   })
 
   observeEvent(save_genomes_listener(), {
-    success <- save_info(x = values$genomes, path = "../data/genomes/genomes.txt", delimeter = "\t", col_names = TRUE)
+    success <- save_info(x = values$genomes,
+                         path = paste(values$genomes_dir,
+                                      values$genomes_file,
+                                      sep = ""),
+                         delimeter = "\t",
+                         col_names = TRUE)
     print(success)
     if(isTRUE(success)){
       output$genome_changes_saved <- renderText(expr = {return("Saved")})
@@ -460,7 +465,7 @@ server <- function(input, output, session){
       print("Incomplete - A")
       values$selected_genome <- NULL
       print("Incomplete - B")
-      output$selected_genome <- renderText({"Select a complete genome"})
+      output$selected_genome <- renderText({"Select a complete genome!"})
     }
 
   })
@@ -491,12 +496,19 @@ server <- function(input, output, session){
 
   observeEvent(remove_adapter_listener(), {
     values$adapters <- values$adapters[-c(as.numeric(input$adapter_index)), ]
+    if(nrow(values$adapters)>0)
+      row.names(values$adapters) <- 1:nrow(values$adapters)
     update_adapter_index(session = session, adapters = values$adapters)
     print("Removing an adapter")
   })
 
   observeEvent(save_adapters_listener(), {
-    success <- save_info(x = values$adapters, path = "../data/adapters/adapters_new.txt", delimeter = " #", col_names = FALSE)
+    success <- save_info(x = values$adapters,
+                         path = paste(values$adapters_dir,
+                                      values$adapters_file,
+                                      sep = ""),
+                         delimeter = "#",
+                         col_names = FALSE)
     print(success)
     if(isTRUE(success)){
       output$adapter_changes_saved <- renderText(expr = {return("Saved")})

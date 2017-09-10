@@ -97,52 +97,52 @@ genomes_modal <- modalDialog(size = "l",
                                div(id = "genome_details", style = "border:5;border-color:grey;",
                                    wellPanel(
                                      fluidRow(
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
+                                              "ENSEMBL Intervals"),
                                        column(width = 2, style = "margin-bottom:6px",
                                               actionButton(inputId = "get_intervals",
                                                            label = "Get Intervals")),
-                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
-                                              "ENSEMBL Intervals"),
                                        column(width = 6, style = "margin-bottom:6px;margin-top:9px;",
                                               htmlOutput(outputId = "genome_interval_status"))
                                      ),
                                      fluidRow(
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
+                                              "Genome FASTA"),
                                        column(width = 2, style = "margin-bottom:6px",
                                               shinyFilesButton(id = "genome_fasta_finder",
                                                                title = "Find genome FASTA",
                                                                label = "Find file ...",
                                                                multiple = FALSE)),
-                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
-                                              "Genome FASTA"),
                                        column(width = 6, style = "margin-bottom:6px;margin-top:9px;",
                                               htmlOutput(outputId = "genome_fasta_location"))
 
                                      ),
                                      fluidRow(
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
+                                              "Bowtie Index"),
                                        column(width = 2, style = "margin-bottom:6px",
                                               shinyDirButton(id = "genome_index_finder",
                                                              title = "Find genome index directory",
                                                              label = "Find directory ...")),
-                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
-                                              "Bowtie Index"),
                                        column(width = 6, style = "margin-bottom:6px;margin-top:9px;",
                                               htmlOutput(outputId = "genome_index_location"))
 
                                      ),
                                      fluidRow(
+                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
+                                              "Gene lists"),
                                        column(width = 2, style = "margin-bottom:6px",
                                               shinyFilesButton(id = "gene_list_finder",
                                                                title = "Find gene lists",
                                                                label = "Find gene list(s) ...",
                                                                multiple = FALSE)),
-                                       column(width = 2, style = "margin-bottom:6px;margin-top:9px;",
-                                              "Gene lists"),
-                                       column(width = 6, style = "margin-bottom:6px;margin-top:2px;",
+                                       column(width = 6, style = "margin-bottom:6px;margin-top:2px;margin-left:3px;",
                                               selectInput(inputId = "gene_list_status",
                                                           label = NULL,
                                                           choices = "",
                                                           multiple = FALSE,
                                                           selectize = TRUE,
-                                                          width = "100%")),
+                                                          width = "98%")),
                                        column(width = 2, style = "margin-bottom:6px;margin-top:0px;",
                                               actionButton(inputId = "remove_gene_list", label = "Remove list"))
                                      )
