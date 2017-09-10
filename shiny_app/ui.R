@@ -37,11 +37,32 @@ ui <- fluidPage(
                                             #icon = icon("check", lib = "glyphicon"),
                                             label="Select genome")),
                              fluidRow(h5(textOutput("selected_genome"), style = "margin:1;padding:0;")),
-                             fluidRow(tags$hr(style = "margin:1;padding:0;")),
-                             fluidRow(
-                               actionButton(inputId = "view_adapters",
-                                            #icon = icon("check", lib = "glyphicon"),
-                                            label="View Adapters"))
+                             fluidRow(tags$hr(style = "margin:1;padding:0;")))),
+
+                  tabPanel(title = "Options", value = "options", icon = icon("cog", lib="glyphicon"),
+                           wellPanel(
+                                     fluidRow(
+                                       actionButton(inputId = "view_adapters",
+                                                    label="View Adapters")
+                                       ), tags$br(), tags$br(),
+                                     fluidRow(
+                                       sliderInput(inputId = "get_range",
+                                                   label = "Range of read lengths",
+                                                   min = 10,
+                                                   max = 30,
+                                                   value = c(12, 30),
+                                                   step = 1,
+                                                   ticks = TRUE,
+                                                   width = "100%")
+                                     ), tags$br(), tags$br(),
+                                     fluidRow(
+                                       numericInput(inputId = "read_cutoff",
+                                                   label = "Cutoff for over-represented reads",
+                                                   value = .001,
+                                                   max = 1,
+                                                   width = "100%")
+                                     )
+
                            )),
                   tabPanel(title = "View", value = "view_results", icon = icon("folder-open", lib="glyphicon"),
                            wellPanel(

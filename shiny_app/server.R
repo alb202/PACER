@@ -26,8 +26,11 @@ server <- function(input, output, session){
     values$adapters <- read.delim(file = paste(values$adapters_dir, values$adapters_file, sep = ""), stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
     values$genomes <- read.delim(file = paste(values$genomes_dir, values$genomes_file, sep = ""), stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
 
+    # Input and output directories
     values$input_dir <- values$input_volumes[[1]]
     values$output_dir <- values$output_volumes[[1]]
+
+
   })
 
   observe({
@@ -184,7 +187,6 @@ server <- function(input, output, session){
                    })
 
                    # Check if the genome index location is set
-                   print(" output$genome_index_location")
                    output$genome_index_location <- renderUI({
                      if(as.character(genome_row[["Bowtie.Index"]])=="None"){
                        return(HTML("<font color='red'>Incomplete</font>"))
@@ -402,7 +404,7 @@ server <- function(input, output, session){
   ### Common functions
 
   # Close the modal
-  observeEvent(input$close_modal, {removeModal()})
+  observeEvent(eventExpr = input$close_modal, {removeModal()})
 
   # Update progress
   updateProgress <- function(value = NULL, detail = NULL) {
@@ -412,6 +414,20 @@ server <- function(input, output, session){
     }
     values$progress$set(value = value, detail = detail)
   }
+
+  ### Run the workflow on a dataset
+
+  observeEvent(eventExpr = input$begin_processing,
+               label = "Main workflow",{
+    removeModal()
+    # Create a Progress object
+    values$progress <- shiny::Progress$new()
+    values$progress$set(message = "Progress: ", value = 0)
+    on.exit(values$progress$close())
+    print(input$get_range)
+    print(input$read_cutoff)
+  })
+
 }
 
 
