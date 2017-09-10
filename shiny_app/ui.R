@@ -41,28 +41,34 @@ ui <- fluidPage(
 
                   tabPanel(title = "Options", value = "options", icon = icon("cog", lib="glyphicon"),
                            wellPanel(
-                                     fluidRow(
-                                       actionButton(inputId = "view_adapters",
-                                                    label="View Adapters")
-                                       ), tags$br(), tags$br(),
-                                     fluidRow(
-                                       sliderInput(inputId = "get_range",
-                                                   label = "Range of read lengths",
-                                                   min = 10,
-                                                   max = 30,
-                                                   value = c(12, 30),
-                                                   step = 1,
-                                                   ticks = TRUE,
-                                                   width = "100%")
-                                     ), tags$br(), tags$br(),
-                                     fluidRow(
-                                       numericInput(inputId = "read_cutoff",
-                                                   label = "Cutoff for over-represented reads",
-                                                   value = .001,
-                                                   max = 1,
-                                                   width = "100%")
-                                     )
-
+                             fluidRow(
+                               actionButton(inputId = "view_adapters",
+                                            label="View Adapters")
+                             ), tags$br(), tags$br(),
+                             fluidRow(
+                               sliderInput(inputId = "get_range",
+                                           label = "Range of read lengths",
+                                           min = 10,
+                                           max = 30,
+                                           value = c(12, 30),
+                                           step = 1,
+                                           ticks = TRUE,
+                                           width = "90%")
+                             ), tags$br(), tags$br(),
+                             fluidRow(
+                               numericInput(inputId = "read_cutoff",
+                                            label = "Cutoff for over-represented reads",
+                                            value = .001,
+                                            max = 1,
+                                            width = "70%")),tags$br(), tags$br(),
+                             fluidRow(
+                               numericInput(inputId = "cores",
+                                            label = "Processing cores",
+                                            value = 2,
+                                            min = 1,
+                                            max = 64,
+                                            step = 1,
+                                            width = "50%"))
                            )),
                   tabPanel(title = "View", value = "view_results", icon = icon("folder-open", lib="glyphicon"),
                            wellPanel(

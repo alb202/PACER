@@ -26,7 +26,7 @@ server <- function(input, output, session){
     values$adapters <- read.delim(file = paste(values$adapters_dir, values$adapters_file, sep = ""), stringsAsFactors = FALSE, header = FALSE, sep = "#", col.names = c("Adapter", "Description"))
     values$genomes <- read.delim(file = paste(values$genomes_dir, values$genomes_file, sep = ""), stringsAsFactors = FALSE, header = TRUE, sep = "\t", row.names= NULL, col.names = c("Dataset", "Description", "Version", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
 
-    # Input and output directories
+    # Output directories
     values$input_dir <- values$input_volumes[[1]]
     values$output_dir <- values$output_volumes[[1]]
 
@@ -420,14 +420,51 @@ server <- function(input, output, session){
   observeEvent(eventExpr = input$begin_processing,
                label = "Main workflow",{
     removeModal()
+                 #### Toggle everything off!!
     # Create a Progress object
     values$progress <- shiny::Progress$new()
     values$progress$set(message = "Progress: ", value = 0)
     on.exit(values$progress$close())
     print(input$get_range)
     print(input$read_cutoff)
-  })
 
+    # Get the current time
+    timestamp <- strsplit(x = as.character(Sys.time()), split = " ")
+
+    values$dataset_ID <- make_filename(filename = input$input_file,
+                                       dataset_name = input$dataset_name)
+    print(values$dataset_ID)
+    print(values$output_dir)
+    values$output_dir <- getAbsolutePath(create_output_dirs(out_dir = values$output_dir,
+                                                            name = paste(values$dataset_ID,
+                                                                         timestamp[[1]][1],
+                                                                         gsub(pattern = ":",
+                                                                              replacement = "-",
+                                                                              x =timestamp[[1]][2]),
+                                                                         sep = "_")))
+    print(values$output_dir)
+    trim_cmd <- make_trim_command(input_dir = getAbsolutePath(values$input_dir),
+                                          output_dir = values$output_dir,
+                                          dataset_ID = values$dataset_ID,
+                                          input_file = input$input_file,
+                                          adapter_file = paste(values$adapters_dir,
+                                                               values$adapters_file,
+                                                               sep = "/"),
+                                          min_length = input$get_range[[1]])
+    print(trim_cmd)
+    print(input$cores)
+    #trim_log <-
+      run_trimmer(output_dir = values$output_dir,
+                            dataset_ID = values$dataset_ID,
+                            trim_cmd = trim_cmd)
+
+    # write_data_to_TSV(data = trim_log,
+    #                   path = values$output_dir,
+    #                   filename = paste(values$dataset_ID,
+    #                                    ".trim.log",
+    #                                    sep = ""))
+
+  })
 }
 
 

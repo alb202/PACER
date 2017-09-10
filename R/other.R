@@ -15,6 +15,14 @@ create_output_dirs <- function(out_dir, name){
   return(new_dir)
 }
 
+make_filename <- function(filename, dataset_name){
+  return(paste(sub(x = filename,
+                   pattern = ".fastq.gz|.fastq.gzip|.fq.gzip|.fq.gz|.fastq|.fq",
+                   ignore.case = TRUE,
+                   replacement = ""),
+               dataset_name, sep = "-"))
+}
+
 get_interval_length <- function(x){
   x <- GRanges(x)
   mcols(x)["width"] <- end(x)-start(x)
