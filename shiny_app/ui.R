@@ -8,7 +8,7 @@ ui <- fluidPage(
   shinyjs::useShinyjs(),
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "lumen.css"),
-    tags$style(HTML(".modal-lg {width:1050px;padding:0;}"))),
+    tags$style(HTML(".modal-lg {width:1100px;padding:0;}"))),
     #tags$style(HTML(".modal-adapter {width:800px;padding:0;}"))),
   titlePanel("PACER"),
   sidebarLayout(

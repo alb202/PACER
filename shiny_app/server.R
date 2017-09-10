@@ -106,7 +106,7 @@ server <- function(input, output, session){
                       selected = NULL)
   })
 
-  observeEvent(align_dataset_listener(), {
+  observeEvent(input$align_dataset, {
     print("button pressed")
     input_file <- input$input_file
     print(input_file)
@@ -115,7 +115,9 @@ server <- function(input, output, session){
   })
 
   ### Genome dialogue
-  observeEvent(label = "Select genome modal", select_genome_listener(),priority = 100, {
+  observeEvent(label = "Select genome modal",
+               eventExpr = input$select_genome,
+               priority = 100, {
     print("Select genome")
     showModal(genomes_modal)
     print("genome dir WBcel999")
@@ -154,7 +156,8 @@ server <- function(input, output, session){
   #                                  return(x)
   #                                }))
 
-  observeEvent(eventExpr = view_genome_listener(),
+  observeEvent(eventExpr = input$view_genome,
+               label = "View genome details",
                priority = 0,{
     print("view the genome details")
     print(isolate(nrow(values$genomes)))
@@ -166,9 +169,9 @@ server <- function(input, output, session){
   })
 
   observeEvent(eventExpr = c(values$genomes[input$genome_index, 5:8],
-                             view_genome_listener()),
-               label = "update view genome", priority = -5, {
-
+                             input$view_genome),
+               label = "Update genome details",
+               priority = -5, {
                  print("reload the genome view")
                  if(isolate(nrow(values$genomes)>0)){
                    #update_genome_index(session = session, genomes =  values$genomes)
@@ -261,7 +264,8 @@ server <- function(input, output, session){
                  print(isolate(input$genome_index))
                })
 
-  observeEvent(eventExpr = genome_fasta_finder_listener(), {
+  observeEvent(eventExpr =  input$genome_fasta_finder,
+               label = "Fasta finder", {
     print("getting Genome.FASTA file")
     #print(input$genome_index)
     print("input$genome_fasta_finder")
@@ -279,7 +283,8 @@ server <- function(input, output, session){
     }
   })
 
-  observeEvent(eventExpr = genome_index_finder_listener(), {
+  observeEvent(eventExpr = input$genome_index_finder,
+               label = "Index finder", {
     print("getting genome index directory")
     print(isolate(input$genome_index_finder))
     print(isolate(nrow(values$genomes)))
@@ -298,11 +303,9 @@ server <- function(input, output, session){
     }
   })
 
-  observeEvent(label = "Checking complete genome",
-               priority = -10,
-               eventExpr = check_complete_genome_listener()
-               # , suspended = TRUE
-               , {
+  observeEvent(eventExpr = values$genomes,
+               label = "Checking complete genome",
+               priority = -10, {
                  print("Checking if genome is complete")
                  if(nrow(values$genomes)>0){
                    print("checking for complete genomes")
@@ -310,7 +313,8 @@ server <- function(input, output, session){
                  }
                })
 
-  observeEvent(eventExpr = gene_list_finder_listener(), {
+  observeEvent(eventExpr = input$gene_list_finder,
+               label = "Gene list finder", {
     print("getting gene lists")
     #print(input$genome_index)
     print(isolate(nrow(values$genomes)))
@@ -334,7 +338,8 @@ server <- function(input, output, session){
     }
   })
 
-  observeEvent(label = "remove gene", eventExpr = remove_gene_list_listener(), {
+  observeEvent(eventExpr = input$remove_gene_list,
+               label = "Remove gene list", {
     print("remove gene list")
     print(isolate(nrow(values$genomes)))
     print(isolate(input$gene_list_status))
@@ -348,7 +353,8 @@ server <- function(input, output, session){
   })
 
 
-  observeEvent(get_ensembl_genomes_listener(), {
+  observeEvent(eventExpr = input$get_ensembl_genomes,
+               label = "Get ensembl genomes", {
     print("get_ensembl_genomes_listener")
     # withProgress(message = "Getting genomes from ENSEMBL", {
     #   values$mart_info <- listMarts()[1,]
@@ -368,7 +374,8 @@ server <- function(input, output, session){
     update_ensembl_genome_index(session = session, genomes = values$ensembl_genome_index)
   })
 
-  observeEvent(add_genome_listener(), {
+  observeEvent(eventExpr = input$add_genome,
+               label = "Add genome", {
     print("Adding a new genome")
     print(names(values$ensembl_genome_index))
     print(input$ensembl_genome_index)
@@ -396,7 +403,8 @@ server <- function(input, output, session){
     print(isolate(nrow(values$genomes)))
   })
 
-  observeEvent(remove_genome_listener(), {
+  observeEvent(eventExpr = input$remove_genome,
+               label = "Remove genome", {
     print("removing a genome")
     if(!is.na(input$genome_index)){
       values$genomes <- values$genomes[-as.integer(input$genome_index), ]
@@ -421,7 +429,8 @@ server <- function(input, output, session){
   }
 
 
-  observeEvent(eventExpr = get_intervals_listener(), {
+  observeEvent(eventExpr = input$get_intervals,
+               label = "Get intervals", {
     print("Get gene intervals")
     genome <- values$genomes[isolate(input$genome_index), 3]
     print(genome)
@@ -440,7 +449,8 @@ server <- function(input, output, session){
     print(isolate(nrow(values$genomes)))
   })
 
-  observeEvent(save_genomes_listener(), {
+  observeEvent(eventExpr = input$save_genomes,
+               label = "Save genomes", {
     success <- save_info(x = values$genomes,
                          path = paste(values$genomes_dir,
                                       values$genomes_file,
@@ -453,7 +463,8 @@ server <- function(input, output, session){
     }
   })
 
-  observeEvent(load_genome_listener(), {
+  observeEvent(eventExpr = input$load_genome,
+               label = "Load genome", {
     print("loading selected genome")
     selected_genome <- values$genomes[input$genome_index, ]
     if(selected_genome["Status"] == "Ready"){
@@ -479,7 +490,8 @@ server <- function(input, output, session){
   # })
 
   ### Adapter modal
-  observeEvent(view_adapters_listener(), {
+  observeEvent(eventExpr = input$view_adapters,
+               label = "View adapters", {
     print("Viewing adapters modal")
     # output$adapter_changes_saved <- renderText({" "})
     showModal(adapter_modal)
@@ -488,13 +500,14 @@ server <- function(input, output, session){
     # output$changes_saved <- renderText(expr = {return("")})
   })
 
-  observeEvent(add_adapter_listener(), {
+  observeEvent(eventExpr = input$add_adapter, label = "Add adapter", {
     print("Adding an adapter")
     values$adapters <- rbind(values$adapters, data.frame("Adapter"=input$add_adapter_sequence_input, "Description"=input$add_adapter_description_input))
     update_adapter_index(session = session, adapters = values$adapters)
   })
 
-  observeEvent(remove_adapter_listener(), {
+  observeEvent(eventExpr = input$remove_adapter,
+               label = "Remove adapter", {
     values$adapters <- values$adapters[-c(as.numeric(input$adapter_index)), ]
     if(nrow(values$adapters)>0)
       row.names(values$adapters) <- 1:nrow(values$adapters)
@@ -502,7 +515,8 @@ server <- function(input, output, session){
     print("Removing an adapter")
   })
 
-  observeEvent(save_adapters_listener(), {
+  observeEvent(eventExpr = input$save_adapters,
+               label = "Save adapters", {
     success <- save_info(x = values$adapters,
                          path = paste(values$adapters_dir,
                                       values$adapters_file,
@@ -516,31 +530,30 @@ server <- function(input, output, session){
   })
 
   ### Listeners
-  align_dataset_listener <- reactive({input$align_dataset})
+  #align_dataset_listener <- reactive({input$align_dataset})
   view_results_listener <- reactive({input$view_results})
   begin_processing_listener <- reactive({input$begin_processing})
 
-  select_genome_listener <- reactive({input$select_genome})
-  load_genome_listener <- reactive({input$load_genome})
-  view_genome_listener <- reactive({input$view_genome})
-  #update_view_genome_listener <- reactive({values$update_genome_viewer})
-  get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
-  add_genome_listener <- reactive({input$add_genome})
-  remove_genome_listener <- reactive({input$remove_genome})
-  get_intervals_listener <- reactive({input$get_intervals})
-  check_complete_genome_listener <- reactive({values$genomes})
-  remove_gene_list_listener <- reactive({input$remove_gene_list})
-  update_genome_view_listener <- reactive({values$update_genome_view})
-  genome_fasta_finder_listener <- reactive({ input$genome_fasta_finder})
-  genome_index_finder_listener <- reactive({ input$genome_index_finder})
-  gene_list_finder_listener <- reactive({input$gene_list_finder})
-  save_genomes_listener <- reactive({input$save_genomes})
-  load_genome_listener <- reactive({input$load_genome})
-  nrow_genomes_listener <- reactive({values$genomes})
-  view_adapters_listener <- reactive({input$view_adapters})
-  add_adapter_listener <- reactive({input$add_adapter})
-  remove_adapter_listener <- reactive({input$remove_adapter})
-  save_adapters_listener <- reactive({input$save_adapters})
+  #select_genome_listener <- reactive({input$select_genome})
+  #load_genome_listener <- reactive({input$load_genome})
+  #view_genome_listener <- reactive({input$view_genome})
+  #get_ensembl_genomes_listener <- reactive({input$get_ensembl_genomes})
+  #add_genome_listener <- reactive({input$add_genome})
+  #remove_genome_listener <- reactive({input$remove_genome})
+  #get_intervals_listener <- reactive({input$get_intervals})
+  #check_complete_genome_listener <- reactive({values$genomes})
+  #remove_gene_list_listener <- reactive({input$remove_gene_list})
+  #update_genome_view_listener <- reactive({values$update_genome_view})
+  #genome_fasta_finder_listener <- reactive({ input$genome_fasta_finder})
+  #genome_index_finder_listener <- reactive({ input$genome_index_finder})
+  #gene_list_finder_listener <- reactive({input$gene_list_finder})
+  #save_genomes_listener <- reactive({input$save_genomes})
+  #load_genome_listener <- reactive({input$load_genome})
+  #nrow_genomes_listener <- reactive({values$genomes})
+  #view_adapters_listener <- reactive({input$view_adapters})
+  #add_adapter_listener <- reactive({input$add_adapter})
+  #remove_adapter_listener <- reactive({input$remove_adapter})
+  #save_adapters_listener <- reactive({input$save_adapters})
 
 observeEvent(input$close_modal, {removeModal()})
 observeEvent(values$genomes, {output$genome_changes_saved <- renderText({" "})})
