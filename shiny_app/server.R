@@ -16,7 +16,8 @@ server <- function(input, output, session){
     # Set the initial value of the input directory to the first entry in the volumes list
     values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
     values$output_volumes <- c("Output"="../data/output","Home"="~/", "Root"="/")
-    values$genome_volumes <- c("Data"="../data/genomes","Home"="~/", "Root"="/")
+    values$genome_volumes <- c("Genomes"="../data/genomes","Home"="~/", "Root"="/")
+    values$index_volumes <- c("Indexes"="../data/indexes","Home"="~/", "Root"="/")
 
     #  values$genomes <- read.delim(file = "../data/genomes/genomes_new.txt", stringsAsFactors = FALSE, header = FALSE, sep = ",", row.names= NULL, col.names = c("Description", "Version", "Dataset", "Status", "Interval.Status", "Genome.FASTA", "Bowtie.Index", "Gene.Sets"))
     values$genomes_dir <- "../data/genomes/"
@@ -30,7 +31,7 @@ server <- function(input, output, session){
     values$input_dir <- values$input_volumes[[1]]
     values$output_dir <- values$output_volumes[[1]]
 
-
+    values$bt_settings <- "-n2 -e1000 -l22 -k4 --best --strata -S"
   })
 
   observe({
@@ -206,7 +207,7 @@ server <- function(input, output, session){
                    shinyDirChoose(input = input,
                                   session = session,
                                   id = "genome_index_finder",
-                                  roots = isolate(values$genome_volumes))
+                                  roots = isolate(values$index_volumes))
 
                    # Find gene lists
                    shinyFileChoose(input = input,
@@ -230,7 +231,7 @@ server <- function(input, output, session){
                label = "Index finder", {
                  print("Get the genome index file location")
                  if(!is.null(input$genome_index_finder)){
-                   index_location <- parseDirPath(roots = values$genome_volumes, selection = input$genome_index_finder)
+                   index_location <- parseDirPath(roots = values$index_volumes, selection = input$genome_index_finder)
                    #updateTextInput(session = session, inputId = "genome_index_finder", value = NULL)
                    values$genomes[isolate(input$genome_index), "Bowtie.Index"] <- getAbsolutePath(as.character(index_location))
                  }
@@ -453,10 +454,10 @@ server <- function(input, output, session){
                                           min_length = input$get_range[[1]])
     print(trim_cmd)
     print(input$cores)
-    #trim_log <-
-      run_trimmer(output_dir = values$output_dir,
-                            dataset_ID = values$dataset_ID,
-                            trim_cmd = trim_cmd)
+
+    values$trim_output <- run_trimmer(output_dir = values$output_dir,
+                                      dataset_ID = values$dataset_ID,
+                                      trim_cmd = trim_cmd)
 
     # write_data_to_TSV(data = trim_log,
     #                   path = values$output_dir,
