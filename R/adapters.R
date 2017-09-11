@@ -20,8 +20,8 @@ make_trim_command <- function(input_dir, output_dir, input_file, dataset_ID, ada
                                             comment.char = "#",
                                             stringsAsFactors = FALSE)[,1],
                           collapse = "")
-  file_path <- getAbsolutePath(paste(input_dir, input_file, sep="/"))
-  output_file <- paste(output_dir,"/",dataset_ID,
+  input_path <- getAbsolutePath(paste(input_dir, input_file, sep="/"))
+  output_path <- paste(output_dir,"/",dataset_ID,
                        ".trimmed.fastq",
                        sep = "")
   trimmer_cmd <- paste("cutadapt",
@@ -29,8 +29,8 @@ make_trim_command <- function(input_dir, output_dir, input_file, dataset_ID, ada
                         paste("-m", min_length, sep = ""),
                         adapter_string,
                         "-o",
-                        output_file,
-                        file_path, sep = " ")
+                       output_path,
+                       input_path, sep = " ")
   return(trimmer_cmd)
 }
 
@@ -49,5 +49,5 @@ run_trimmer <- function(output_dir, dataset_ID, trim_cmd){
                      ".trim.log",
                      sep = ""),
         sep = "\t" )
-  #return(trimmed_fastq_file)
+  return(trim_output)
 }
