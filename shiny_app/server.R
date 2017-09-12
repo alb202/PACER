@@ -8,6 +8,8 @@ library(R.utils)
 source("shiny_helper.R")
 source("modals.R")
 source("../R/load.R")
+source("../R/alignments.R")
+source("../R/other.R")
 
 server <- function(input, output, session){
 
@@ -30,8 +32,9 @@ server <- function(input, output, session){
     # Output directories
     values$input_dir <- values$input_volumes[[1]]
     values$output_dir <- values$output_volumes[[1]]
-
-    values$bt_settings <- "-n2 -e1000 -l22 -k4 --best --strata -S"
+    values$trim_cmd <- "cutadapt --max-n=0 -m"
+    values$align_cmd <- "bowtie -n2 -e1000 -l22 -k4 --best --strata -S --threads"
+    #values$bt_options <- c("-n2", "-e1000", "-l22", "-k4", "--best", "--strata", "-S")
   })
 
   observe({
@@ -423,9 +426,9 @@ server <- function(input, output, session){
     removeModal()
                  #### Toggle everything off!!
     # Create a Progress object
-    values$progress <- shiny::Progress$new()
-    values$progress$set(message = "Progress: ", value = 0)
-    on.exit(values$progress$close())
+    # values$progress <- shiny::Progress$new()
+    # values$progress$set(message = "Progress: ", value = 0)
+    # on.exit(values$progress$close())
     print(input$get_range)
     print(input$read_cutoff)
 
@@ -444,20 +447,37 @@ server <- function(input, output, session){
                                                                               x =timestamp[[1]][2]),
                                                                          sep = "_")))
     print(values$output_dir)
-    trim_cmd <- make_trim_command(input_dir = getAbsolutePath(values$input_dir),
-                                          output_dir = values$output_dir,
-                                          dataset_ID = values$dataset_ID,
-                                          input_file = input$input_file,
-                                          adapter_file = paste(values$adapters_dir,
-                                                               values$adapters_file,
-                                                               sep = "/"),
-                                          min_length = input$get_range[[1]])
-    print(trim_cmd)
-    print(input$cores)
+    withProgress(value = 0, message = "Generating alignments ...", {
+      values$bam_path <- align_reads(trim_cmd = values$trim_cmd,
+                                     align_cmd = values$align_cmd,
+                                     input_dir = getAbsolutePath(values$input_dir),
+                                     input_file = input$input_file,
+                                     output_dir = values$output_dir,
+                                     adapters_file = paste(values$adapters_dir,
+                                                           values$adapters_file,
+                                                           sep = "/"),
+                                     index_dir = values$selected_genome[["Bowtie.Index"]],
+                                     genome = values$selected_genome[["Version"]],
+                                     cores = input$cores,
+                                     dataset_ID = values$dataset_ID,
+                                     min_length = input$get_range[[1]])
+    })
+    print(values$bam_path)
+    # trim_cmd <- make_trim_command(input_dir = getAbsolutePath(values$input_dir),
+    #                                       output_dir = values$output_dir,
+    #                                       dataset_ID = values$dataset_ID,
+    #                                       input_file = input$input_file,
+    #                                       adapter_file = paste(values$adapters_dir,
+    #                                                            values$adapters_file,
+    #                                                            sep = "/"),
+    #                                       min_length = input$get_range[[1]])
+    # print(trim_cmd)
+    # print(input$cores)
 
-    values$trim_output <- run_trimmer(output_dir = values$output_dir,
-                                      dataset_ID = values$dataset_ID,
-                                      trim_cmd = trim_cmd)
+    # values$trim_output <- run_trimmer(output_dir = values$output_dir,
+    #                                   dataset_ID = values$dataset_ID,
+    #                                   trim_cmd = trim_cmd)
+
 
     # write_data_to_TSV(data = trim_log,
     #                   path = values$output_dir,
