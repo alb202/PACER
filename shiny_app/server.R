@@ -4,13 +4,19 @@ library(shinyFiles)
 library(shinyjs)
 library(DT)
 library(R.utils)
+library(tidyverse)
+library(GenomicAlignments)
+library(biomaRt)
 
 source("shiny_helper.R")
 source("modals.R")
 source("../R/load.R")
 source("../R/alignments.R")
 source("../R/other.R")
-
+source("../R/filters.R")
+source("../R/make_figures.R")
+source("../R/figures.R")
+source("../R/workflows.R")
 server <- function(input, output, session){
 
   values <- reactiveValues()
@@ -448,6 +454,7 @@ server <- function(input, output, session){
                                                                          sep = "_")))
     print(values$output_dir)
     withProgress(value = 0, message = "Generating alignments ...", {
+      shiny::setProgress(value = .25, detail = "Working")
       values$bam_path <- align_reads(trim_cmd = values$trim_cmd,
                                      align_cmd = values$align_cmd,
                                      input_dir = getAbsolutePath(values$input_dir),
@@ -461,8 +468,137 @@ server <- function(input, output, session){
                                      cores = input$cores,
                                      dataset_ID = values$dataset_ID,
                                      min_length = input$get_range[[1]])
+      shiny::setProgress(value = 1, detail = "Done")
     })
+    print('print(values$bam_path)')
     print(values$bam_path)
+
+    ### Load genome information
+    withProgress(min = 0, max = 1, message = "Filtering Alignments", expr = {
+      incProgress(amount = .2, detail = "Loading intervals")
+      values$genome_data <- load_genome_data(path = values$genomes_dir,
+                                             genome = values$selected_genome[["Version"]])
+      print(values$genome_data)
+      print(values$selected_genome[["Gene.Sets"]])
+      incProgress(amount = .2, detail = "Loading gene sets")
+      values$gene_sets <- load_gene_sets(gene_sets = values$selected_genome[["Gene.Sets"]])
+
+      ### Load alignment
+      incProgress(amount = .2, detail = "Loading alignments")
+      values$alignments <- load_alignments(path = values$bam_path)
+
+      incProgress(amount = .2, detail = "Filtering regions")
+      values$alignments <- filter_by_regions(alignments = values$alignments,
+                                             regions = values$genome_data[["gene_intervals"]],
+                                             type = "both")
+      incProgress(amount = .1, detail = "Filtering alignment sizes")
+      values$alignments <- filter_alignments_by_size(alignments = values$alignments,
+                                                     minimum = input$get_range[[1]],
+                                                     maximum = input$get_range[[2]])
+      incProgress(amount = .1, detail = "Filtering overrpreseented reads")
+      values$alignments <- remove_overrepresented_sequences(alignments = values$alignments,
+                                                            cutoff = input$read_cutoff)
+
+      values$alignments <- get_genome_sequence(gr = values$alignments,
+                                               genome_sequence = load_fasta_genome(
+                                                 path = values$selected_genome[['Genome.FASTA']]
+                                                 ))
+
+      print('print(values$alignments)')
+      print(values$alignments)
+
+      incProgress(amount = .1, detail = "Filtering mismatches")
+      mismatch_indexes <- filter_BAM_tags(values$alignments)
+      values$two_mm <- values$alignments[mismatch_indexes$two_mm]
+      values$no_mm <- values$alignments[mismatch_indexes$no_mm]
+      values$no_mm_in_seed <- values$alignments[mismatch_indexes$no_mm_seed]
+      values$shuffled <- shuffle_alignments(alignments = values$two_mm,
+                                            intervals = values$genome_data[["gene_intervals"]],
+                                            antisense = TRUE)
+      #values$two_mm <- filter_alignments(alignments = values$two_mm, regions = )
+
+      print('The length of values$two_mm is: ')
+      print(length(x = print(values$two_mm)))
+      #print(values$two_mm)
+      #print(values$no_mm)
+      #print(values$no_mm_in_seed)
+      print('making the plots')
+      print('making the plots two_mm')
+      print(width(values$two_mm))
+      print(strand(values$two_mm))
+      print(mcols(values$two_mm))
+
+      create_output_dirs(out_dir = values$output_dir,
+                         name = 'five_prime')
+      p <- make_length_plots(gr = values$two_mm,
+                             path = paste(values$output_dir,
+                                          '/five_prime',
+                                          sep = ''),
+                             label = "two_mm__all_genes")
+      output$fivepp_all <- renderPlot({p})
+      print('making the plots no_mm')
+      make_length_plots(gr = values$no_mm,
+                        path = paste(values$output_dir,
+                                     '/five_prime',
+                                     sep = ''),
+                        label = "no_mm__all_genes")
+      print('making the plots no_mm_in_seed')
+      make_length_plots(gr = values$no_mm_in_seed,
+                        path = paste(values$output_dir,
+                                     '/five_prime',
+                                     sep = ''),
+                        label = "no_mm_in_seed__all_genes")
+
+      # output$fivepp_all <- renderPlot({
+      #   print('making the plot')
+      #   p = make_length_plots(gr = values$two_mm,
+      #                         path = paste(values$output_dir,
+      #                                      '/five_prime/',
+      #                                      sep = ''),
+      #                         label = 'two_mm__all_genes')
+      #   print('printing the plot')
+      #   print(p)
+      #   return(NULL)
+      # })
+    #make_length_plots(gr = values$two_mm, path = values$output_dir, label = "two_mm")
+    #make_length_plots(gr = values$no_mm, path = values$output_dir, label = "no_mm")
+    #make_length_plots(gr = values$no_mm_in_seed, path = values$output_dir, label = "no_mm_in_seed")
+  })
+    # strvalues$selected_genome
+    #print(values$selected_genome)
+    # for(i in values$selected_genome)
+    # {
+    #
+    # }
+
+})
+}
+
+
+    # alignments <- filter_alignments(alignments = alignments,
+    #                                 regions = genome_data[["gene_intervals"]],
+    #                                 regions_filter = "both",
+    #                                 minimum = length_range["minimum"],
+    #                                 maximum = length_range["maximum"])
+    #
+    #
+
+    #gene_lists <- load_gene_lists(path = paste(getwd(),"genomes",genome, sep = "/"), gene_lists_files = genome_files[[genome]]$gene_list_files)
+
+    # genome_data <- load_genome_data(path = "data/genomes", genome = "WBcel235")
+    # #genome_data <- load_genome_data(path = paste(getwd(),"data/genomes", sep="/"), genome = genome)
+    # genome_sequence <- load_fasta_genome(path = paste(getwd(),"genomes",genome,as.character(genome_files[[genome]]$genome_file), sep="/"))
+    # gene_lists <- load_gene_lists(path = paste(getwd(),"genomes",genome, sep = "/"), gene_lists_files = genome_files[[genome]]$gene_list_files)
+    # ## Load and filter the main alignment file
+    # #alignments <- load_alignments(path = alignment_file)
+    # alignments <- load_alignments(path = "data/output/WT_early_rep1/two_seed_mm_SRR5023999.bam")
+    # alignments <- filter_alignments(alignments = alignments,
+    #                                 regions = genome_data[["gene_intervals"]],
+    #                                 regions_filter = "both",
+    #                                 minimum = length_range["minimum"],
+    #                                 maximum = length_range["maximum"],
+    #
+    #
     # trim_cmd <- make_trim_command(input_dir = getAbsolutePath(values$input_dir),
     #                                       output_dir = values$output_dir,
     #                                       dataset_ID = values$dataset_ID,
@@ -485,8 +621,7 @@ server <- function(input, output, session){
     #                                    ".trim.log",
     #                                    sep = ""))
 
-  })
-}
+
 
 
 
