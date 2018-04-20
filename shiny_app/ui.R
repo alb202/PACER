@@ -94,6 +94,16 @@ ui <- fluidPage(
       )),
     mainPanel(
       tabsetPanel(id="main", type = "tabs",
-                  tabPanel(title = "Align", value = "align", icon = icon("folder-open", lib="glyphicon"),
-                           wellPanel())))))
+                  tabPanel(title = "Statistics", value = "stats", icon = icon("folder-open", lib="glyphicon"),
+                           wellPanel()
+                           ),
+                  tabPanel(title = "Full Gene Set", value = "full", icon = icon("folder-open", lib="glyphicon"),
+                           wellPanel(
+                             plotOutput("fivepp_all")
+                           )
+                )
+      )
+    )
+  )
+)
 
