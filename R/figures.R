@@ -66,7 +66,12 @@ phasing_plot <- function(gr, length=26, start_base=c("A|C|T|G")){
 
 five_prime_plot <- function(gr, min=NULL, max=NULL){
   #df <- data.frame(width=width(two_mismatches), strand=strand(two_mismatches), five=mcols(two_mismatches)$five)
-  df <- data.frame(width=width(gr), strand=strand(gr), five=mcols(gr)$five, stringsAsFactors = FALSE)
+  print('making the new dataframe for the five prime plot')
+  df <- data.frame(width=width(gr),
+                   strand=strand(gr),
+                   five=mcols(gr)$five,
+                   stringsAsFactors = FALSE)
+  print('creating the five prime plot')
   p <- ggplot(data = df) +
     geom_line(aes(x=df$width,
                   group=df$five,
@@ -78,6 +83,7 @@ five_prime_plot <- function(gr, min=NULL, max=NULL){
     theme(legend.title=element_blank()) +
     scale_y_continuous(labels=comma) +
     facet_grid(. ~ df$strand, labeller = as_labeller(c("+"="Plus Strand", "-"="Minus Strand")))
+  print('returning the five prime plot')
   return(p)
 }
 
