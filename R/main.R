@@ -14,6 +14,7 @@ library(gridExtra)
 source("http://bioconductor.org/biocLite.R")
 source("R/adapters.R")
 source("R/alignments.R")
+source("R/annotations.R")
 source("R/filters.R")
 source("R/load.R")
 source("R/other.R")
@@ -21,6 +22,9 @@ source("R/sequences.R")
 source("R/workflows.R")
 source("R/calculations.R")
 source("R/figures.R")
+source("R/make_figures.R")
+source("R/new_genome_data.R")
+
 Rcpp::sourceCpp(file = "cpp/cpp_functions.cpp")
 
 #bowtie-build Caenorhabditis_elegans.WBcel235.dna.chromosome.fa ../../indexes/WBcel235/WBcel235
@@ -30,8 +34,8 @@ genome_indexes <- c(ce10 = paste(getwd(), "data", "indexes", "ce10", "ce10", sep
                     WBcel235 = paste(getwd(), "data", "indexes", "WBcel235", "WBcel235", sep="/"))
 adapter_file <- paste(getwd(), "data/adapters/adapters.txt", sep="")
 input_dir <- paste(getwd(), "data/input", sep="")
-datasets <- c(WT_early_rep1="SRR5023999.fastq.gz")
-#datasets <- c(WT_early_rep1_TEST="SRR5023999_100K_sample.fastq.gz")
+#datasets <- c(WT_early_rep1="SRR5023999.fastq.gz")
+datasets <- c(WT_early_rep1_TEST="SRR5023999_100K_sample.fastq.gz")
 output_dir <- paste(getwd(), "/data/output", sep="")
 alignment_settings <- c(two_seed_mm="-n2 -e1000 -l22 -k4 --best --strata -S")
 genome <- "WBcel235"
@@ -53,7 +57,7 @@ dataset_info <- set_dataset_names(input_dir = input_dir,
                                   dataset_info = datasets)
 
 ## Trim the adapter sequences
-trimmed_fastq_file <- run_cutadapt(adapter_file = adapter_file,
+trimmed_fastq_file <- run_trimmer(adapter_file = adapter_file,
                                    dataset_info = dataset_info)
 
 ## Align the reads using bowtie
@@ -85,10 +89,10 @@ alignments <- filter_alignments(alignments = alignments,
                   maximum = length_range["maximum"],
                   cutoff = sequence_cutoff)
 
-mm_indexes <- filter_BAM_tags(alignments)
-two_mm <- alignments[mm_indexes$two_mm]
-no_mm <- alignments[mm_indexes$no_mm]
-no_mm_in_seed <- alignments[mm_indexes$no_mm_seed]
+mismatch_indexes <- filter_BAM_tags(alignments)
+values$two_mm <- alignments[mm_indexes$two_mm]
+values$no_mm <- alignments[mm_indexes$no_mm]
+values$no_mm_in_seed <- alignments[mm_indexes$no_mm_seed]
 
 
 ## Create a shuffled version of the file
