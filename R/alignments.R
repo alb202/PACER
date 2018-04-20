@@ -113,3 +113,46 @@ run_aligner <- function(output_dir, bt_options, cores, index_dir, genome, datase
 #                   "-")
 #   return(bowtie_cmd)
 # }
+
+# Shuffle the alignments in a GRanges or GAlignments file within given intervals
+shuffle_alignments <- function(alignments, intervals, antisense=FALSE){
+  # Turn the alignments into a data frame
+  alignments <- data.frame(granges(alignments))
+  # Save the column names for later
+  col_names <- colnames(alignments)
+  # Reduce the intervals and turn into data frame
+  intervals <- data.frame(granges(GenomicRanges::reduce(x = intervals, ignore.strand=FALSE)))
+  # Create the new alignments antisense to the given intervals
+  if (antisense==TRUE)
+    intervals$strand <- invert_vector(intervals$strand)
+
+  # Remove the old start and end columns from the alignments
+  alignments["start"] <- NULL
+  alignments["end"] <- NULL
+  # Get the counts of each combination of chromosome, strand and width
+  unique_rows <- plyr::count(alignments)
+  # Run mapply on every unique chromosome/strand/width and
+  # save results to the shuffled alignments object
+  shuffled_alignments <- as_data_frame(t(data.frame(mapply(FUN = loop,
+                                                           as.character(unique_rows$seqnames),
+                                                           as.numeric(unique_rows$width),
+                                                           as.character(unique_rows$strand),
+                                                           as.numeric(unique_rows$freq),
+                                                           MoreArgs = list(intervals = intervals)),
+                                                    row.names = NULL,
+                                                    fix.empty.names = FALSE,
+                                                    stringsAsFactors = FALSE)))
+  # Replace the column names and remove the row names from the results
+  colnames(shuffled_alignments) <- col_names
+  rownames(shuffled_alignments) <- NULL
+  # Remove any alignments that didn't have an exon to be placed in
+  shuffled_alignments <- subset(shuffled_alignments, !(seqnames=="I" & start==1 & end==1 & width==0 & strand=="+"))
+  # Convert the results dataframe to a GRange, sort and return it
+  return(sort.GenomicRanges(
+    x = makeGRangesFromDataFrame(df = shuffled_alignments,
+                                 seqnames.field = "seqnames",
+                                 start.field = "start",
+                                 end.field = "end",
+                                 strand.field = "strand")))
+}
+
