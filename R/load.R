@@ -143,7 +143,7 @@ get_genes_from_biomart <- function(mart){
 load_genome_data <- function(path, genome){
   genome_path <- getAbsolutePath(paste(path, genome, sep = '/'))
   if(dir.exists(genome_path)){
-    files <- dir(path = genomes_path)
+    files <- dir(path = genome_path)
     if(!(paste(genome, "_chr.tsv", sep = "") %in% files &
          paste(genome, "_genes.tsv", sep = "") %in% files &
          paste(genome, "_exons.tsv", sep = "") %in% files)){
@@ -174,8 +174,8 @@ load_genome_data <- function(path, genome){
                                                   col_names = TRUE),
                                     keep.extra.columns = TRUE)
   return(list("chromosome_sizes"=chromosome_sizes,
-              "gene_intervals"=gene_intervals,
-              "exon_intervals"=exon_intervals))
+              "gene_intervals"=genes,
+              "exon_intervals"=exons))
 }
 
 
@@ -188,7 +188,10 @@ load_genome_data <- function(path, genome){
 #   return(mart)
 # }
 
-load_alignments <- function(path, params=ScanBamParam(reverseComplement = TRUE, what = c("seq", "qname", "flag"), tag = c("XA", "MD", "NM"))){
+load_alignments <- function(path,
+                            params=ScanBamParam(reverseComplement = TRUE,
+                                                what = c("seq", "qname", "flag"),
+                                                tag = c("XA", "MD", "NM"))){
   return(sort.GenomicRanges(readGAlignments(file = path, param = params)))
 }
 
@@ -214,12 +217,17 @@ load_fasta_genome <- function(path){
   return(genome_sequence)
 }
 
-load_gene_lists <- function(path, gene_lists_files){
+load_gene_sets <- function(gene_sets){
+  gene_sets <- strsplit(x = gene_sets, split = ";", fixed = FALSE)[[1]]
+  #genome_path <- getAbsolutePath(paste(path, genome, sep = '/'))
   # Create an empty list
   results <- list()
   # Loop through the filenames, load the list of genes, and add as a named list
-  for(i in 1:length(gene_lists_files)){
-    results[names(gene_lists_files)[i]] <- list(scan(paste(paste(path, gene_lists_files[i], sep = "/")), character(), quote = ""))
+  for(i in 1:length(gene_sets)){
+    filename <- get_filename(path = gene_sets[[i]], extension = FALSE)
+    # split_path <- strsplit(x = , split = "/", fixed = TRUE)
+    results[filename] <- list(scan(file = gene_sets[[i]], what = character(), quote = ""))
+    #results[names(gene_sets)[i]] <- list(scan(paste(path, gene_sets[i], sep = "/")), character(), quote = "")
   }
   return(results)
 }
