@@ -90,7 +90,7 @@ assign_5prime_to_longer <- function(gr){
   return(sort.GenomicRanges(results))
 }
 
-filter_alignments_by_size_range <- function(alignments, minimum=10, maximum=30){
+filter_alignments_by_size <- function(alignments, minimum=10, maximum=30){
   # results <- alignments[qwidth(alignments)>=minimum & qwidth(alignments)<=maximum]
   return(sort.GenomicRanges(alignments[qwidth(alignments)>=minimum & qwidth(alignments)<=maximum]))
 }
