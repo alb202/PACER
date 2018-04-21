@@ -99,9 +99,22 @@ ui <- fluidPage(
                            ),
                   tabPanel(title = "Full Gene Set", value = "full", icon = icon("folder-open", lib="glyphicon"),
                            wellPanel(
-                             plotOutput("fivepp_all")
+                             fluidRow(h5(HTML("Two mismatch 5' all reads"))),
+                             fluidRow(plotOutput("two_mm_five_prime"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("No mismatch 5' all reads"))),
+                             fluidRow(plotOutput("no_mm_five_prime"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("No mismatch in seed 5' all reads"))),
+                             fluidRow(plotOutput("no_mm_in_seed_five_prime"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Shuffled 5' all reads"))),
+                             fluidRow(plotOutput("shuffled_five_prime"))
                            )
-                )
+                      )
       )
     )
   )
