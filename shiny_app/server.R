@@ -34,6 +34,7 @@ source("../R/sequences.R")
 server <- function(input, output, session){
 
   values <- reactiveValues()
+  plots <- reactiveValues()
   observeEvent(eventExpr = values, once = TRUE, {
     # Set the initial value of the input directory to the first entry in the volumes list
     values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
@@ -482,6 +483,13 @@ server <- function(input, output, session){
                                      cores = input$cores,
                                      dataset_ID = values$dataset_ID,
                                      min_length = input$get_range[[1]])
+      ## Print the trimming and alignment logs to the UI
+      output$trim_log <- renderUI({
+        pre(includeText(paste(values$output_dir, '/trim.log', sep = '')))
+      })
+      output$align_log <- renderUI({
+        pre(includeText(paste(values$output_dir, '/align.log', sep = '')))
+      })
       shiny::setProgress(value = 1, detail = "Done")
     })
     print('print(values$bam_path)')
@@ -490,6 +498,8 @@ server <- function(input, output, session){
     ### Load genome information
     withProgress(min = 0, max = 1, message = "Filtering Alignments", expr = {
       #main_workflow()
+
+      ### Loading the genome data
       incProgress(amount = .2, detail = "Loading intervals")
       values$genome_data <- load_genome_data(path = values$genomes_dir,
                                              genome = values$selected_genome[["Version"]])
@@ -502,40 +512,54 @@ server <- function(input, output, session){
       incProgress(amount = .2, detail = "Loading alignments")
       values$alignments <- load_alignments(path = values$bam_path)
 
-      incProgress(amount = .2, detail = "Filtering regions")
-      values$alignments <- filter_by_regions(alignments = values$alignments,
-                                             regions = values$genome_data[["gene_intervals"]],
-                                             type = "both")
+      ### Filter alignments by size
       incProgress(amount = .1, detail = "Filtering alignment sizes")
       values$alignments <- filter_alignments_by_size(alignments = values$alignments,
                                                      minimum = input$get_range[[1]],
                                                      maximum = input$get_range[[2]])
+
+      ### Filter overrepresented reads
       incProgress(amount = .1, detail = "Filtering overrpreseented reads")
       values$alignments <- remove_overrepresented_sequences(alignments = values$alignments,
                                                             cutoff = input$read_cutoff)
 
+      ### Get the read and genome sequence
+      incProgress(amount = .1, detail = "Get the read sequences")
       values$alignments <- get_genome_sequence(gr = values$alignments,
                                                genome_sequence = load_fasta_genome(
                                                  path = values$selected_genome[['Genome.FASTA']]
-                                                 ))
+                                               ))
 
-      print('print(values$alignments)')
-      print(values$alignments)
-
+      ### Create 3 sets of alignments based on the mismatch fields
       incProgress(amount = .1, detail = "Filtering mismatches")
       mismatch_indexes <- filter_BAM_tags(values$alignments)
       values$two_mm <- values$alignments[mismatch_indexes$two_mm]
       values$no_mm <- values$alignments[mismatch_indexes$no_mm]
       values$no_mm_in_seed <- values$alignments[mismatch_indexes$no_mm_seed]
+
+
+      ### Create a shuffled alignment and get the new read sequence
       values$shuffled <- shuffle_alignments(alignments = values$two_mm,
                                             intervals = values$genome_data[["gene_intervals"]],
                                             antisense = TRUE)
-
       values$shuffled <- get_genome_sequence(gr = values$shuffled,
                                              genome_sequence = load_fasta_genome(
                                                path = values$selected_genome[['Genome.FASTA']]
-                                               ))
+                                             ))
 
+      incProgress(amount = .2, detail = "Filtering regions")
+      values$two_mm__both <- filter_by_regions(alignments = values$two_mm,
+                                             regions = values$genome_data[["gene_intervals"]],
+                                             type = "both")
+      values$two_mm__sense <- filter_by_regions(alignments = values$two_mm,
+                                               regions = values$genome_data[["gene_intervals"]],
+                                               type = "sense")
+      values$two_mm__antisense <- filter_by_regions(alignments = values$two_mm,
+                                               regions = values$genome_data[["gene_intervals"]],
+                                               type = "antisense")
+
+      print('print(values$alignments)')
+      print(values$alignments)
       print('The length of values$two_mm is: ')
       print(length(x = print(values$two_mm)))
       #print(values$two_mm)
@@ -548,35 +572,60 @@ server <- function(input, output, session){
       print(mcols(values$two_mm))
       print("shuffled")
       print(values$shuffled)
-      create_output_dirs(out_dir = values$output_dir,
-                         name = 'five_prime')
-      two_mm_five_prime <- make_length_plots(gr = values$two_mm,
-                             path = paste(values$output_dir,
-                                          '/five_prime',
-                                          sep = ''),
-                             label = "two_mm__five_prime")
-      output$two_mm_five_prime <- renderPlot({two_mm_five_prime})
 
-      no_mm_five_prime <- make_length_plots(gr = values$no_mm,
-                                      path = paste(values$output_dir,
-                                                   '/five_prime',
-                                                   sep = ''),
-                                      label = "no_mm__five_prime")
-      output$no_mm_five_prime <- renderPlot({no_mm_five_prime})
 
-      no_mm_in_seed_five_prime <- make_length_plots(gr = values$no_mm_in_seed,
-                                      path = paste(values$output_dir,
-                                                   '/five_prime',
-                                                   sep = ''),
-                                      label = "no_mm_in_seed__five_prime")
-      output$no_mm_in_seed_five_prime <- renderPlot({no_mm_in_seed_five_prime})
+      ## Create the output directory for the 5' plots
+      values$five_prime_dir <- create_output_dir(out_dir = values$output_dir,
+                                                 name = 'five_prime')
+      print(values$five_prime_dir)
+      plots$five_prime_plot__two_mm__both <- five_prime_plot(
+        gr = values$two_mm__both)
+      plots$five_prime_plot__two_mm__sense <- five_prime_plot(
+        gr = values$two_mm__sense)
+      plots$five_prime_plot__two_mm__antisense <- five_prime_plot(
+        gr = values$two_mm__antisense)
 
-      shuffled_five_prime <- make_length_plots(gr = values$shuffled,
-                                                    path = paste(values$output_dir,
-                                                                 '/five_prime',
-                                                                 sep = ''),
-                                                    label = "shuffled__five_prime")
-      output$shuffled_five_prime <- renderPlot({shuffled_five_prime})
+      save_plot(p = plots$five_prime_plot__two_mm__both,
+                path = values$five_prime_dir,
+                label = 'five_prime_plot__two_mm__both')
+      save_plot(p = plots$five_prime_plot__two_mm__sense,
+                path = values$five_prime_dir,
+                label = 'five_prime_plot__two_mm__sense')
+      save_plot(p = plots$five_prime_plot__two_mm__antisense,
+                path = values$five_prime_dir,
+                label = 'five_prime_plot__two_mm__antisense')
+
+      output$five_prime_plot__two_mm__both <- renderPlot({plots$five_prime_plot__two_mm__both})
+      output$five_prime_plot__two_mm__sense <- renderPlot({plots$five_prime_plot__two_mm__sense})
+      output$five_prime_plot__two_mm__antisense <- renderPlot({plots$five_prime_plot__two_mm__antisense})
+
+      # two_mm_five_prime <- make_length_plots(gr = values$two_mm,
+      #                        path = paste(values$output_dir,
+      #                                     '/five_prime',
+      #                                     sep = ''),
+      #                        label = "two_mm__five_prime")
+      # output$two_mm_five_prime <- renderPlot({two_mm_five_prime})
+      #
+      # no_mm_five_prime <- make_length_plots(gr = values$no_mm,
+      #                                 path = paste(values$output_dir,
+      #                                              '/five_prime',
+      #                                              sep = ''),
+      #                                 label = "no_mm__five_prime")
+      # output$no_mm_five_prime <- renderPlot({no_mm_five_prime})
+      #
+      # no_mm_in_seed_five_prime <- make_length_plots(gr = values$no_mm_in_seed,
+      #                                 path = paste(values$output_dir,
+      #                                              '/five_prime',
+      #                                              sep = ''),
+      #                                 label = "no_mm_in_seed__five_prime")
+      # output$no_mm_in_seed_five_prime <- renderPlot({no_mm_in_seed_five_prime})
+      #
+      # shuffled_five_prime <- make_length_plots(gr = values$shuffled,
+      #                                               path = paste(values$output_dir,
+      #                                                            '/five_prime',
+      #                                                            sep = ''),
+      #                                               label = "shuffled__five_prime")
+      # output$shuffled_five_prime <- renderPlot({shuffled_five_prime})
 
       # print('making the plots no_mm')
       # make_length_plots(gr = values$no_mm,

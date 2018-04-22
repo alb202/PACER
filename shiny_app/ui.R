@@ -9,7 +9,7 @@ ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "lumen.css"),
     tags$style(HTML(".modal-lg {width:1100px;padding:0;}"))),
-  titlePanel("PACER"),
+  titlePanel("PACER 2.0"),
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(id="sidebar", type = "tabs",
@@ -95,24 +95,27 @@ ui <- fluidPage(
     mainPanel(
       tabsetPanel(id="main", type = "tabs",
                   tabPanel(title = "Statistics", value = "stats", icon = icon("folder-open", lib="glyphicon"),
-                           wellPanel()
+                           wellPanel(
+                             fluidRow(h5(HTML("Trimming log"))),
+                             fluidRow(uiOutput("trim_log"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Alignment log"))),
+                             fluidRow(uiOutput('align_log'))
+                           )
                            ),
                   tabPanel(title = "Full Gene Set", value = "full", icon = icon("folder-open", lib="glyphicon"),
                            wellPanel(
-                             fluidRow(h5(HTML("Two mismatch 5' all reads"))),
-                             fluidRow(plotOutput("two_mm_five_prime"))
+                             fluidRow(h5(HTML("Two mismatch 5' sense and antisense reads"))),
+                             fluidRow(plotOutput("five_prime_plot__two_mm__both"))
                            ),
                            wellPanel(
-                             fluidRow(h5(HTML("No mismatch 5' all reads"))),
-                             fluidRow(plotOutput("no_mm_five_prime"))
+                             fluidRow(h5(HTML("Two mismatch 5' sense reads"))),
+                             fluidRow(plotOutput("five_prime_plot__two_mm__sense"))
                            ),
                            wellPanel(
-                             fluidRow(h5(HTML("No mismatch in seed 5' all reads"))),
-                             fluidRow(plotOutput("no_mm_in_seed_five_prime"))
-                           ),
-                           wellPanel(
-                             fluidRow(h5(HTML("Shuffled 5' all reads"))),
-                             fluidRow(plotOutput("shuffled_five_prime"))
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads"))),
+                             fluidRow(plotOutput("five_prime_plot__two_mm__antisense"))
                            )
                       )
       )

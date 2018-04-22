@@ -2,7 +2,7 @@
 ### Other helper functions below
 
 ## Create the output directory for a dataset
-create_output_dirs <- function(out_dir, name){
+create_output_dir <- function(out_dir, name){
   # If the main output dir does not exist, create it
   if(!dir.exists(out_dir))
     dir.create(out_dir)
