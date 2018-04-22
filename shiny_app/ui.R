@@ -116,7 +116,92 @@ ui <- fluidPage(
                            wellPanel(
                              fluidRow(h5(HTML("Two mismatch 5' antisense reads"))),
                              fluidRow(plotOutput("five_prime_plot__two_mm__antisense"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' sense and antisense reads - 5' assigned to 22nt"))),
+                             fluidRow(plotOutput("five_prime_plot__two_mm__both__22nt_5prime"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' sense reads - 5' assigned to 22nt"))),
+                             fluidRow(plotOutput("five_prime_plot__two_mm__sense__22nt_5prime"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt"))),
+                             fluidRow(plotOutput("five_prime_plot__two_mm__antisense__22nt_5prime"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 15nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_15"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 16nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_16"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 17nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_17"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 18nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_18"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 19nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_19"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 20nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_20"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 21nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_21"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 23nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_23"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 24nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_24"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 25nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_25"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 26nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_26"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 27nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_27"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 28nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_28"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 29nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_29"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 30nt x 22nt"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22_30"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 22G x 22A"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22G_22A"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 22G x 22C"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22G_22C"))
+                           ),
+                           wellPanel(
+                             fluidRow(h5(HTML("Two mismatch 5' antisense reads - 5' assigned to 22nt - 22G x 22T"))),
+                             fluidRow(plotOutput("scatter__two_mm__antisense__22nt_5prime__22G_22T"))
                            )
+
                       )
       )
     )

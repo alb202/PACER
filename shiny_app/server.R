@@ -29,6 +29,7 @@ source("../R/alignments.R")
 source("../R/other.R")
 source("../R/filters.R")
 source("../R/make_figures.R")
+source("../R/calculations.R")
 source("../R/figures.R")
 source("../R/sequences.R")
 server <- function(input, output, session){
@@ -460,7 +461,7 @@ server <- function(input, output, session){
                                        dataset_name = input$dataset_name)
     print(values$dataset_ID)
     print(values$output_dir)
-    values$output_dir <- getAbsolutePath(create_output_dirs(out_dir = values$output_dir,
+    values$output_dir <- getAbsolutePath(create_output_dir(out_dir = values$output_dir,
                                                             name = paste(values$dataset_ID,
                                                                          timestamp[[1]][1],
                                                                          gsub(pattern = ":",
@@ -598,6 +599,226 @@ server <- function(input, output, session){
       output$five_prime_plot__two_mm__both <- renderPlot({plots$five_prime_plot__two_mm__both})
       output$five_prime_plot__two_mm__sense <- renderPlot({plots$five_prime_plot__two_mm__sense})
       output$five_prime_plot__two_mm__antisense <- renderPlot({plots$five_prime_plot__two_mm__antisense})
+
+      ### Create datasets with 5' ends assigned to 22nt reads
+      values$two_mm__both__22nt_5prime <- assign_5prime_to_a_length(
+        gr = values$two_mm__both,
+        primary_length = 22)
+      values$two_mm__antisense__22nt_5prime <- assign_5prime_to_a_length(
+        gr = values$two_mm__antisense,
+        primary_length = 22)
+      values$two_mm__sense__22nt_5prime <- assign_5prime_to_a_length(
+        gr = values$two_mm__sense,
+        primary_length = 22)
+
+      plots$five_prime_plot__two_mm__both__22nt_5prime <- five_prime_plot(
+        gr = values$two_mm__both__22nt_5prime)
+      plots$five_prime_plot__two_mm__sense__22nt_5prime <- five_prime_plot(
+        gr = values$two_mm__sense__22nt_5prime)
+      plots$five_prime_plot__two_mm__antisense__22nt_5prime <- five_prime_plot(
+        gr = values$two_mm__antisense__22nt_5prime)
+
+      save_plot(p = plots$five_prime_plot__two_mm__both__22nt_5prime,
+                path = values$five_prime_dir,
+                label = 'five_prime_plot__two_mm__both__22nt_5prime')
+      save_plot(p = plots$five_prime_plot__two_mm__sense__22nt_5prime,
+                path = values$five_prime_dir,
+                label = 'five_prime_plot__two_mm__sense__22nt_5prime')
+      save_plot(p = plots$five_prime_plot__two_mm__antisense__22nt_5prime,
+                path = values$five_prime_dir,
+                label = 'five_prime_plot__two_mm__antisense__22nt_5prime')
+
+      output$five_prime_plot__two_mm__both__22nt_5prime <- renderPlot({
+        plots$five_prime_plot__two_mm__both__22nt_5prime})
+      output$five_prime_plot__two_mm__sense__22nt_5prime <- renderPlot({
+        plots$five_prime_plot__two_mm__sense__22nt_5prime})
+      output$five_prime_plot__two_mm__antisense__22nt_5prime <- renderPlot({
+        plots$five_prime_plot__two_mm__antisense__22nt_5prime})
+
+      ### Create the dataset with the gene overlap counts
+      print("create the dataframe with gene overlap counts")
+      values$two_mm__antisense__22nt_5prime__overlap_counts <- count_overlaps_by_width(
+        gr = values$two_mm__antisense__22nt_5prime,
+        regions = values$genome_data[["gene_intervals"]],
+        overlap = "antisense",
+        normalized = FALSE)
+      values$two_mm__antisense__22nt_5prime__overlap_counts_base_22 <- count_overlaps_by_width_and_base(
+        gr = values$two_mm__antisense__22nt_5prime,
+        regions = values$genome_data[["gene_intervals"]],
+        overlap = "antisense",
+        normalized = FALSE,
+        alignment_width = 22,
+        base_col = 'five')
+      print(values$two_mm__antisense__22nt_5prime__overlap_counts_base_22)
+      ## Create the output directory for the scatter plots
+      values$scatter_dir <- create_output_dir(out_dir = values$output_dir,
+                                                 name = 'scatter')
+      print(values$scatter_dir)
+
+      plots$scatter__two_mm__antisense__22nt_5prime__22_15 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 15)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_16 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 16)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_17 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 17)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_18 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 18)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_19 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 19)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_20 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 20)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_21 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 21)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_23 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 23)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_24 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 24)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_25 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 25)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_26 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 26)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_27 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 27)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_28 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 28)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_29 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 29)
+      plots$scatter__two_mm__antisense__22nt_5prime__22_30 <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+        x = 22,
+        y = 30)
+      plots$scatter__two_mm__antisense__22nt_5prime__22G_22A <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
+        x = 'G',
+        y = 'A')
+      plots$scatter__two_mm__antisense__22nt_5prime__22G_22C <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
+        x = 'G',
+        y = 'C')
+      plots$scatter__two_mm__antisense__22nt_5prime__22G_22T <- scatter_plot(
+        df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
+        x = 'G',
+        y = 'T')
+
+
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_15,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_15')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_16,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_16')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_17,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_17')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_18,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_18')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_19,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_19')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_20,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_20')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_21,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_21')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_23,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_23')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_24,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_24')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_25,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_25')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_26,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_26')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_27,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_27')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_28,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_28')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_29,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_29')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_30,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22_30')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22A,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22A')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22C,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22C')
+      # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22T,
+      #           path = values$scatter_dir,
+      #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22T')
+      output$scatter__two_mm__antisense__22nt_5prime__22_15 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_15})
+      output$scatter__two_mm__antisense__22nt_5prime__22_16 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_16})
+      output$scatter__two_mm__antisense__22nt_5prime__22_17 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_17})
+      output$scatter__two_mm__antisense__22nt_5prime__22_18 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_18})
+      output$scatter__two_mm__antisense__22nt_5prime__22_19 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_19})
+      output$scatter__two_mm__antisense__22nt_5prime__22_20 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_20})
+      output$scatter__two_mm__antisense__22nt_5prime__22_21 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_21})
+      output$scatter__two_mm__antisense__22nt_5prime__22_23 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_23})
+      output$scatter__two_mm__antisense__22nt_5prime__22_24 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_24})
+      output$scatter__two_mm__antisense__22nt_5prime__22_25 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_25})
+      output$scatter__two_mm__antisense__22nt_5prime__22_26 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_26})
+      output$scatter__two_mm__antisense__22nt_5prime__22_27 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_27})
+      output$scatter__two_mm__antisense__22nt_5prime__22_28 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_28})
+      output$scatter__two_mm__antisense__22nt_5prime__22_29 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_29})
+      output$scatter__two_mm__antisense__22nt_5prime__22_30 <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22_30})
+      output$scatter__two_mm__antisense__22nt_5prime__22G_22A <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22G_22A})
+      output$scatter__two_mm__antisense__22nt_5prime__22G_22C <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22G_22C})
+      output$scatter__two_mm__antisense__22nt_5prime__22G_22T <- renderPlot({
+        plots$scatter__two_mm__antisense__22nt_5prime__22G_22T})
 
       # two_mm_five_prime <- make_length_plots(gr = values$two_mm,
       #                        path = paste(values$output_dir,
