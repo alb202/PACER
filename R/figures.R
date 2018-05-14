@@ -346,48 +346,46 @@ seq_logo_comparisons <- function(gr, shuffled_gr, length, five_prime_base=NULL){
 }
 
 offset_plot <- function(gr, overlap_type=c('sense', 'antisense'), primary_length, maximum_offset=10){
-   sense_offsets <- calculate_offsets(gr = gr,
-                                      overlap_type = 'sense',
-                                      primary_length = primary_length,
-                                      maximum_offset = maximum_offset)
-   antisense_offsets <- calculate_offsets(gr = gr,
-                                          overlap_type = 'antisense',
-                                          primary_length = primary_length,
-                                          maximum_offset = maximum_offset)
-   ## Make the plot for the sense strand offsets
-   p <- ggplot() +
-     geom_line(data = sense_offsets,
-               mapping = aes(x = as.numeric(sense_offsets$offsets),
-                             y = as.numeric(sense_offsets$ratio),
-                             group=widths,
-                             color=widths)) +
-     facet_grid(.~strands,
-                labeller = as_labeller(c("+"="Plus Strand",
-                                         "-"="Minus Strand"))) +
-     scale_color_distiller(palette = "Spectral") +
-     theme(legend.title=element_blank(),
-           axis.title.x=element_blank()) +
-     #xlab(NA) +
-     ylab("Same strand")
+  offset_data <- calculate_offsets(gr = gr,
+                                   overlap_type = overlap_type,
+                                   primary_length = primary_length,
+                                   maximum_offset = maximum_offset)
+  ## Make the plot for the sense strand offsets
+  p <- ggplot() +
+    geom_line(data = offset_data,
+              mapping = aes(x = as.numeric(offset_data$offsets),
+                            y = as.numeric(offset_data$ratio),
+                            group=factor(widths),
+                            color=factor(widths), linetype=factor(widths)
+                            )) +
+    #geom_line(aes(linetype=, color=offset_data$widths)) +
+    facet_grid(.~strands,
+               labeller = as_labeller(c("+"="Plus Strand",
+                                        "-"="Minus Strand"))) +
+    # scale_color_distiller(palette = "Spectral") +
+    # scale_color_discrete() +
+    theme(legend.title=element_blank()) +
+    xlab("Offset from 5' end") +
+    ylab("Percentage of each length")
+  #
+#    ## Make the plot for the sense strand offsets
+#    q <- ggplot() +
+#      geom_line(data = antisense_offsets,
+#                mapping = aes(x = as.numeric(antisense_offsets$offsets),
+#                              y = as.numeric(antisense_offsets$ratio),
+#                              group=widths,
+#                              color=widths)) +
+#      facet_grid(.~strands,
+#                 labeller = as_labeller(c("+"="Plus Strand",
+#                                          "-"="Minus Strand"))) +
+#      scale_color_distiller(palette = "Spectral") +
+#      theme(legend.title=element_blank(),
+#            axis.title.x=element_blank()) +
+#      #xlab(NA) +
+#      ylab("Opposite Strand")
 
-   ## Make the plot for the sense strand offsets
-   q <- ggplot() +
-     geom_line(data = antisense_offsets,
-               mapping = aes(x = as.numeric(antisense_offsets$offsets),
-                             y = as.numeric(antisense_offsets$ratio),
-                             group=widths,
-                             color=widths)) +
-     facet_grid(.~strands,
-                labeller = as_labeller(c("+"="Plus Strand",
-                                         "-"="Minus Strand"))) +
-     scale_color_distiller(palette = "Spectral") +
-     theme(legend.title=element_blank(),
-           axis.title.x=element_blank()) +
-     #xlab(NA) +
-     ylab("Opposite Strand")
-
-   same_strand <- ggplot_gtable(ggplot_build(p))
-   opposite_strand <- ggplot_gtable(ggplot_build(q))
+   # same_strand <- ggplot_gtable(ggplot_build(p))
+   # opposite_strand <- ggplot_gtable(ggplot_build(q))
 
    # Arrange the plots with the labels
    # arranged_grobs <- list(textGrob(label = paste(as.character(length),
@@ -401,26 +399,26 @@ offset_plot <- function(gr, overlap_type=c('sense', 'antisense'), primary_length
    #                        textGrob(label = "Position along RNA or Genome (1 is 5' end)",
    #                                 gp=gpar(fontfamily = "Sans", size=12), vjust = 0))
 
-   arranged_grobs <- list(textGrob(label = paste("Offset from ",
-                                                 as.character(primary_length),
-                                                 #as.character(five_prime_base),
-                                                 "nt Reads",
-                                                 sep = ""),
-                                   gp=gpar(fontfamily = "Sans", size=24), vjust = 0),
-                          arrangeGrob(same_strand),
-                          arrangeGrob(opposite_strand),
-                          textGrob(label = "Offset from 5' end",
-                                   gp=gpar(fontfamily = "Sans",
-                                           size=12),
-                                   vjust = 0)
-                          )
-   # Arrange all the plots
-   full <- grid.arrange(grobs = arranged_grobs
-                        ,nrow = 4
-                        ,ncol = 1
-                        ,heights = c(.12,1,1,.09)
-                        )
-   return(full)
+   # arranged_grobs <- list(textGrob(label = paste("Offset from ",
+   #                                               as.character(primary_length),
+   #                                               #as.character(five_prime_base),
+   #                                               "nt Reads",
+   #                                               sep = ""),
+   #                                 gp=gpar(fontfamily = "Sans", size=24), vjust = 0),
+   #                        arrangeGrob(same_strand),
+   #                        arrangeGrob(opposite_strand),
+   #                        textGrob(label = "Offset from 5' end",
+   #                                 gp=gpar(fontfamily = "Sans",
+   #                                         size=12),
+   #                                 vjust = 0)
+   #                        )
+   # # Arrange all the plots
+   # full <- grid.arrange(grobs = arranged_grobs
+   #                      ,nrow = 4
+   #                      ,ncol = 1
+   #                      ,heights = c(.12,1,1,.09)
+   #                      )
+   return(p)
   }
 #   full <- grid.arrange(ip, im, fp, fm, nrow = 2, ncol = 2)
 #    gtable::gtable_show_layout(full)

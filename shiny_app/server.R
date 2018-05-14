@@ -649,7 +649,7 @@ server <- function(input, output, session){
         normalized = FALSE,
         alignment_width = 22,
         base_col = 'five')
-      print(values$two_mm__antisense__22nt_5prime__overlap_counts_base_22)
+      #print(values$two_mm__antisense__22nt_5prime__overlap_counts_base_22)
       ## Create the output directory for the scatter plots
       values$scatter_dir <- create_output_dir(out_dir = values$output_dir,
                                                  name = 'scatter')
@@ -728,6 +728,7 @@ server <- function(input, output, session){
         x = 'G',
         y = 'T')
 
+      ### Get sequences for alignments with no mismatches
 
       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_15,
       #           path = values$scatter_dir,
@@ -819,6 +820,153 @@ server <- function(input, output, session){
         plots$scatter__two_mm__antisense__22nt_5prime__22G_22C})
       output$scatter__two_mm__antisense__22nt_5prime__22G_22T <- renderPlot({
         plots$scatter__two_mm__antisense__22nt_5prime__22G_22T})
+
+
+      ### Create alignments with no mismatches in the seed region
+      values$seq_logo_dir <- create_output_dir(
+        out_dir = values$output_dir,
+        name = 'seq_logos')
+
+      values$no_mm_in_seed__shuffled <- shuffle_alignments(
+        alignments = values$no_mm_in_seed,
+        intervals = values$genome_data[["gene_intervals"]],
+        antisense = TRUE)
+      values$no_mm_in_seed__shuffled <- get_genome_sequence(
+        gr = values$no_mm_in_seed__shuffled,
+        genome_sequence = load_fasta_genome(
+          path = values$selected_genome[['Genome.FASTA']]))
+      values$no_mm_in_seed <- filter_by_regions(
+        alignments = values$no_mm_in_seed,
+        regions = values$genome_data[["gene_intervals"]],
+        type = "antisense")
+
+      #print(values$no_mm_in_seed)
+      #print(values$no_mm_in_seed__shuffled)
+
+      plots$seq_logo__no_mm_in_seed__antisense__20nt <- seq_logo_comparisons(
+        gr = values$no_mm_in_seed,
+        shuffled_gr = values$no_mm_in_seed__shuffled,
+        length = 20,
+        five_prime_base = NULL)
+
+      plots$seq_logo__no_mm_in_seed__antisense__21nt <- seq_logo_comparisons(
+        gr = values$no_mm_in_seed,
+        shuffled_gr = values$no_mm_in_seed__shuffled,
+        length = 21,
+        five_prime_base = NULL)
+
+      plots$seq_logo__no_mm_in_seed__antisense__22nt <- seq_logo_comparisons(
+        gr = values$no_mm_in_seed,
+        shuffled_gr = values$no_mm_in_seed__shuffled,
+        length = 22,
+        five_prime_base = NULL)
+
+      plots$seq_logo__no_mm_in_seed__antisense__23nt <- seq_logo_comparisons(
+        gr = values$no_mm_in_seed,
+        shuffled_gr = values$no_mm_in_seed__shuffled,
+        length = 23,
+        five_prime_base = NULL)
+
+      plots$seq_logo__no_mm_in_seed__antisense__24nt <- seq_logo_comparisons(
+        gr = values$no_mm_in_seed,
+        shuffled_gr = values$no_mm_in_seed__shuffled,
+        length = 24,
+        five_prime_base = NULL)
+
+      plots$seq_logo__no_mm_in_seed__antisense__25nt <- seq_logo_comparisons(
+        gr = values$no_mm_in_seed,
+        shuffled_gr = values$no_mm_in_seed__shuffled,
+        length = 25,
+        five_prime_base = NULL)
+
+      plots$seq_logo__no_mm_in_seed__antisense__26nt <- seq_logo_comparisons(
+        gr = values$no_mm_in_seed,
+        shuffled_gr = values$no_mm_in_seed__shuffled,
+        length = 26,
+        five_prime_base = NULL)
+
+      output$seq_logo__no_mm_in_seed__antisense__20nt <- renderPlot({
+        grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__20nt)
+        })
+      output$seq_logo__no_mm_in_seed__antisense__21nt <- renderPlot({
+        grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__21nt)
+      })
+      output$seq_logo__no_mm_in_seed__antisense__22nt <- renderPlot({
+        grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__22nt)
+      })
+      output$seq_logo__no_mm_in_seed__antisense__23nt <- renderPlot({
+        grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__23nt)
+      })
+      output$seq_logo__no_mm_in_seed__antisense__24nt <- renderPlot({
+        grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__24nt)
+      })
+      output$seq_logo__no_mm_in_seed__antisense__25nt <- renderPlot({
+        grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__25nt)
+      })
+      output$seq_logo__no_mm_in_seed__antisense__26nt <- renderPlot({
+        grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__26nt)
+      })
+
+      ### Create alignments with no mismatches
+      values$phasing_dir <- create_output_dir(
+        out_dir = values$output_dir,
+        name = 'phasing')
+
+      values$no_mm__overlapping_genes <- filter_by_regions(
+        alignments = values$no_mm,
+        regions = values$genome_data[["gene_intervals"]],
+        type = "both")
+
+      plots$phasing__no_mm__22nt <- phasing_plot(gr = values$no_mm__overlapping_genes,
+                                                              length = 22,
+                                                              start_base = 'G')
+      plots$phasing__no_mm__26nt <- phasing_plot(gr = values$no_mm__overlapping_genes,
+                                                 length = 26,
+                                                 start_base = 'G')
+      output$phasing__no_mm__22nt <- renderPlot({
+        grid.draw(x = plots$phasing__no_mm__22nt)
+      })
+      output$phasing__no_mm__26nt <- renderPlot({
+        grid.draw(x = plots$phasing__no_mm__26nt)
+      })
+
+
+      ### Create alignments with no mismatches
+      values$offsets_dir <- create_output_dir(
+        out_dir = values$output_dir,
+        name = 'offsets')
+
+      values$no_mm__5prime_22nt <- assign_5prime_to_a_length(gr = values$no_mm__overlapping_genes,
+                                                             primary_length = 22)
+      TEMP <- values$no_mm__5prime_22nt
+      save('TEMP',
+           file = 'no_mm__5prime_22nt.RData',
+           ascii = FALSE)
+      plots$offsets__no_mm__5prime_22nt__sense <- offset_plot(gr = values$no_mm__overlapping_genes,
+                                                       primary_length = 22,
+                                                       maximum_offset = 10,
+                                                       overlap_type = 'sense')
+      plots$offsets__no_mm__5prime_22nt__antisense <- offset_plot(gr = values$no_mm__overlapping_genes,
+                                                       primary_length = 22,
+                                                       maximum_offset = 10,
+                                                       overlap_type = 'antisense')
+      output$offsets__no_mm__5prime_22nt__sense <- renderPlot({
+        grid.draw(x = plots$offsets__no_mm__5prime_22nt__sense)
+      })
+      output$offsets__no_mm__5prime_22nt__antisense <- renderPlot({
+        grid.draw(x = plots$offsets__no_mm__5prime_22nt__antisense)
+      })
+      # save_plot(p = plots$seq_logo__no_mm_in_seed__antisense__23nt,
+      #           path = values$seq_logo_dir,
+      #           label = 'seq_logo__no_mm_in_seed__antisense__23nt')
+
+      # plots$no_mm_in_seed__23 <- seq_logo_comparisons(
+      #   gr = values$no_mm_in_seed,
+      #   shuffled_gr = no_mm_in_seed__shuffled,
+      #   length = 23,
+      #   five_prime_base = NULL)
+
+
 
       # two_mm_five_prime <- make_length_plots(gr = values$two_mm,
       #                        path = paste(values$output_dir,
