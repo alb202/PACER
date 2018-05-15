@@ -488,9 +488,11 @@ server <- function(input, output, session){
       output$trim_log <- renderUI({
         pre(includeText(paste(values$output_dir, '/trim.log', sep = '')))
       })
+      output$trim_cmd <- renderUI({values$trim_cmd})
       output$align_log <- renderUI({
         pre(includeText(paste(values$output_dir, '/align.log', sep = '')))
       })
+      output$align_cmd <- renderUI({values$align_cmd})
       shiny::setProgress(value = 1, detail = "Done")
     })
     print('print(values$bam_path)')
@@ -540,13 +542,13 @@ server <- function(input, output, session){
 
 
       ### Create a shuffled alignment and get the new read sequence
-      values$shuffled <- shuffle_alignments(alignments = values$two_mm,
-                                            intervals = values$genome_data[["gene_intervals"]],
-                                            antisense = TRUE)
-      values$shuffled <- get_genome_sequence(gr = values$shuffled,
-                                             genome_sequence = load_fasta_genome(
-                                               path = values$selected_genome[['Genome.FASTA']]
-                                             ))
+      values$no_mm__shuffled <- shuffle_alignments(alignments = values$no_mm,
+                                                   intervals = values$genome_data[["gene_intervals"]],
+                                                   antisense = TRUE)
+      values$no_mm__shuffled <- get_genome_sequence(gr = values$no_mm__shuffled,
+                                                    genome_sequence = load_fasta_genome(
+                                                      path = values$selected_genome[['Genome.FASTA']]
+                                                    ))
 
       incProgress(amount = .2, detail = "Filtering regions")
       values$two_mm__both <- filter_by_regions(alignments = values$two_mm,
@@ -956,6 +958,54 @@ server <- function(input, output, session){
       output$offsets__no_mm__5prime_22nt__antisense <- renderPlot({
         grid.draw(x = plots$offsets__no_mm__5prime_22nt__antisense)
       })
+
+      ### Create alignments with no mismatches
+      values$heatmaps_dir <- create_output_dir(
+        out_dir = values$output_dir,
+        name = 'heatmaps')
+
+      values$no_mm__5prime_longest <- assign_5prime_to_longer(
+        gr = values$no_mm)
+      values$no_mm__shuffled__5prime_longest <- assign_5prime_to_longer(
+        gr = values$no_mm__shuffled)
+
+      TEMP <- values$no_mm__5prime_longest
+      save('TEMP',
+           file = 'no_mm__5prime_longest.RData',
+           ascii = FALSE)
+
+      values$no_mm__shuffled__5prime_longest__hm__22nt__pos <- calculate_heatmaps(
+        gr = values$no_mm__shuffled__5prime_longest,
+        length = 22,
+        strand = NULL)
+      values$no_mm__5prime_longest__hm__22nt__pos <- calculate_heatmaps(
+        gr = values$no_mm__5prime_longest,
+        length = 22,
+        strand = "+")
+      values$no_mm__5prime_longest__hm__22nt__neg <- calculate_heatmaps(
+        gr = values$no_mm__5prime_longest,
+        length = 22,
+        strand = "-")
+      values$no_mm__5prime_longest__hm__22nt__pos <- subtract_heatmap_background(
+        gr = values$no_mm__5prime_longest__hm__22nt__pos,
+        bg = values$no_mm__shuffled__5prime_longest__hm__22nt__pos)
+      values$no_mm__5prime_longest__hm__22nt__neg <- subtract_heatmap_background(
+        gr = values$no_mm__5prime_longest__hm__22nt__neg,
+        bg = values$no_mm__shuffled__5prime_longest__hm__22nt__pos)
+
+      plots$heatmaps__no_mm__22nt__pos <- heatmap_plot(
+        heatmap_data = values$no_mm__5prime_longest__hm__22nt__pos)
+      plots$heatmaps__no_mm__22nt__neg <- heatmap_plot(
+        heatmap_data = values$no_mm__5prime_longest__hm__22nt__neg)
+
+      output$heatmaps__no_mm__22nt__pos <- renderPlot({
+        grid.draw(x = plots$heatmaps__no_mm__22nt__pos)
+      })
+      output$heatmaps__no_mm__22nt__neg <- renderPlot({
+        grid.draw(x = plots$heatmaps__no_mm__22nt__neg)
+      })
+
+
       # save_plot(p = plots$seq_logo__no_mm_in_seed__antisense__23nt,
       #           path = values$seq_logo_dir,
       #           label = 'seq_logo__no_mm_in_seed__antisense__23nt')

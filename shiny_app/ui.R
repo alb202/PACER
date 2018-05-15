@@ -98,10 +98,12 @@ ui <- fluidPage(
                   tabPanel(title = "Statistics", value = "stats", icon = icon("folder-open", lib="glyphicon"),
                            wellPanel(
                              fluidRow(h5(HTML("Trimming log"))),
+                             fluidRow(uiOutput('trim_cmd')),
                              fluidRow(uiOutput("trim_log"))
                            ),
                            wellPanel(
                              fluidRow(h5(HTML("Alignment log"))),
+                             fluidRow(uiOutput('align_cmd')),
                              fluidRow(uiOutput('align_log'))
                            )
                   ),
@@ -248,11 +250,17 @@ ui <- fluidPage(
                                        tabPanel(title = "Offsets", value = "offsets", icon = icon("folder-open", lib="glyphicon"),
                                                 wellPanel(
                                                   fluidRow(h5(HTML("No mismatch - Offset from 22nt"))),
-                                                  fluidRow(plotOutput("offsets__no_mm__5prime_22nt__sense")),
-                                                  fluidRow(plotOutput("offsets__no_mm__5prime_22nt__antisense"))
+                                                  fluidRow(plotOutput("offsets__no_mm__5prime_22nt__antisense")),
+                                                  fluidRow(plotOutput("offsets__no_mm__5prime_22nt__sense"))
                                                 )
                                        ),
-                                       tabPanel(title = "Heatmaps", value = "heatmaps", icon = icon("folder-open", lib="glyphicon"))
+                                       tabPanel(title = "Heatmaps", value = "heatmaps", icon = icon("folder-open", lib="glyphicon"),
+                                                wellPanel(
+                                                  fluidRow(h5(HTML("No mismatch - Heatmap from 22nt sense to genes"))),
+                                                  fluidRow(plotOutput("heatmaps__no_mm__22nt__pos"),
+                                                           plotOutput("heatmaps__no_mm__22nt__neg"))
+                                                )
+                                       )
                            )
                   )
       )
