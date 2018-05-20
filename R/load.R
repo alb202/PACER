@@ -222,6 +222,7 @@ load_gene_sets <- function(gene_sets){
   #genome_path <- getAbsolutePath(paste(path, genome, sep = '/'))
   # Create an empty list
   results <- list()
+  results["Full"] <- ""
   # Loop through the filenames, load the list of genes, and add as a named list
   for(i in 1:length(gene_sets)){
     filename <- get_filename(path = gene_sets[[i]], extension = FALSE)
