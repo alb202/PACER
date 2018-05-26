@@ -367,6 +367,10 @@ offset_plot <- function(gr, overlap_type=c('sense', 'antisense'), primary_length
     theme(legend.title=element_blank()) +
     xlab("Offset from 5' end") +
     ylab("Percentage of each length")
+
+
+
+
   #
 #    ## Make the plot for the sense strand offsets
 #    q <- ggplot() +
@@ -419,7 +423,22 @@ offset_plot <- function(gr, overlap_type=c('sense', 'antisense'), primary_length
    #                      ,heights = c(.12,1,1,.09)
    #                      )
    return(p)
-  }
+}
+
+
+## Make plots and save
+save_plot <- function(p, path, label){
+  print('ggsaving the plot')
+
+  triedOut <- try({
+    ggsave(filename = paste(label, ".svg", sep = ""),
+           plot = p,
+           device = "svg",
+           path = path)
+    })
+  #return(p)
+}
+
 #   full <- grid.arrange(ip, im, fp, fm, nrow = 2, ncol = 2)
 #    gtable::gtable_show_layout(full)
 #   grid.draw(full)
