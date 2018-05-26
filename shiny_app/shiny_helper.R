@@ -121,3 +121,32 @@ add_genome <- function(genomes, new_genome){
   }
   return(genomes)
 }
+
+
+create_new_tabset <- function(name){
+  newTabset = tabPanel(
+    value = paste0("tabset_", name),
+    title = name,
+    tabsetPanel(id = paste0("tabsetpanel_", name), type = 'tabs',
+                tabPanel(title = "5' Distributions",
+                         value = paste0("five_prime_", name),
+                         wellPanel(id = paste0("five_prime_", name))),
+                tabPanel(title = "Scatters",
+                         value = paste0("scatters_", name),
+                         wellPanel(id = paste0("scatters_", name))),
+                tabPanel(title = "Offsets",
+                         value = paste0("offsets_", name),
+                         wellPanel(id = paste0("offsets_", name))),
+                tabPanel(title = "Phasing",
+                         value = paste0("phasing_", name),
+                         wellPanel(id = paste0("phasing_", name))),
+                tabPanel(title = "Heatmaps",
+                         value = paste0("heatmaps_", name),
+                         wellPanel(id = paste0("heatmaps_", name))),
+                tabPanel(title = "Sequence Logos",
+                         value = paste0("sequence_logos_", name),
+                         wellPanel(id = paste0("sequence_logos_", name)))
+    )
+  )
+  return(newTabset)
+}
