@@ -1,19 +1,38 @@
 filter_unique_positions <- function(gr){
   gr <- sort.GenomicRanges(gr)
-  return(sort.GenomicRanges(gr[invert_vector(GenomicRanges::duplicated.GenomicRanges(x = gr))]))
+  return(sort.GenomicRanges(gr[!(GenomicRanges::duplicated.GenomicRanges(x = gr))]))
 }
 
-filter_by_gene <- function(gr, gene_list, invert=FALSE, ensembl_id=TRUE){
-  # If the gene list is Ensembl, use the Ensembl ID for comparison
-  if(isTRUE(ensembl_id))
+filter_by_gene <- function(gr, gene_list, invert=FALSE){
+
+  ### If the gene list is empty, just return the full set of alignments
+  if(length(gene_list)==1 & gene_list[1]==""){
+    return(gr)
+  }
+
+  ### Check if the gene list are ensembl IDs or external IDs
+  if(isTRUE(is_ensembl_gene_name(gr = gr, gene_list = gene_list))){
+    # If the gene list is Ensembl, use the Ensembl ID for comparison
     matches <- mcols(gr)$ensembl_gene_id %in% gene_list
-  # If the gene list is not Ensembl, use the external ID for comparison
-  if(!isTRUE(ensembl_id))
+  } else {
+    # If the gene list is not Ensembl, use the external ID for comparison
     matches <- mcols(gr)$external_gene_name %in% gene_list
-  # If you want genes that are not in the list, invert the matching index
+  }
+
+  ### If you want genes that are not in the list, invert the matching index
   if(isTRUE(invert))
     matches <- !matches
   return(gr[matches])
+}
+
+is_ensembl_gene_name <- function(gr, gene_list){
+  ensembl_matches <- gene_list %in% mcols(gr)$ensembl_gene_id
+  external_matches <- gene_list %in% mcols(gr)$external_gene_name
+  if(sum(ensembl_matches)>=sum(external_matches)){
+    return(TRUE)
+  } else{
+    return(FALSE)
+  }
 }
 
 assign_5prime_to_a_length <- function(gr, primary_length){
@@ -138,16 +157,16 @@ filter_by_metadata <- function(target, source, column){
   return(sort.GenomicRanges(results))
 }
 
-filter_by_regions <- function(alignments, regions, type=c("both", "sense", "antisense"), invert=FALSE){
+filter_by_regions <- function(gr, regions, type=c("both", "sense", "antisense"), invert=FALSE){
   if (type=="both") {
-    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=TRUE)
+    results <- subsetByOverlaps(query = gr, subject = regions, invert = invert, ignore.strand=TRUE)
   }
   if (type=="sense") {
-    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
+    results <- subsetByOverlaps(query = gr, subject = regions, invert = invert, ignore.strand=FALSE)
   }
   if (type=="antisense") {
     strand(regions) <- invert_vector(as.character(strand(regions)))
-    results <- subsetByOverlaps(query = alignments, subject = regions, invert = invert, ignore.strand=FALSE)
+    results <- subsetByOverlaps(query = gr, subject = regions, invert = invert, ignore.strand=FALSE)
   }
   return(sort.GenomicRanges(results))
 }
