@@ -3,15 +3,15 @@ source("../R/figures.R")
 ##########################################################################################
 ### The main workflow ###
 
-## Make plots and save
-save_plot <- function(p, path, label){
-  print('ggsaving the plot')
-  ggsave(filename = paste(label, ".svg", sep = ""),
-         plot = p,
-         device = "svg",
-         path = path)
-  return(p)
-}
+# ## Make plots and save
+# save_plot <- function(p, path, label){
+#   print('ggsaving the plot')
+#   ggsave(filename = paste(label, ".svg", sep = ""),
+#          plot = p,
+#          device = "svg",
+#          path = path)
+#   return(p)
+# }
 
 
 
