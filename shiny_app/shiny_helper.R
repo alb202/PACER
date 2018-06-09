@@ -130,7 +130,7 @@ create_new_tabset <- function(name){
     tabsetPanel(id = paste0("tabsetpanel_", name), type = 'tabs',
                 tabPanel(title = "5' Distributions",
                          value = paste0("five_prime_", name),
-                         wellPanel(id = paste0("five_prime_", name))),
+                         wellPanel(id = paste0("five_prime_plot__", name))),
                 tabPanel(title = "Scatters",
                          value = paste0("scatters_", name),
                          wellPanel(id = paste0("scatters_", name))),
@@ -149,4 +149,46 @@ create_new_tabset <- function(name){
     )
   )
   return(newTabset)
+}
+
+create_new_output <- function(ID){
+  # insertUI(selector = ID,
+  #          where = "afterEnd",
+  #          immediate = TRUE,
+           ui = tagList(
+             fluidRow(
+               wellPanel(
+                 fluidRow(h5(gsub(pattern = "__", replacement = "  -  ", x = ID, fixed = TRUE))),
+                 fluidRow(plotOutput(outputId = ID))
+               )
+             )
+           )
+           return(ui)
+  # )
+}
+
+appendTab_new <- function (inputId, tab, select = FALSE, menuName = NULL, session=session()) #session = getDefaultReactiveDomain())
+{
+  force(select)
+  force(menuName)
+  inputId <- session$ns(inputId)
+  item <- buildTabItem("id", "tsid", TRUE, divTag = tab, textFilter = if (is.character(tab))
+    navbarMenuTextFilter
+    else NULL)
+  # callback <- function() {
+    session$sendInsertTab(inputId = inputId, liTag = processDeps(item$liTag,
+                                                                 session), divTag = processDeps(item$divTag, session),
+                          menuName = menuName, target = NULL, position = "before",
+                          select = select)
+  # }
+  # session$onFlush(callback, once = TRUE)
+}
+
+# Update progress
+updateProgress <- function(value = NULL, detail = NULL) {
+  if (is.null(value)) {
+    value <- values$progress$getValue()
+    value <- value + (values$progress$getMax() - value) / 5
+  }
+  values$progress$set(value = value, detail = detail)
 }
