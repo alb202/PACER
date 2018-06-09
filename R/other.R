@@ -141,3 +141,8 @@ get_filename <- function(path, extension=FALSE){
   if(extension==TRUE) return(filename)
   return(strsplit(x = filename, split = ".", fixed = TRUE)[[1]][[1]])
 }
+
+get_timestamp <- function()
+{
+  return(strsplit(x = as.character(Sys.time()), split = " "))
+}
