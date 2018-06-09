@@ -36,6 +36,7 @@ server <- function(input, output, session){
 
   values <- reactiveValues()
   plots <- reactiveValues()
+  begin <- reactiveVal()
   observeEvent(eventExpr = values, once = TRUE, {
     # Set the initial value of the input directory to the first entry in the volumes list
     values$input_volumes <- c("Input"="../data/input","Home"="~/", "Root"="/")
@@ -110,7 +111,7 @@ server <- function(input, output, session){
       values$output_dir <- parseDirPath(roots = values$output_volumes,
                                         selection = input$find_output_dir)
     # Print the output directories
-    print(values$output_dir)
+    print(isolate(values$output_dir))
   })
 
   observeEvent(values$input_dir, {
@@ -124,7 +125,7 @@ server <- function(input, output, session){
                       selected = NULL)
   })
 
-  observeEvent(values$output_dir, {
+  observeEvent(values$output_dir, once = TRUE,{
     # Update the file select box with the list of processed datasets
     print("Update the output box")
     updateSelectInput(session = session,
@@ -134,6 +135,13 @@ server <- function(input, output, session){
                                                filetypes = "",
                                                include_dirs = TRUE),
                       selected = NULL)
+    # print("Sleep before making plots")
+    # Sys.sleep(40)
+    # print("Outputing the plots ...")
+    # for(i in plots[["plot_list"]]){
+    #   print(i)
+    #   output[[i]] <- renderPlot({plots[[i]]})
+    # }
   })
 
   observeEvent(input$use_dataset, {
@@ -432,19 +440,77 @@ server <- function(input, output, session){
   # Close the modal
   observeEvent(eventExpr = input$close_modal, {removeModal()})
 
-  # Update progress
-  updateProgress <- function(value = NULL, detail = NULL) {
-    if (is.null(value)) {
-      value <- values$progress$getValue()
-      value <- value + (values$progress$getMax() - value) / 5
-    }
-    values$progress$set(value = value, detail = detail)
-  }
 
   ### Run the workflow on a dataset
+  # show_plots <- function(){
+  #   results <- eventReactive(input$show_plots,#input$begin_processing,
+  #                            #label = "show_plts", #priority = 0,
+  #                            {
+  #                              print("Sleep before making plots")
+  #                              Sys.sleep(40)
+  #                              print("Outputing the plots ...")
+  #                              for(i in plots[["plot_list"]]){
+  #                                print(i)
+  #                                output[[i]] <- renderPlot({plots[[i]]})
+  #                              }
+  #                            })
+  # }
 
-  observeEvent(eventExpr = input$begin_processing,
-               label = "Main workflow",{
+  # eventReactive(values$new_tabset, {
+  #   appendTab(inputId = 'main',
+  #             tab = values$new_tabset,
+  #             select = FALSE)
+  # })
+
+  # makeNewTabs <- function(gene_set){
+  #   eventReactive({
+  #   create_new_tabset(name = gene_set)
+  # })}
+
+  observeEvent(eventExpr = input$begin_processing, once = TRUE, label = "Make Tabs", priority = 5, handlerExpr = {
+    values$gene_sets <- load_gene_sets(gene_sets = values$selected_genome[["Gene.Sets"]])
+    print("Making the new tabsets")
+    print(names(values$gene_sets))
+    #Sys.sleep(15)
+    for(gene_set_ in names(values$gene_sets)){
+      appendTab(inputId = 'main',
+                tab = create_new_tabset(name = gene_set_),
+                select = FALSE)
+    }
+    values$begin <- TRUE
+    removeModal()
+  })
+
+
+  observeEvent(eventExpr = input$show_plots, #values$begin, #input$begin_processing,
+               once = TRUE,
+               label = "Show the plots",
+               # priority = 0, ignoreInit = TRUE,
+               handlerExpr = {
+                 print("Outputing the plots ...")
+                 output[["test_plot"]] <- renderImage({
+                   list(
+                     # src = "/PACER/data/output/SRR5023999_100K_sample-_2018-06-03_01-20-39/Full/five_prime/five_prime_plot__Full__no_mm__both__positions.svg",
+                     src = "/media/ab/HD4/PACER/data/output/SRR5023999_100K_sample-_2018-06-04_21-07-38/Full/five_prime/five_prime_plot__Full__shuffled_alignment__both__reads.png",
+                     filetype = "image/png",
+                     width = 'auto',
+                     height = 'auto',
+                     alt = "sample plot"
+                   )}
+                   )
+                 # for(i in plots[["plot_list"]]){
+                 #   print(i)
+                 #   output[[i]] <- renderPlot({plots[[i]]})
+                 # }
+               })
+
+
+  observeEvent(eventExpr = input$make_plots, #values$begin, #input$begin_processing,
+               #once = TRUE,
+               label = "Make the plots",
+               priority = 0,
+               ignoreInit = TRUE,
+               handlerExpr = {
     removeModal()
                  #### Toggle everything off!!
     # Create a Progress object
@@ -455,7 +521,7 @@ server <- function(input, output, session){
     print(input$read_cutoff)
 
     # Get the current time
-    timestamp <- strsplit(x = as.character(Sys.time()), split = " ")
+    values$timestamp <- get_timestamp()
 
     values$dataset_ID <- make_filename(filename = input$input_file,
                                        dataset_name = input$dataset_name)
@@ -463,698 +529,746 @@ server <- function(input, output, session){
     print(values$output_dir)
     values$output_dir <- getAbsolutePath(create_output_dir(out_dir = values$output_dir,
                                                             name = paste(values$dataset_ID,
-                                                                         timestamp[[1]][1],
+                                                                         values$timestamp[[1]][1],
                                                                          gsub(pattern = ":",
                                                                               replacement = "-",
-                                                                              x =timestamp[[1]][2]),
+                                                                              x = values$timestamp[[1]][2]),
                                                                          sep = "_")))
     print(values$output_dir)
-    withProgress(value = 0, message = "Generating alignments ...", {
-      shiny::setProgress(value = .25, detail = "Working")
-      values$bam_path <- align_reads(trim_cmd = values$trim_cmd,
-                                     align_cmd = values$align_cmd,
-                                     input_dir = getAbsolutePath(values$input_dir),
-                                     input_file = input$input_file,
-                                     output_dir = values$output_dir,
-                                     adapters_file = paste(values$adapters_dir,
-                                                           values$adapters_file,
-                                                           sep = "/"),
-                                     index_dir = values$selected_genome[["Bowtie.Index"]],
-                                     genome = values$selected_genome[["Version"]],
-                                     cores = input$cores,
-                                     dataset_ID = values$dataset_ID,
-                                     min_length = input$get_range[[1]])
-      ## Print the trimming and alignment logs to the UI
-      output$trim_log <- renderUI({
-        pre(includeText(paste(values$output_dir, '/trim.log', sep = '')))
-      })
-      output$trim_cmd <- renderUI({values$trim_cmd})
-      output$align_log <- renderUI({
-        pre(includeText(paste(values$output_dir, '/align.log', sep = '')))
-      })
-      output$align_cmd <- renderUI({values$align_cmd})
-      shiny::setProgress(value = 1, detail = "Done")
+    #withProgress(value = 0, message = "Generating alignments ...", {
+    #  shiny::setProgress(value = .25, detail = "Working")
+    values$bam_path <- align_reads(trim_cmd = values$trim_cmd,
+                                   align_cmd = values$align_cmd,
+                                   input_dir = getAbsolutePath(values$input_dir),
+                                   input_file = input$input_file,
+                                   output_dir = values$output_dir,
+                                   adapters_file = paste(values$adapters_dir,
+                                                         values$adapters_file,
+                                                         sep = "/"),
+                                   index_dir = values$selected_genome[["Bowtie.Index"]],
+                                   genome = values$selected_genome[["Version"]],
+                                   cores = input$cores,
+                                   dataset_ID = values$dataset_ID,
+                                   min_length = input$get_range[[1]])
+    ## Print the trimming and alignment logs to the UI
+    output$trim_log <- renderUI({
+      pre(includeText(paste(values$output_dir, '/trim.log', sep = '')))
     })
+    #output$trim_cmd <- renderUI({values$trim_cmd})
+    output$align_log <- renderUI({
+      pre(includeText(paste(values$output_dir, '/align.log', sep = '')))
+    })
+    output$align_cmd <- renderUI({values$align_cmd})
+    #shiny::setProgress(value = 1, detail = "Done")
+    #})
     print('print(values$bam_path)')
     print(values$bam_path)
 
 
     ### Load genome information
-    withProgress(min = 0, max = 1, message = "Filtering Alignments", expr = {
-      #main_workflow()
+    #withProgress(min = 0, max = 1, message = "Filtering Alignments", expr = {
+    #main_workflow()
 
-      ### Loading the genome data
-      incProgress(amount = .2, detail = "Loading intervals")
-      values$genome_data <- load_genome_data(path = values$genomes_dir,
-                                             genome = values$selected_genome[["Version"]])
-      print(values$genome_data)
-      print(values$selected_genome[["Gene.Sets"]])
-      incProgress(amount = .2, detail = "Loading gene sets")
-      values$gene_sets <- load_gene_sets(gene_sets = values$selected_genome[["Gene.Sets"]])
-      print(values$gene_sets)
-      ### Load alignment
-      incProgress(amount = .2, detail = "Loading alignments")
-      values$alignments <- load_alignments(path = values$bam_path)
+    ### Loading the genome data
+    #incProgress(amount = .2, detail = "Loading intervals")
+    values$genome_data <- load_genome_data(path = values$genomes_dir,
+                                           genome = values$selected_genome[["Version"]])
+    print(values$genome_data)
+    print(values$selected_genome[["Gene.Sets"]])
+    #incProgress(amount = .2, detail = "Loading gene sets")
+    ### Ths is the gene sets loader - be sure to uncomment it if needed
+    #values$gene_sets <- load_gene_sets(gene_sets = values$selected_genome[["Gene.Sets"]])
+    print(values$gene_sets)
+    ### Load alignment
+    #incProgress(amount = .2, detail = "Loading alignments")
+    values$alignments <- load_alignments(path = values$bam_path)
 
-      ### Filter alignments by size
-      incProgress(amount = .1, detail = "Filtering alignment sizes")
-      values$alignments <- filter_alignments_by_size(alignments = values$alignments,
-                                                     minimum = input$get_range[[1]],
-                                                     maximum = input$get_range[[2]])
+    ### Filter alignments by size
+    #incProgress(amount = .1, detail = "Filtering alignment sizes")
+    values$alignments <- filter_alignments_by_size(alignments = values$alignments,
+                                                   minimum = input$get_range[[1]],
+                                                   maximum = input$get_range[[2]])
 
-      ### Filter overrepresented reads
-      incProgress(amount = .1, detail = "Filtering overrpreseented reads")
-      values$alignments <- remove_overrepresented_sequences(alignments = values$alignments,
-                                                            cutoff = input$read_cutoff)
+    ### Filter overrepresented reads
+    #incProgress(amount = .1, detail = "Filtering overrpreseented reads")
+    values$alignments <- remove_overrepresented_sequences(alignments = values$alignments,
+                                                          cutoff = input$read_cutoff)
 
-      ### Get the read and genome sequence
-      incProgress(amount = .1, detail = "Get the read sequences")
-      values$alignments <- get_genome_sequence(gr = values$alignments,
-                                               genome_sequence = load_fasta_genome(
-                                                 path = values$selected_genome[['Genome.FASTA']]
-                                               ))
+    ### Get the read and genome sequence
+    #incProgress(amount = .1, detail = "Get the read sequences")
+    values$alignments <- get_genome_sequence(gr = values$alignments,
+                                             genome_sequence = load_fasta_genome(
+                                               path = values$selected_genome[['Genome.FASTA']]
+                                             ))
 
-      ### Create 3 sets of alignments based on the mismatch fields
-      incProgress(amount = .1, detail = "Filtering mismatches")
-      mismatch_indexes <- filter_BAM_tags(values$alignments)
-      values$two_mm <- values$alignments[mismatch_indexes$two_mm]
-      values$no_mm <- values$alignments[mismatch_indexes$no_mm]
-      values$no_mm_in_seed <- values$alignments[mismatch_indexes$no_mm_seed]
+    ### Create 3 sets of alignments based on the mismatch fields
+    #incProgress(amount = .1, detail = "Filtering mismatches")
+    mismatch_indexes <- filter_BAM_tags(values$alignments)
+    values$two_mm <- values$alignments[mismatch_indexes$two_mm]
+    values$no_mm <- values$alignments[mismatch_indexes$no_mm]
+    values$no_mm_in_seed <- values$alignments[mismatch_indexes$no_mm_seed]
+    #})
 
+    ###### Start the loops to make each plot here
+    strand_filter <- c("+", "-")
+    position_filter <- c(FALSE, TRUE)
+    length_filter <- c(input$get_range[[1]]:input$get_range[[2]])
+    alignments_sets <- c("two_mm", "no_mm", "no_mm_in_seed", "shuffled_alignment")
+    region_filter <- c("sense", "antisense", "both")
 
-      ###### Start the loops to make each plot here
-      strand_filter <- c("+", "-")
-      position_filter <- c(FALSE, TRUE)
-      length_filter <- c(input$get_range[[1]]:input$get_range[[2]])
-      alignments_sets <- c("two_mm", "no_mm", "no_mm_in_seed", "shuffled_alignment")
-      region_filter <- c("sense", "antisense", "both")
+    ### Create a shuffled alignment and get the new read sequence
+    values$shuffled_alignment <- shuffle_alignments(alignments = values$no_mm,
+                                                    intervals = values$genome_data[["gene_intervals"]],
+                                                    antisense = TRUE)
+    values$shuffled_alignment <- get_genome_sequence(gr = values$shuffled_alignment,
+                                                     genome_sequence = load_fasta_genome(
+                                                       path = values$selected_genome[['Genome.FASTA']]
+                                                     ))
+    plots[["plot_list"]] <- c()
 
-      ### Create a shuffled alignment and get the new read sequence
-      values$shuffled_alignment <- shuffle_alignments(alignments = values$no_mm,
-                                                      intervals = values$genome_data[["gene_intervals"]],
-                                                      antisense = TRUE)
-      values$shuffled_alignment <- get_genome_sequence(gr = values$shuffled_alignment,
-                                                       genome_sequence = load_fasta_genome(
-                                                         path = values$selected_genome[['Genome.FASTA']]
-                                                       ))
-      for (gene_set_ in names(values$gene_sets)){
-        filtered_genes <- filter_by_gene(gr = values$genome_data[["gene_intervals"]],
-                                         gene_list = values$gene_sets[[gene_set_]],
-                                         invert = FALSE)
-        values$five_prime_dir <- create_output_dir(out_dir = paste0(values$output_dir,
-                                                                    "/",
-                                                                    gene_set_,
-                                                                    "/"),
-                                                   name = 'five_prime')
-        print("filtered_genes")
-        print(filtered_genes)
+    for (gene_set_ in names(values$gene_sets[1])){
+      filtered_genes <- filter_by_gene(gr = values$genome_data[["gene_intervals"]],
+                                       gene_list = values$gene_sets[[gene_set_]],
+                                       invert = FALSE)
+      values$five_prime_dir <- create_output_dir(out_dir = paste0(values$output_dir,
+                                                                  "/",
+                                                                  gene_set_,
+                                                                  "/"),
+                                                 name = 'five_prime')
+      # appendTab(inputId = 'main',
+      #           tab = create_new_tabset(name = gene_set_),
+      #           select = FALSE)
+      # values[["new_tabset"]] <- create_new_tabset(name = gene_set_)
 
-        for (alignment_set_ in alignments_sets){
-          gr_alignment_set_ <- values[[alignment_set_]]
-          print("gr_alignment_set_")
-          print(gr_alignment_set_)
+      # makeNewTabs(gene_set_)
 
-          for (regions_ in region_filter){
-            gr_regions <- filter_by_regions(gr = gr_alignment_set_,
-                                            type = regions_,
-                                            regions = filtered_genes)
-            print("gr_regions")
-            print(gr_regions)
+      # insertUI(selector = paste0("#","row1_", input$add),
+      #          where = "afterEnd",
+      #          ui =
+      # )
+      print("filtered_genes")
+      print(filtered_genes)
 
-            for (position_ in position_filter){
-              if(position_ == TRUE){
+      for (alignment_set_ in alignments_sets){
+        gr_alignment_set_ <- values[[alignment_set_]]
+        print("gr_alignment_set_")
+        print(gr_alignment_set_)
 
-                gr_position <- filter_unique_positions(gr = gr_regions)
-                position_name <- "positions"
-                }
-              if(position_ == FALSE){
-                gr_position <- gr_regions
-                position_name <- "reads"}
-              print("gr_position")
-              print(gr_position)
+        for (regions_ in region_filter){
+          gr_regions <- filter_by_regions(gr = gr_alignment_set_,
+                                          type = regions_,
+                                          regions = filtered_genes)
+          print("gr_regions")
+          print(gr_regions)
 
-              print("make the plot name")
-              print(gene_set_)
-              print(alignment_set_)
-              print(regions_)
-              print(position_name)
+          for (position_ in position_filter){
+            if(position_ == TRUE){
 
-              plot_name <- paste(gene_set_, alignment_set_, regions_, position_name, sep="__")
-
-              print("make the plot")
-              plots[[paste0("five_prime_plot__", plot_name)]] <- five_prime_plot(gr = gr_position)
-
-              print("save the plot")
-
-              save('gr_regions',
-                   file = 'gr_regions.RData',
-                   ascii = FALSE)
-              #a <- plots[[paste0("five_prime_plot__", plot_name)]]
-              #save(a, file = 'plots.RData', ascii = FALSE)
-              save_plot(p = plots[[paste0("five_prime_plot__", plot_name)]],
-                        path = values$five_prime_dir,
-                        label = paste0("five_prime_plot__", plot_name))
-
-              # output$five_prime_plot__two_mm__both__22nt_5prime <- renderPlot({
-              #   plots$five_prime_plot__two_mm__both__22nt_5prime})
-
+              gr_position <- filter_unique_positions(gr = gr_regions)
+              position_name <- "positions"
             }
+            if(position_ == FALSE){
+              gr_position <- gr_regions
+              position_name <- "reads"}
+            print("gr_position")
+            print(gr_position)
+
+            print("make the plot name")
+            print(gene_set_)
+            print(alignment_set_)
+            print(regions_)
+            print(position_name)
+
+            plot_name <- paste(gene_set_, alignment_set_, regions_, position_name, sep="__")
+
+            print("make the plot")
+            # ### This is the main plot function - be sure to uncomment it
+            plots[[paste0("five_prime_plot__", plot_name)]] <- five_prime_plot(gr = gr_position)
+            # plots[[paste0("five_prime_plot__", plot_name)]] <- ggplot2::ggplot()
+            # ###
+            print("save the plot")
+
+            # save('gr_regions',
+            #      file = 'gr_regions.RData',
+            #      ascii = FALSE)
+
+            #a <- plots[[paste0("five_prime_plot__", plot_name)]]
+            #save(a, file = 'plots.RData', ascii = FALSE)
+
+            # ### Uncomment this to save files
+            save_plot(p = plots[[paste0("five_prime_plot__", plot_name)]],
+                      path = values$five_prime_dir,
+                      label = paste0("five_prime_plot__", plot_name))
+
+            insertUI(selector = paste0("#","five_prime_plot__",
+                                       gene_set_),
+                     where = "beforeEnd",
+                     ui = create_new_output(ID = paste0("five_prime_plot__",
+                                                        plot_name)),
+                     immediate = FALSE)
+
+
+            plots[["plot_list"]] <- append(x = plots[["plot_list"]],
+                                           values = paste0("five_prime_plot__", plot_name))
+
+            # a <- paste0("five_prime_plot__", plot_name)
+            # output[[a]] <- renderPlot({
+            #   plots[[a]]
+            # })
+
+            # output$five_prime_plot__two_mm__both__22nt_5prime <- renderPlot({
+            #   plots$five_prime_plot__two_mm__both__22nt_5prime})
+
           }
         }
       }
+    }
+    print(length(plots$plot_list))
+    print("go to sleep")
 
-      ### Start of the good figures
-#
-#       incProgress(amount = .2, detail = "Filtering regions")
-#       values$two_mm__both <- filter_by_regions(alignments = values$two_mm,
-#                                              regions = values$genome_data[["gene_intervals"]],
-#                                              type = "both")
-#       values$two_mm__sense <- filter_by_regions(alignments = values$two_mm,
-#                                                regions = values$genome_data[["gene_intervals"]],
-#                                                type = "sense")
-#       values$two_mm__antisense <- filter_by_regions(alignments = values$two_mm,
-#                                                regions = values$genome_data[["gene_intervals"]],
-#                                                type = "antisense")
-#
-#
-#       print('print(values$alignments)')
-#       print(values$alignments)
-#       print('The length of values$two_mm is: ')
-#       print(length(x = print(values$two_mm)))
-#       #print(values$two_mm)
-#       #print(values$no_mm)
-#       #print(values$no_mm_in_seed)
-#       print('making the plots')
-#       print('making the plots two_mm')
-#       print(width(values$two_mm))
-#       print(strand(values$two_mm))
-#       print(mcols(values$two_mm))
-#       print("shuffled")
-#       print(values$shuffled)
-#
-#
-#       ## Create the output directory for the 5' plots
-#       values$five_prime_dir <- create_output_dir(out_dir = values$output_dir,
-#                                                  name = 'five_prime')
-#       print(values$five_prime_dir)
-#       plots$five_prime_plot__two_mm__both <- five_prime_plot(
-#         gr = values$two_mm__both)
-#       plots$five_prime_plot__two_mm__sense <- five_prime_plot(
-#         gr = values$two_mm__sense)
-#       plots$five_prime_plot__two_mm__antisense <- five_prime_plot(
-#         gr = values$two_mm__antisense)
-#
-#       save_plot(p = plots$five_prime_plot__two_mm__both,
-#                 path = values$five_prime_dir,
-#                 label = 'five_prime_plot__two_mm__both')
-#       save_plot(p = plots$five_prime_plot__two_mm__sense,
-#                 path = values$five_prime_dir,
-#                 label = 'five_prime_plot__two_mm__sense')
-#       save_plot(p = plots$five_prime_plot__two_mm__antisense,
-#                 path = values$five_prime_dir,
-#                 label = 'five_prime_plot__two_mm__antisense')
-#
-#       output$five_prime_plot__two_mm__both <- renderPlot({plots$five_prime_plot__two_mm__both})
-#       output$five_prime_plot__two_mm__sense <- renderPlot({plots$five_prime_plot__two_mm__sense})
-#       output$five_prime_plot__two_mm__antisense <- renderPlot({plots$five_prime_plot__two_mm__antisense})
-#
-#       ### Create datasets with 5' ends assigned to 22nt reads
-#       values$two_mm__both__22nt_5prime <- assign_5prime_to_a_length(
-#         gr = values$two_mm__both,
-#         primary_length = 22)
-#       values$two_mm__antisense__22nt_5prime <- assign_5prime_to_a_length(
-#         gr = values$two_mm__antisense,
-#         primary_length = 22)
-#       values$two_mm__sense__22nt_5prime <- assign_5prime_to_a_length(
-#         gr = values$two_mm__sense,
-#         primary_length = 22)
-#
-#       plots$five_prime_plot__two_mm__both__22nt_5prime <- five_prime_plot(
-#         gr = values$two_mm__both__22nt_5prime)
-#       plots$five_prime_plot__two_mm__sense__22nt_5prime <- five_prime_plot(
-#         gr = values$two_mm__sense__22nt_5prime)
-#       plots$five_prime_plot__two_mm__antisense__22nt_5prime <- five_prime_plot(
-#         gr = values$two_mm__antisense__22nt_5prime)
-#
-#       save_plot(p = plots$five_prime_plot__two_mm__both__22nt_5prime,
-#                 path = values$five_prime_dir,
-#                 label = 'five_prime_plot__two_mm__both__22nt_5prime')
-#       save_plot(p = plots$five_prime_plot__two_mm__sense__22nt_5prime,
-#                 path = values$five_prime_dir,
-#                 label = 'five_prime_plot__two_mm__sense__22nt_5prime')
-#       save_plot(p = plots$five_prime_plot__two_mm__antisense__22nt_5prime,
-#                 path = values$five_prime_dir,
-#                 label = 'five_prime_plot__two_mm__antisense__22nt_5prime')
-#
-#       output$five_prime_plot__two_mm__both__22nt_5prime <- renderPlot({
-#         plots$five_prime_plot__two_mm__both__22nt_5prime})
-#       output$five_prime_plot__two_mm__sense__22nt_5prime <- renderPlot({
-#         plots$five_prime_plot__two_mm__sense__22nt_5prime})
-#       output$five_prime_plot__two_mm__antisense__22nt_5prime <- renderPlot({
-#         plots$five_prime_plot__two_mm__antisense__22nt_5prime})
-#
-#       ### Create the dataset with the gene overlap counts
-#       print("create the dataframe with gene overlap counts")
-#       values$two_mm__antisense__22nt_5prime__overlap_counts <- count_overlaps_by_width(
-#         gr = values$two_mm__antisense__22nt_5prime,
-#         regions = values$genome_data[["gene_intervals"]],
-#         overlap = "antisense",
-#         normalized = FALSE)
-#       values$two_mm__antisense__22nt_5prime__overlap_counts_base_22 <- count_overlaps_by_width_and_base(
-#         gr = values$two_mm__antisense__22nt_5prime,
-#         regions = values$genome_data[["gene_intervals"]],
-#         overlap = "antisense",
-#         normalized = FALSE,
-#         alignment_width = 22,
-#         base_col = 'five')
-#       #print(values$two_mm__antisense__22nt_5prime__overlap_counts_base_22)
-#       ## Create the output directory for the scatter plots
-#       values$scatter_dir <- create_output_dir(out_dir = values$output_dir,
-#                                                  name = 'scatter')
-#       print(values$scatter_dir)
-#
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_15 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 15)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_16 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 16)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_17 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 17)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_18 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 18)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_19 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 19)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_20 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 20)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_21 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 21)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_23 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 23)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_24 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 24)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_25 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 25)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_26 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 26)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_27 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 27)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_28 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 28)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_29 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 29)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22_30 <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
-#         x = 22,
-#         y = 30)
-#       plots$scatter__two_mm__antisense__22nt_5prime__22G_22A <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
-#         x = 'G',
-#         y = 'A')
-#       plots$scatter__two_mm__antisense__22nt_5prime__22G_22C <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
-#         x = 'G',
-#         y = 'C')
-#       plots$scatter__two_mm__antisense__22nt_5prime__22G_22T <- scatter_plot(
-#         df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
-#         x = 'G',
-#         y = 'T')
-#
-#       ### Get sequences for alignments with no mismatches
-#
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_15,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_15')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_16,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_16')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_17,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_17')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_18,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_18')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_19,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_19')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_20,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_20')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_21,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_21')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_23,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_23')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_24,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_24')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_25,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_25')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_26,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_26')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_27,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_27')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_28,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_28')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_29,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_29')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_30,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_30')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22A,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22A')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22C,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22C')
-#       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22T,
-#       #           path = values$scatter_dir,
-#       #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22T')
-#       output$scatter__two_mm__antisense__22nt_5prime__22_15 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_15})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_16 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_16})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_17 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_17})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_18 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_18})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_19 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_19})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_20 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_20})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_21 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_21})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_23 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_23})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_24 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_24})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_25 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_25})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_26 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_26})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_27 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_27})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_28 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_28})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_29 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_29})
-#       output$scatter__two_mm__antisense__22nt_5prime__22_30 <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22_30})
-#       output$scatter__two_mm__antisense__22nt_5prime__22G_22A <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22G_22A})
-#       output$scatter__two_mm__antisense__22nt_5prime__22G_22C <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22G_22C})
-#       output$scatter__two_mm__antisense__22nt_5prime__22G_22T <- renderPlot({
-#         plots$scatter__two_mm__antisense__22nt_5prime__22G_22T})
-#
-#
-#       ### Create alignments with no mismatches in the seed region
-#       values$seq_logo_dir <- create_output_dir(
-#         out_dir = values$output_dir,
-#         name = 'seq_logos')
-#
-#       values$no_mm_in_seed__shuffled <- shuffle_alignments(
-#         alignments = values$no_mm_in_seed,
-#         intervals = values$genome_data[["gene_intervals"]],
-#         antisense = TRUE)
-#       values$no_mm_in_seed__shuffled <- get_genome_sequence(
-#         gr = values$no_mm_in_seed__shuffled,
-#         genome_sequence = load_fasta_genome(
-#           path = values$selected_genome[['Genome.FASTA']]))
-#       values$no_mm_in_seed <- filter_by_regions(
-#         alignments = values$no_mm_in_seed,
-#         regions = values$genome_data[["gene_intervals"]],
-#         type = "antisense")
-#
-#       #print(values$no_mm_in_seed)
-#       #print(values$no_mm_in_seed__shuffled)
-#
-#       plots$seq_logo__no_mm_in_seed__antisense__20nt <- seq_logo_comparisons(
-#         gr = values$no_mm_in_seed,
-#         shuffled_gr = values$no_mm_in_seed__shuffled,
-#         length = 20,
-#         five_prime_base = NULL)
-#
-#       plots$seq_logo__no_mm_in_seed__antisense__21nt <- seq_logo_comparisons(
-#         gr = values$no_mm_in_seed,
-#         shuffled_gr = values$no_mm_in_seed__shuffled,
-#         length = 21,
-#         five_prime_base = NULL)
-#
-#       plots$seq_logo__no_mm_in_seed__antisense__22nt <- seq_logo_comparisons(
-#         gr = values$no_mm_in_seed,
-#         shuffled_gr = values$no_mm_in_seed__shuffled,
-#         length = 22,
-#         five_prime_base = NULL)
-#
-#       plots$seq_logo__no_mm_in_seed__antisense__23nt <- seq_logo_comparisons(
-#         gr = values$no_mm_in_seed,
-#         shuffled_gr = values$no_mm_in_seed__shuffled,
-#         length = 23,
-#         five_prime_base = NULL)
-#
-#       plots$seq_logo__no_mm_in_seed__antisense__24nt <- seq_logo_comparisons(
-#         gr = values$no_mm_in_seed,
-#         shuffled_gr = values$no_mm_in_seed__shuffled,
-#         length = 24,
-#         five_prime_base = NULL)
-#
-#       plots$seq_logo__no_mm_in_seed__antisense__25nt <- seq_logo_comparisons(
-#         gr = values$no_mm_in_seed,
-#         shuffled_gr = values$no_mm_in_seed__shuffled,
-#         length = 25,
-#         five_prime_base = NULL)
-#
-#       plots$seq_logo__no_mm_in_seed__antisense__26nt <- seq_logo_comparisons(
-#         gr = values$no_mm_in_seed,
-#         shuffled_gr = values$no_mm_in_seed__shuffled,
-#         length = 26,
-#         five_prime_base = NULL)
-#
-#       output$seq_logo__no_mm_in_seed__antisense__20nt <- renderPlot({
-#         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__20nt)
-#         })
-#       output$seq_logo__no_mm_in_seed__antisense__21nt <- renderPlot({
-#         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__21nt)
-#       })
-#       output$seq_logo__no_mm_in_seed__antisense__22nt <- renderPlot({
-#         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__22nt)
-#       })
-#       output$seq_logo__no_mm_in_seed__antisense__23nt <- renderPlot({
-#         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__23nt)
-#       })
-#       output$seq_logo__no_mm_in_seed__antisense__24nt <- renderPlot({
-#         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__24nt)
-#       })
-#       output$seq_logo__no_mm_in_seed__antisense__25nt <- renderPlot({
-#         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__25nt)
-#       })
-#       output$seq_logo__no_mm_in_seed__antisense__26nt <- renderPlot({
-#         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__26nt)
-#       })
-#
-#       ### Create alignments with no mismatches
-#       values$phasing_dir <- create_output_dir(
-#         out_dir = values$output_dir,
-#         name = 'phasing')
-#
-#       values$no_mm__overlapping_genes <- filter_by_regions(
-#         alignments = values$no_mm,
-#         regions = values$genome_data[["gene_intervals"]],
-#         type = "both")
-#
-#       plots$phasing__no_mm__22nt <- phasing_plot(gr = values$no_mm__overlapping_genes,
-#                                                               length = 22,
-#                                                               start_base = 'G')
-#       plots$phasing__no_mm__26nt <- phasing_plot(gr = values$no_mm__overlapping_genes,
-#                                                  length = 26,
-#                                                  start_base = 'G')
-#       output$phasing__no_mm__22nt <- renderPlot({
-#         grid.draw(x = plots$phasing__no_mm__22nt)
-#       })
-#       output$phasing__no_mm__26nt <- renderPlot({
-#         grid.draw(x = plots$phasing__no_mm__26nt)
-#       })
-#
-#
-#       ### Create alignments with no mismatches
-#       values$offsets_dir <- create_output_dir(
-#         out_dir = values$output_dir,
-#         name = 'offsets')
-#
-#       values$no_mm__5prime_22nt <- assign_5prime_to_a_length(gr = values$no_mm__overlapping_genes,
-#                                                              primary_length = 22)
-#       TEMP <- values$no_mm__5prime_22nt
-#       save('TEMP',
-#            file = 'no_mm__5prime_22nt.RData',
-#            ascii = FALSE)
-#       plots$offsets__no_mm__5prime_22nt__sense <- offset_plot(gr = values$no_mm__overlapping_genes,
-#                                                        primary_length = 22,
-#                                                        maximum_offset = 10,
-#                                                        overlap_type = 'sense')
-#       plots$offsets__no_mm__5prime_22nt__antisense <- offset_plot(gr = values$no_mm__overlapping_genes,
-#                                                        primary_length = 22,
-#                                                        maximum_offset = 10,
-#                                                        overlap_type = 'antisense')
-#       output$offsets__no_mm__5prime_22nt__sense <- renderPlot({
-#         grid.draw(x = plots$offsets__no_mm__5prime_22nt__sense)
-#       })
-#       output$offsets__no_mm__5prime_22nt__antisense <- renderPlot({
-#         grid.draw(x = plots$offsets__no_mm__5prime_22nt__antisense)
-#       })
-#
-#       ### Create alignments with no mismatches
-#       values$heatmaps_dir <- create_output_dir(
-#         out_dir = values$output_dir,
-#         name = 'heatmaps')
-#
-#       values$no_mm__5prime_longest <- assign_5prime_to_longer(
-#         gr = values$no_mm)
-#       values$no_mm__shuffled__5prime_longest <- assign_5prime_to_longer(
-#         gr = values$no_mm__shuffled)
-#
-#       TEMP <- values$no_mm__5prime_longest
-#       save('TEMP',
-#            file = 'no_mm__5prime_longest.RData',
-#            ascii = FALSE)
-#
-#       values$no_mm__shuffled__5prime_longest__hm__22nt__pos <- calculate_heatmaps(
-#         gr = values$no_mm__shuffled__5prime_longest,
-#         length = 22,
-#         strand = NULL)
-#       values$no_mm__5prime_longest__hm__22nt__pos <- calculate_heatmaps(
-#         gr = values$no_mm__5prime_longest,
-#         length = 22,
-#         strand = "+")
-#       values$no_mm__5prime_longest__hm__22nt__neg <- calculate_heatmaps(
-#         gr = values$no_mm__5prime_longest,
-#         length = 22,
-#         strand = "-")
-#       values$no_mm__5prime_longest__hm__22nt__pos <- subtract_heatmap_background(
-#         gr = values$no_mm__5prime_longest__hm__22nt__pos,
-#         bg = values$no_mm__shuffled__5prime_longest__hm__22nt__pos)
-#       values$no_mm__5prime_longest__hm__22nt__neg <- subtract_heatmap_background(
-#         gr = values$no_mm__5prime_longest__hm__22nt__neg,
-#         bg = values$no_mm__shuffled__5prime_longest__hm__22nt__pos)
-#
-#       plots$heatmaps__no_mm__22nt__pos <- heatmap_plot(
-#         heatmap_data = values$no_mm__5prime_longest__hm__22nt__pos)
-#       plots$heatmaps__no_mm__22nt__neg <- heatmap_plot(
-#         heatmap_data = values$no_mm__5prime_longest__hm__22nt__neg)
-#
-#       output$heatmaps__no_mm__22nt__pos <- renderPlot({
-#         grid.draw(x = plots$heatmaps__no_mm__22nt__pos)
-#       })
-#       output$heatmaps__no_mm__22nt__neg <- renderPlot({
-#         grid.draw(x = plots$heatmaps__no_mm__22nt__neg)
-#       })
-#
+    # for(i in plots[["plot_list"]][[1]]){
+    #   print(i)
+    #   output$test_plot <- renderPlot({plots[[i]]})
+    #   #Sys.sleep(50)
+    # }
+    #a <- plots[["plot_list"]][[1]]
+    #output$test_plot <- renderPlot({plots[[a]]})
 
-      #### End of the good figures
+    print("wake up")
+    # show_plots()
+    # values$make_plots <- TRUE
+    ### Start of the good figures
+    #
+    #       incProgress(amount = .2, detail = "Filtering regions")
+    #       values$two_mm__both <- filter_by_regions(alignments = values$two_mm,
+    #                                              regions = values$genome_data[["gene_intervals"]],
+    #                                              type = "both")
+    #       values$two_mm__sense <- filter_by_regions(alignments = values$two_mm,
+    #                                                regions = values$genome_data[["gene_intervals"]],
+    #                                                type = "sense")
+    #       values$two_mm__antisense <- filter_by_regions(alignments = values$two_mm,
+    #                                                regions = values$genome_data[["gene_intervals"]],
+    #                                                type = "antisense")
+    #
+    #
+    #       print('print(values$alignments)')
+    #       print(values$alignments)
+    #       print('The length of values$two_mm is: ')
+    #       print(length(x = print(values$two_mm)))
+    #       #print(values$two_mm)
+    #       #print(values$no_mm)
+    #       #print(values$no_mm_in_seed)
+    #       print('making the plots')
+    #       print('making the plots two_mm')
+    #       print(width(values$two_mm))
+    #       print(strand(values$two_mm))
+    #       print(mcols(values$two_mm))
+    #       print("shuffled")
+    #       print(values$shuffled)
+    #
+    #
+    #       ## Create the output directory for the 5' plots
+    #       values$five_prime_dir <- create_output_dir(out_dir = values$output_dir,
+    #                                                  name = 'five_prime')
+    #       print(values$five_prime_dir)
+    #       plots$five_prime_plot__two_mm__both <- five_prime_plot(
+    #         gr = values$two_mm__both)
+    #       plots$five_prime_plot__two_mm__sense <- five_prime_plot(
+    #         gr = values$two_mm__sense)
+    #       plots$five_prime_plot__two_mm__antisense <- five_prime_plot(
+    #         gr = values$two_mm__antisense)
+    #
+    #       save_plot(p = plots$five_prime_plot__two_mm__both,
+    #                 path = values$five_prime_dir,
+    #                 label = 'five_prime_plot__two_mm__both')
+    #       save_plot(p = plots$five_prime_plot__two_mm__sense,
+    #                 path = values$five_prime_dir,
+    #                 label = 'five_prime_plot__two_mm__sense')
+    #       save_plot(p = plots$five_prime_plot__two_mm__antisense,
+    #                 path = values$five_prime_dir,
+    #                 label = 'five_prime_plot__two_mm__antisense')
+    #
+    #       output$five_prime_plot__two_mm__both <- renderPlot({plots$five_prime_plot__two_mm__both})
+    #       output$five_prime_plot__two_mm__sense <- renderPlot({plots$five_prime_plot__two_mm__sense})
+    #       output$five_prime_plot__two_mm__antisense <- renderPlot({plots$five_prime_plot__two_mm__antisense})
+    #
+    #       ### Create datasets with 5' ends assigned to 22nt reads
+    #       values$two_mm__both__22nt_5prime <- assign_5prime_to_a_length(
+    #         gr = values$two_mm__both,
+    #         primary_length = 22)
+    #       values$two_mm__antisense__22nt_5prime <- assign_5prime_to_a_length(
+    #         gr = values$two_mm__antisense,
+    #         primary_length = 22)
+    #       values$two_mm__sense__22nt_5prime <- assign_5prime_to_a_length(
+    #         gr = values$two_mm__sense,
+    #         primary_length = 22)
+    #
+    #       plots$five_prime_plot__two_mm__both__22nt_5prime <- five_prime_plot(
+    #         gr = values$two_mm__both__22nt_5prime)
+    #       plots$five_prime_plot__two_mm__sense__22nt_5prime <- five_prime_plot(
+    #         gr = values$two_mm__sense__22nt_5prime)
+    #       plots$five_prime_plot__two_mm__antisense__22nt_5prime <- five_prime_plot(
+    #         gr = values$two_mm__antisense__22nt_5prime)
+    #
+    #       save_plot(p = plots$five_prime_plot__two_mm__both__22nt_5prime,
+    #                 path = values$five_prime_dir,
+    #                 label = 'five_prime_plot__two_mm__both__22nt_5prime')
+    #       save_plot(p = plots$five_prime_plot__two_mm__sense__22nt_5prime,
+    #                 path = values$five_prime_dir,
+    #                 label = 'five_prime_plot__two_mm__sense__22nt_5prime')
+    #       save_plot(p = plots$five_prime_plot__two_mm__antisense__22nt_5prime,
+    #                 path = values$five_prime_dir,
+    #                 label = 'five_prime_plot__two_mm__antisense__22nt_5prime')
+    #
+    #       output$five_prime_plot__two_mm__both__22nt_5prime <- renderPlot({
+    #         plots$five_prime_plot__two_mm__both__22nt_5prime})
+    #       output$five_prime_plot__two_mm__sense__22nt_5prime <- renderPlot({
+    #         plots$five_prime_plot__two_mm__sense__22nt_5prime})
+    #       output$five_prime_plot__two_mm__antisense__22nt_5prime <- renderPlot({
+    #         plots$five_prime_plot__two_mm__antisense__22nt_5prime})
+    #
+    #       ### Create the dataset with the gene overlap counts
+    #       print("create the dataframe with gene overlap counts")
+    #       values$two_mm__antisense__22nt_5prime__overlap_counts <- count_overlaps_by_width(
+    #         gr = values$two_mm__antisense__22nt_5prime,
+    #         regions = values$genome_data[["gene_intervals"]],
+    #         overlap = "antisense",
+    #         normalized = FALSE)
+    #       values$two_mm__antisense__22nt_5prime__overlap_counts_base_22 <- count_overlaps_by_width_and_base(
+    #         gr = values$two_mm__antisense__22nt_5prime,
+    #         regions = values$genome_data[["gene_intervals"]],
+    #         overlap = "antisense",
+    #         normalized = FALSE,
+    #         alignment_width = 22,
+    #         base_col = 'five')
+    #       #print(values$two_mm__antisense__22nt_5prime__overlap_counts_base_22)
+    #       ## Create the output directory for the scatter plots
+    #       values$scatter_dir <- create_output_dir(out_dir = values$output_dir,
+    #                                                  name = 'scatter')
+    #       print(values$scatter_dir)
+    #
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_15 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 15)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_16 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 16)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_17 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 17)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_18 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 18)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_19 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 19)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_20 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 20)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_21 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 21)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_23 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 23)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_24 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 24)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_25 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 25)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_26 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 26)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_27 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 27)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_28 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 28)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_29 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 29)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22_30 <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts,
+    #         x = 22,
+    #         y = 30)
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22G_22A <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
+    #         x = 'G',
+    #         y = 'A')
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22G_22C <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
+    #         x = 'G',
+    #         y = 'C')
+    #       plots$scatter__two_mm__antisense__22nt_5prime__22G_22T <- scatter_plot(
+    #         df = values$two_mm__antisense__22nt_5prime__overlap_counts_base_22,
+    #         x = 'G',
+    #         y = 'T')
+    #
+    #       ### Get sequences for alignments with no mismatches
+    #
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_15,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_15')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_16,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_16')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_17,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_17')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_18,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_18')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_19,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_19')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_20,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_20')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_21,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_21')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_23,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_23')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_24,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_24')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_25,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_25')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_26,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_26')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_27,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_27')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_28,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_28')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_29,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_29')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22_30,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22_30')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22A,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22A')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22C,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22C')
+    #       # save_plot(p = plots$scatter__two_mm__antisense__22nt_5prime__22G_22T,
+    #       #           path = values$scatter_dir,
+    #       #           label = 'scatter__two_mm__antisense__22nt_5prime__22G_22T')
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_15 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_15})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_16 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_16})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_17 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_17})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_18 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_18})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_19 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_19})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_20 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_20})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_21 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_21})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_23 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_23})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_24 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_24})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_25 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_25})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_26 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_26})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_27 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_27})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_28 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_28})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_29 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_29})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22_30 <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22_30})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22G_22A <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22G_22A})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22G_22C <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22G_22C})
+    #       output$scatter__two_mm__antisense__22nt_5prime__22G_22T <- renderPlot({
+    #         plots$scatter__two_mm__antisense__22nt_5prime__22G_22T})
+    #
+    #
+    #       ### Create alignments with no mismatches in the seed region
+    #       values$seq_logo_dir <- create_output_dir(
+    #         out_dir = values$output_dir,
+    #         name = 'seq_logos')
+    #
+    #       values$no_mm_in_seed__shuffled <- shuffle_alignments(
+    #         alignments = values$no_mm_in_seed,
+    #         intervals = values$genome_data[["gene_intervals"]],
+    #         antisense = TRUE)
+    #       values$no_mm_in_seed__shuffled <- get_genome_sequence(
+    #         gr = values$no_mm_in_seed__shuffled,
+    #         genome_sequence = load_fasta_genome(
+    #           path = values$selected_genome[['Genome.FASTA']]))
+    #       values$no_mm_in_seed <- filter_by_regions(
+    #         alignments = values$no_mm_in_seed,
+    #         regions = values$genome_data[["gene_intervals"]],
+    #         type = "antisense")
+    #
+    #       #print(values$no_mm_in_seed)
+    #       #print(values$no_mm_in_seed__shuffled)
+    #
+    #       plots$seq_logo__no_mm_in_seed__antisense__20nt <- seq_logo_comparisons(
+    #         gr = values$no_mm_in_seed,
+    #         shuffled_gr = values$no_mm_in_seed__shuffled,
+    #         length = 20,
+    #         five_prime_base = NULL)
+    #
+    #       plots$seq_logo__no_mm_in_seed__antisense__21nt <- seq_logo_comparisons(
+    #         gr = values$no_mm_in_seed,
+    #         shuffled_gr = values$no_mm_in_seed__shuffled,
+    #         length = 21,
+    #         five_prime_base = NULL)
+    #
+    #       plots$seq_logo__no_mm_in_seed__antisense__22nt <- seq_logo_comparisons(
+    #         gr = values$no_mm_in_seed,
+    #         shuffled_gr = values$no_mm_in_seed__shuffled,
+    #         length = 22,
+    #         five_prime_base = NULL)
+    #
+    #       plots$seq_logo__no_mm_in_seed__antisense__23nt <- seq_logo_comparisons(
+    #         gr = values$no_mm_in_seed,
+    #         shuffled_gr = values$no_mm_in_seed__shuffled,
+    #         length = 23,
+    #         five_prime_base = NULL)
+    #
+    #       plots$seq_logo__no_mm_in_seed__antisense__24nt <- seq_logo_comparisons(
+    #         gr = values$no_mm_in_seed,
+    #         shuffled_gr = values$no_mm_in_seed__shuffled,
+    #         length = 24,
+    #         five_prime_base = NULL)
+    #
+    #       plots$seq_logo__no_mm_in_seed__antisense__25nt <- seq_logo_comparisons(
+    #         gr = values$no_mm_in_seed,
+    #         shuffled_gr = values$no_mm_in_seed__shuffled,
+    #         length = 25,
+    #         five_prime_base = NULL)
+    #
+    #       plots$seq_logo__no_mm_in_seed__antisense__26nt <- seq_logo_comparisons(
+    #         gr = values$no_mm_in_seed,
+    #         shuffled_gr = values$no_mm_in_seed__shuffled,
+    #         length = 26,
+    #         five_prime_base = NULL)
+    #
+    #       output$seq_logo__no_mm_in_seed__antisense__20nt <- renderPlot({
+    #         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__20nt)
+    #         })
+    #       output$seq_logo__no_mm_in_seed__antisense__21nt <- renderPlot({
+    #         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__21nt)
+    #       })
+    #       output$seq_logo__no_mm_in_seed__antisense__22nt <- renderPlot({
+    #         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__22nt)
+    #       })
+    #       output$seq_logo__no_mm_in_seed__antisense__23nt <- renderPlot({
+    #         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__23nt)
+    #       })
+    #       output$seq_logo__no_mm_in_seed__antisense__24nt <- renderPlot({
+    #         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__24nt)
+    #       })
+    #       output$seq_logo__no_mm_in_seed__antisense__25nt <- renderPlot({
+    #         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__25nt)
+    #       })
+    #       output$seq_logo__no_mm_in_seed__antisense__26nt <- renderPlot({
+    #         grid.draw(x = plots$seq_logo__no_mm_in_seed__antisense__26nt)
+    #       })
+    #
+    #       ### Create alignments with no mismatches
+    #       values$phasing_dir <- create_output_dir(
+    #         out_dir = values$output_dir,
+    #         name = 'phasing')
+    #
+    #       values$no_mm__overlapping_genes <- filter_by_regions(
+    #         alignments = values$no_mm,
+    #         regions = values$genome_data[["gene_intervals"]],
+    #         type = "both")
+    #
+    #       plots$phasing__no_mm__22nt <- phasing_plot(gr = values$no_mm__overlapping_genes,
+    #                                                               length = 22,
+    #                                                               start_base = 'G')
+    #       plots$phasing__no_mm__26nt <- phasing_plot(gr = values$no_mm__overlapping_genes,
+    #                                                  length = 26,
+    #                                                  start_base = 'G')
+    #       output$phasing__no_mm__22nt <- renderPlot({
+    #         grid.draw(x = plots$phasing__no_mm__22nt)
+    #       })
+    #       output$phasing__no_mm__26nt <- renderPlot({
+    #         grid.draw(x = plots$phasing__no_mm__26nt)
+    #       })
+    #
+    #
+    #       ### Create alignments with no mismatches
+    #       values$offsets_dir <- create_output_dir(
+    #         out_dir = values$output_dir,
+    #         name = 'offsets')
+    #
+    #       values$no_mm__5prime_22nt <- assign_5prime_to_a_length(gr = values$no_mm__overlapping_genes,
+    #                                                              primary_length = 22)
+    #       TEMP <- values$no_mm__5prime_22nt
+    #       save('TEMP',
+    #            file = 'no_mm__5prime_22nt.RData',
+    #            ascii = FALSE)
+    #       plots$offsets__no_mm__5prime_22nt__sense <- offset_plot(gr = values$no_mm__overlapping_genes,
+    #                                                        primary_length = 22,
+    #                                                        maximum_offset = 10,
+    #                                                        overlap_type = 'sense')
+    #       plots$offsets__no_mm__5prime_22nt__antisense <- offset_plot(gr = values$no_mm__overlapping_genes,
+    #                                                        primary_length = 22,
+    #                                                        maximum_offset = 10,
+    #                                                        overlap_type = 'antisense')
+    #       output$offsets__no_mm__5prime_22nt__sense <- renderPlot({
+    #         grid.draw(x = plots$offsets__no_mm__5prime_22nt__sense)
+    #       })
+    #       output$offsets__no_mm__5prime_22nt__antisense <- renderPlot({
+    #         grid.draw(x = plots$offsets__no_mm__5prime_22nt__antisense)
+    #       })
+    #
+    #       ### Create alignments with no mismatches
+    #       values$heatmaps_dir <- create_output_dir(
+    #         out_dir = values$output_dir,
+    #         name = 'heatmaps')
+    #
+    #       values$no_mm__5prime_longest <- assign_5prime_to_longer(
+    #         gr = values$no_mm)
+    #       values$no_mm__shuffled__5prime_longest <- assign_5prime_to_longer(
+    #         gr = values$no_mm__shuffled)
+    #
+    #       TEMP <- values$no_mm__5prime_longest
+    #       save('TEMP',
+    #            file = 'no_mm__5prime_longest.RData',
+    #            ascii = FALSE)
+    #
+    #       values$no_mm__shuffled__5prime_longest__hm__22nt__pos <- calculate_heatmaps(
+    #         gr = values$no_mm__shuffled__5prime_longest,
+    #         length = 22,
+    #         strand = NULL)
+    #       values$no_mm__5prime_longest__hm__22nt__pos <- calculate_heatmaps(
+    #         gr = values$no_mm__5prime_longest,
+    #         length = 22,
+    #         strand = "+")
+    #       values$no_mm__5prime_longest__hm__22nt__neg <- calculate_heatmaps(
+    #         gr = values$no_mm__5prime_longest,
+    #         length = 22,
+    #         strand = "-")
+    #       values$no_mm__5prime_longest__hm__22nt__pos <- subtract_heatmap_background(
+    #         gr = values$no_mm__5prime_longest__hm__22nt__pos,
+    #         bg = values$no_mm__shuffled__5prime_longest__hm__22nt__pos)
+    #       values$no_mm__5prime_longest__hm__22nt__neg <- subtract_heatmap_background(
+    #         gr = values$no_mm__5prime_longest__hm__22nt__neg,
+    #         bg = values$no_mm__shuffled__5prime_longest__hm__22nt__pos)
+    #
+    #       plots$heatmaps__no_mm__22nt__pos <- heatmap_plot(
+    #         heatmap_data = values$no_mm__5prime_longest__hm__22nt__pos)
+    #       plots$heatmaps__no_mm__22nt__neg <- heatmap_plot(
+    #         heatmap_data = values$no_mm__5prime_longest__hm__22nt__neg)
+    #
+    #       output$heatmaps__no_mm__22nt__pos <- renderPlot({
+    #         grid.draw(x = plots$heatmaps__no_mm__22nt__pos)
+    #       })
+    #       output$heatmaps__no_mm__22nt__neg <- renderPlot({
+    #         grid.draw(x = plots$heatmaps__no_mm__22nt__neg)
+    #       })
+    #
 
-
-
-
-      # save_plot(p = plots$seq_logo__no_mm_in_seed__antisense__23nt,
-      #           path = values$seq_logo_dir,
-      #           label = 'seq_logo__no_mm_in_seed__antisense__23nt')
-
-      # plots$no_mm_in_seed__23 <- seq_logo_comparisons(
-      #   gr = values$no_mm_in_seed,
-      #   shuffled_gr = no_mm_in_seed__shuffled,
-      #   length = 23,
-      #   five_prime_base = NULL)
+    #### End of the good figures
 
 
 
-      # two_mm_five_prime <- make_length_plots(gr = values$two_mm,
-      #                        path = paste(values$output_dir,
-      #                                     '/five_prime',
-      #                                     sep = ''),
-      #                        label = "two_mm__five_prime")
-      # output$two_mm_five_prime <- renderPlot({two_mm_five_prime})
-      #
-      # no_mm_five_prime <- make_length_plots(gr = values$no_mm,
-      #                                 path = paste(values$output_dir,
-      #                                              '/five_prime',
-      #                                              sep = ''),
-      #                                 label = "no_mm__five_prime")
-      # output$no_mm_five_prime <- renderPlot({no_mm_five_prime})
-      #
-      # no_mm_in_seed_five_prime <- make_length_plots(gr = values$no_mm_in_seed,
-      #                                 path = paste(values$output_dir,
-      #                                              '/five_prime',
-      #                                              sep = ''),
-      #                                 label = "no_mm_in_seed__five_prime")
-      # output$no_mm_in_seed_five_prime <- renderPlot({no_mm_in_seed_five_prime})
-      #
-      # shuffled_five_prime <- make_length_plots(gr = values$shuffled,
-      #                                               path = paste(values$output_dir,
-      #                                                            '/five_prime',
-      #                                                            sep = ''),
-      #                                               label = "shuffled__five_prime")
-      # output$shuffled_five_prime <- renderPlot({shuffled_five_prime})
 
-      # print('making the plots no_mm')
-      # make_length_plots(gr = values$no_mm,
-      #                   path = paste(values$output_dir,
-      #                                '/five_prime',
-      #                                sep = ''),
-      #                   label = "no_mm__all_genes")
-      # print('making the plots no_mm_in_seed')
-      # make_length_plots(gr = values$no_mm_in_seed,
-      #                   path = paste(values$output_dir,
-      #                                '/five_prime',
-      #                                sep = ''),
-      #                   label = "no_mm_in_seed__all_genes")
+    # save_plot(p = plots$seq_logo__no_mm_in_seed__antisense__23nt,
+    #           path = values$seq_logo_dir,
+    #           label = 'seq_logo__no_mm_in_seed__antisense__23nt')
 
-      # output$fivepp_all <- renderPlot({
-      #   print('making the plot')
-      #   p = make_length_plots(gr = values$two_mm,
-      #                         path = paste(values$output_dir,
-      #                                      '/five_prime/',
-      #                                      sep = ''),
-      #                         label = 'two_mm__all_genes')
-      #   print('printing the plot')
-      #   print(p)
-      #   return(NULL)
-      # })
+    # plots$no_mm_in_seed__23 <- seq_logo_comparisons(
+    #   gr = values$no_mm_in_seed,
+    #   shuffled_gr = no_mm_in_seed__shuffled,
+    #   length = 23,
+    #   five_prime_base = NULL)
+
+
+
+    # two_mm_five_prime <- make_length_plots(gr = values$two_mm,
+    #                        path = paste(values$output_dir,
+    #                                     '/five_prime',
+    #                                     sep = ''),
+    #                        label = "two_mm__five_prime")
+    # output$two_mm_five_prime <- renderPlot({two_mm_five_prime})
+    #
+    # no_mm_five_prime <- make_length_plots(gr = values$no_mm,
+    #                                 path = paste(values$output_dir,
+    #                                              '/five_prime',
+    #                                              sep = ''),
+    #                                 label = "no_mm__five_prime")
+    # output$no_mm_five_prime <- renderPlot({no_mm_five_prime})
+    #
+    # no_mm_in_seed_five_prime <- make_length_plots(gr = values$no_mm_in_seed,
+    #                                 path = paste(values$output_dir,
+    #                                              '/five_prime',
+    #                                              sep = ''),
+    #                                 label = "no_mm_in_seed__five_prime")
+    # output$no_mm_in_seed_five_prime <- renderPlot({no_mm_in_seed_five_prime})
+    #
+    # shuffled_five_prime <- make_length_plots(gr = values$shuffled,
+    #                                               path = paste(values$output_dir,
+    #                                                            '/five_prime',
+    #                                                            sep = ''),
+    #                                               label = "shuffled__five_prime")
+    # output$shuffled_five_prime <- renderPlot({shuffled_five_prime})
+
+    # print('making the plots no_mm')
+    # make_length_plots(gr = values$no_mm,
+    #                   path = paste(values$output_dir,
+    #                                '/five_prime',
+    #                                sep = ''),
+    #                   label = "no_mm__all_genes")
+    # print('making the plots no_mm_in_seed')
+    # make_length_plots(gr = values$no_mm_in_seed,
+    #                   path = paste(values$output_dir,
+    #                                '/five_prime',
+    #                                sep = ''),
+    #                   label = "no_mm_in_seed__all_genes")
+
+    # output$fivepp_all <- renderPlot({
+    #   print('making the plot')
+    #   p = make_length_plots(gr = values$two_mm,
+    #                         path = paste(values$output_dir,
+    #                                      '/five_prime/',
+    #                                      sep = ''),
+    #                         label = 'two_mm__all_genes')
+    #   print('printing the plot')
+    #   print(p)
+    #   return(NULL)
+    # })
     #make_length_plots(gr = values$two_mm, path = values$output_dir, label = "two_mm")
     #make_length_plots(gr = values$no_mm, path = values$output_dir, label = "no_mm")
     #make_length_plots(gr = values$no_mm_in_seed, path = values$output_dir, label = "no_mm_in_seed")
-  })
+
     # strvalues$selected_genome
     #print(values$selected_genome)
     # for(i in values$selected_genome)
@@ -1162,11 +1276,11 @@ server <- function(input, output, session){
     #
     # }
 
-})
+               })
 }
 
 
-    # alignments <- filter_alignments(alignments = alignments,
+# alignments <- filter_alignments(alignments = alignments,
     #                                 regions = genome_data[["gene_intervals"]],
     #                                 regions_filter = "both",
     #                                 minimum = length_range["minimum"],
