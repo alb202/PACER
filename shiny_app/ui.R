@@ -90,8 +90,17 @@ ui <- fluidPage(
                                                      label="View dataset")))
                            )
                   ),
-                  tabPanel(title = "Help", value = "help", icon = icon("help", lib="glyphicon")
-                  )
+                  tabPanel(title = "Help", value = "help", icon = icon("help", lib="glyphicon"),
+                           wellPanel(fluidRow(
+                             actionButton("make_plots", "Make plots"),
+                             actionButton("show_plots", "Show plots"),
+                             imageOutput(outputId="test_plot",
+                                         width = 'auto',
+                                         height = 'auto'
+                                         )
+                           )
+
+                  ))
       )),
     mainPanel(
       tabsetPanel(id="main", type = "tabs",
